@@ -3,6 +3,7 @@ import enum, functools, itertools, pathlib
 from dataclasses import dataclass, replace
 from tinygrad import Tensor, nn, UOp, TinyJit, getenv, function, dtypes
 from tinygrad.llm.kernels.amd import Linear, gated_delta_prefill, flash_attention, amd_custom_kernels_supported
+from tinygrad.helpers import DEBUG, Timing
 from tinygrad.llm.gguf import gguf_load
 from tinygrad.uop.ops import resolve
 
@@ -133,22 +134,44 @@ class FFNBlock:
         if hasattr(self, 'ffn_gate_inp_shexp'): shexp = shexp * (x * self.ffn_gate_inp_shexp["weight"]).sum(axis=-1, keepdim=True).sigmoid()
         out = out + shexp
       return out
+    if hasattr(self.ffn_down, "_ggml") and self._n_fused(x):
+      from tinygrad.llm import amd_gemv
+      return self.ffn_down(amd_gemv.silu_mul_quant(self.ffn_gate(x), self.ffn_up(x)))
     # TODO: remove the need for this contiguous
     return self.ffn_down(self.ffn_gate(x).silu().contiguous() * self.ffn_up(x))
 
   # given the token-prefix match, return how much cached state this block can still reuse
   def _reusable_prefix_len(self, prefix_len:int, cached_len:int) -> int: return prefix_len
   def _init_state(self, x:Tensor): raise NotImplementedError
-  def _attention(self, x:Tensor, start_pos:int|UOp) -> Tensor: raise NotImplementedError
+  def _attention(self, x:Tensor, start_pos:int|UOp, residual:Tensor|None=None, n_tok:int|UOp|None=None) -> Tensor: raise NotImplementedError
 
-  def __call__(self, x: Tensor, start_pos: int|UOp):
+  def __call__(self, x: Tensor, start_pos: int|UOp, n_tok:int|UOp|None=None):
     self._init_state(x)
+    if self._decode_fused(x): return self._run_decode(x, start_pos, n_tok)
+    assert n_tok is None, "padded token chunks need the fused decode path"
     # we pass in the weights implicitly so we unpack the GGUF on the fly
     @function(precompile=True, allow_implicit=True)
     def _run(x:Tensor, start_pos:int|UOp):
       h =     x + self._attention(self.attn_norm(x), start_pos)
       return (h + self._feed_forward(self.ffn_norm(h))).contiguous()
     return _run(x, start_pos)
+
+  # number of tokens x holds if it is a batch the fused AMD kernels take (B=1, T <= MAX_T), else 0
+  @staticmethod
+  def _n_fused(x:Tensor) -> int:
+    from tinygrad.llm.amd_gemv import MAX_T
+    return x.shape[1] if x.shape[0] == 1 and isinstance(x.shape[1], int) and x.shape[1] <= MAX_T else 0
+  # decode of up to MAX_T tokens with the packed-weight kernels: no function boundary (it copies in and out), residual adds fused into
+  # the gemv epilogues. n_tok (runtime) is the number of valid tokens of a padded chunk
+  def _decode_fused(self, x:Tensor) -> bool:
+    return bool(self._n_fused(x)) and hasattr(self.ffn_down, "_ggml") and hasattr(self.attn_output_linear(), "_ggml")
+  def attn_output_linear(self) -> Linear: return self.attn_output
+  def _run_decode(self, x:Tensor, start_pos:int|UOp, n_tok:int|UOp|None=None) -> Tensor:
+    from tinygrad.llm.amd_gemv import linear_decode, linear_decode_multi, silu_mul_quant
+    h = self._attention(self.attn_norm(x), start_pos, residual=x, n_tok=n_tok)
+    xn = self.ffn_norm(h)
+    gate, up = linear_decode_multi([self.ffn_gate, self.ffn_up], xn)
+    return linear_decode(self.ffn_down, silu_mul_quant(gate, up), residual=h)
 
 class TransformerBlock(FFNBlock):
   def __init__(self, config:TransformerConfig):
@@ -164,8 +187,33 @@ class TransformerBlock(FFNBlock):
     self.attn_output = Linear(config.head_dim * config.n_heads, config.dim, bias=False)
     if config.qk_norm: self.attn_q_norm, self.attn_k_norm = nn.RMSNorm(config.qk_norm, config.norm_eps), nn.RMSNorm(config.qk_norm, config.norm_eps)
 
-  def _attention(self, x:Tensor, start_pos:int|UOp) -> Tensor:
-    q, k, v = self.attn_q(x), self.attn_k(x), self.attn_v(x)
+  def _attention_fused(self, x:Tensor, start_pos:int|UOp, residual:Tensor, n_tok:int|UOp|None) -> Tensor:
+    # decode on AMD: fused attention kernel pairs (norm + rope + cache write + flash-decoding) per token, same math as _attention
+    from tinygrad.llm import amd_gemv
+    c = self.config
+    T = x.shape[1]
+    q, k, v = amd_gemv.linear_decode_multi([self.attn_q, self.attn_k, self.attn_v], x)
+    qk = c.qk_norm == c.head_dim
+    if not hasattr(self, "_attn_params"):
+      self._attn_params = (self.attn_q_norm.weight.float().contiguous().realize(), self.attn_k_norm.weight.float().contiguous().realize()) if qk else (None, None)
+    qnw, knw = self._attn_params
+    attn = amd_gemv.attn_decode(self.cache_kv, q, k, v, qnw, knw, self.freqs_cis, start_pos, c.n_heads, c.n_kv_heads, c.head_dim, c.rope_dim,
+                                c.max_context, c.norm_eps, c.attn_output_gate, T, n_tok)
+    return amd_gemv.linear_decode(self.attn_output, attn.reshape(1, T, -1), residual=residual)
+
+  def _fused_ok(self) -> bool:
+    c = self.config
+    return all(hasattr(l, "_ggml") for l in (self.attn_q, self.attn_k, self.attn_v)) and bool(getenv("AMD_ATTN", 1)) and \
+       c.head_dim == 256 and c.n_heads % c.n_kv_heads == 0 and c.n_heads // c.n_kv_heads <= 8 and c.qk_norm in (0, c.head_dim) and \
+       c.rope_dim <= 64 and self.cache_kv.dtype == dtypes.float32
+
+  def _attention(self, x:Tensor, start_pos:int|UOp, residual:Tensor|None=None, n_tok:int|UOp|None=None) -> Tensor:
+    if residual is not None and self._n_fused(x) and self._fused_ok(): return self._attention_fused(x, start_pos, residual, n_tok)
+    assert n_tok is None, "padded token chunks need the fused attention path"
+    if residual is not None and all(hasattr(l, "_ggml") for l in (self.attn_q, self.attn_k, self.attn_v)):
+      from tinygrad.llm.amd_gemv import linear_decode_multi
+      q, k, v = linear_decode_multi([self.attn_q, self.attn_k, self.attn_v], x)
+    else: q, k, v = self.attn_q(x), self.attn_k(x), self.attn_v(x)
     if self.config.qk_norm and self.config.qk_norm != self.config.head_dim: q, k = self.attn_q_norm(q), self.attn_k_norm(k)
 
     B, T, _ = x.shape
@@ -201,7 +249,11 @@ class TransformerBlock(FFNBlock):
       if resolve(T != 1) else None
     attn = q.scaled_dot_product_attention(k, v, attn_mask=mask, enable_gqa=True)     # (B,H,T,Hd)
     attn = attn.transpose(1, 2).reshape(B, T, -1)                                    # back to (B,T,D)
-    return self.attn_output(attn if not self.config.attn_output_gate else (attn * gate.sigmoid()))
+    attn = attn if not self.config.attn_output_gate else (attn * gate.sigmoid())
+    if residual is not None:
+      from tinygrad.llm.amd_gemv import linear_decode
+      return linear_decode(self.attn_output, attn.contiguous(), residual=residual)
+    return self.attn_output(attn)
 
   def _init_state(self, x:Tensor):
     if not hasattr(self, "cache_kv"):
@@ -226,7 +278,8 @@ class MLATransformerBlock(FFNBlock):
     self.attn_v_b = {"weight": Tensor.zeros(config.n_heads, config.v_head_dim, config.kv_lora_rank)}
     self.attn_output = Linear(config.n_heads * config.v_head_dim, config.dim, bias=False)
 
-  def _attention(self, x:Tensor, start_pos:int|UOp) -> Tensor:
+  def _attention(self, x:Tensor, start_pos:int|UOp, residual:Tensor|None=None, n_tok:int|UOp|None=None) -> Tensor:
+    assert residual is None and n_tok is None
     B, T, _ = x.shape
     q_nope_head_dim = self.config.head_dim - self.config.rope_dim
     q_proj = self.attn_q_b(self.attn_q_a_norm(self.attn_q_a(x))) if self.config.q_lora_rank > 0 else self.attn_q(x)
@@ -277,12 +330,30 @@ class GatedDeltaNetBlock(FFNBlock):
     self.ssm_a = Tensor.zeros(self.num_v_heads, 1) if ssm.kda else Tensor.zeros(self.num_v_heads)
     self.ssm_norm, self.ssm_out = nn.RMSNorm(self.head_v_dim, config.norm_eps), Linear(ssm.inner_size, config.dim, bias=False)
 
-  def _attention(self, x:Tensor, start_pos:int|UOp) -> Tensor:
+  def attn_output_linear(self) -> Linear: return self.ssm_out
+  def _attention_fused(self, x:Tensor, start_pos:int|UOp, residual:Tensor|None, n_tok:int|UOp|None) -> Tensor:
+    # decode on AMD: custom fused kernels (see amd_gemv.gdn_decode), same math as _attention
+    from tinygrad.llm import amd_gemv
+    conv_w, dt_bias, A, norm_w = self._gdn_params
+    T = x.shape[1]
+    qkv, gate, alpha, beta = amd_gemv.linear_decode_multi([self.attn_qkv, self.attn_gate, self.ssm_alpha, self.ssm_beta], x)
+    z = amd_gemv.gdn_decode(self.conv_state, self.recurrent_state, qkv, conv_w, alpha, beta, dt_bias, A,
+                            gate, norm_w, start_pos, self.num_v_heads, self.num_k_heads, self.head_v_dim, self.head_k_dim,
+                            self.config.norm_eps, 1e-6, self.config.max_context, T, n_tok)
+    return amd_gemv.linear_decode(self.ssm_out, z.reshape(1, T, -1), residual=residual)
+
+  def _fused_ok(self) -> bool:
+    return not hasattr(self, "ssm_g_a") and hasattr(self.attn_qkv, "_ggml") and self.conv_state.dtype == dtypes.float32 and \
+       self.recurrent_state.dtype == dtypes.float32 and bool(getenv("AMD_GDN", 1))
+
+  def _attention(self, x:Tensor, start_pos:int|UOp, residual:Tensor|None=None, n_tok:int|UOp|None=None) -> Tensor:
     B, T, _ = x.shape
     # bind ints to a variable so the reset flag stays a runtime value (it toggles when generation restarts at position 0)
     start_pos = start_pos if isinstance(start_pos, UOp) else UOp.variable("start_pos", 0, self.config.max_context-1).bind(start_pos)
-    initial = Tensor(start_pos).eq(0)
     is_kda = hasattr(self, "ssm_g_a")
+    if self._n_fused(x) and self._fused_ok(): return self._attention_fused(x, start_pos, residual, n_tok)
+    assert residual is None and n_tok is None
+    initial = Tensor(start_pos).eq(0)
     symbolic = isinstance(T, UOp)
     T_pad = x.max_shape[1]  # symbolic chunks are padded to their max size: one graph serves every size
 
@@ -350,6 +421,8 @@ class GatedDeltaNetBlock(FFNBlock):
     if not hasattr(self, "conv_state"):
       self.conv_state = Tensor.zeros(x.shape[0], self.ssm_conv_kernel-1, self.conv_channels, device=x.device).clone()
       self.recurrent_state = Tensor.zeros(x.shape[0], self.num_v_heads, self.head_v_dim, self.head_k_dim, device=x.device).clone()
+      if hasattr(self.attn_qkv, "_ggml"):  # f32 copies of the small params for the fused decode kernels, realized outside the function capture
+        self._gdn_params = tuple(t.float().contiguous().realize() for t in (self.ssm_conv1d["weight"], self.ssm_dt["bias"], self.ssm_a, self.ssm_norm.weight))
 
 class Transformer:
   def __init__(self, config:TransformerConfig):
@@ -369,28 +442,37 @@ class Transformer:
     self.prefill_jit = TinyJit(self.forward)
     self.rollout_jit = TinyJit(self.forward)
 
-  def forward(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor) -> Tensor:
+  def forward(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp|None=None) -> Tensor:
+    # n_tok: number of valid tokens when `tokens` is a padded fixed-size chunk (fused AMD path), the rest are ignored
+    if hasattr(self, "_ggml_raw"):
+      from tinygrad.llm import amd_gemv
+      amd_gemv.new_forward()
     x = self.token_embd(tokens).float()                   # (B, T, D)
-    for block in self.blk: x = block(x, start_pos)
-    # only run the output projection on the last token
-    logits = self.output(self.output_norm(x[:, -1:]))[:, -1, :]
+    for block in self.blk: x = block(x, start_pos, n_tok)
+    # only run the output projection on the last (valid) token
+    last = x[:, -1:] if n_tok is None else x.shrink((None, (n_tok - 1, n_tok), None)).contiguous()
+    logits = self.output(self.output_norm(last))[:, -1, :]
     # Gumbel-max trick: argmax(logits/temp - log(-log(uniform))) is equivalent to sampling from softmax(logits/temp)
     return (logits / temperature.maximum(1e-12) - (Tensor.rand_like(logits).maximum(1e-12).log().neg()).log()).argmax(-1, keepdim=True)
 
-  def __call__(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor) -> Tensor:
-    return (self.prefill_jit if resolve(tokens.shape[1] != 1) else self.rollout_jit)(tokens.contiguous(), start_pos, temperature)
+  def __call__(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp|None=None) -> Tensor:
+    jit = self.prefill_jit if resolve(tokens.shape[1] != 1) else self.rollout_jit
+    return jit(tokens.contiguous(), start_pos, temperature, n_tok) if n_tok is not None else jit(tokens.contiguous(), start_pos, temperature)
 
   @staticmethod
   def from_gguf(gguf:Tensor|str|pathlib.Path, max_context:int|None=None,
                 realize=bool(getenv("REALIZE", 0))) -> tuple[Transformer, dict]:
     # TODO: remove the need for copy to default device
-    kv, state_dict = gguf_load(gguf.to(None).realize() if isinstance(gguf, Tensor) else gguf)
+    raw: dict = {}
+    kv, state_dict = gguf_load(gguf.to(None).realize() if isinstance(gguf, Tensor) else gguf, raw_out=raw)
 
     # all state items should be float16, not float32
     state_dict = {k:v.cast('float16') if getenv("HALF", 1) else v for k,v in state_dict.items()}
 
     # some models like Llama 3.2 don't have an output.weight, they just tie to the token_embd.weight
-    if 'output.weight' not in state_dict: state_dict['output.weight'] = state_dict['token_embd.weight']
+    if 'output.weight' not in state_dict:
+      state_dict['output.weight'] = state_dict['token_embd.weight']
+      if 'token_embd.weight' in raw: raw['output.weight'] = raw['token_embd.weight']
 
     arch = kv['general.architecture']
     max_context = min(max_context, kv[f'{arch}.context_length']) if max_context is not None else kv[f'{arch}.context_length']
@@ -458,6 +540,24 @@ class Transformer:
       expert_bias=f"blk.{kv.get(f'{arch}.leading_dense_block_count', 0)}.exp_probs_b.bias" in state_dict)
     model = Transformer(config)
     nn.state.load_state_dict(model, state_dict, verbose=False, consume=True, realize=False)  # NOTE: rope_freqs.weight (32,) is unused
+    # the packed weights stay resident: realize the raw bytes of the model's tensors once (straight from disk), and the small
+    # parameters (norms, biases, conv weights) so nothing is re-copied or re-cast every token
+    with Timing("loaded weights in ", enabled=DEBUG >= 1):
+      used = set(nn.state.get_state_dict(model).keys())
+      Tensor.realize(*[t for k, (t, _, _) in raw.items() if k in used])
+      Tensor.realize(*[p for p in nn.state.get_parameters(model) if p.numel() < 2**20])
+    # custom quantized GEMV kernels consume the raw ggml bytes directly (single token decode on AMD)
+    if getenv("AMD_GEMV", 1) and nn.state.get_parameters(model)[0].device.split(":")[0] == "AMD":
+      from tinygrad.llm import amd_gemv
+      model._ggml_raw = {k: amd_gemv.GGMLWeight(t, typ, *shape) for k, (t, typ, shape) in raw.items()}
+      amd_gemv.install()
+      if DEBUG >= 1: print(f"amd_gemv: attached raw ggml weights to {len(amd_gemv.attach(model))} layers")
+      else: amd_gemv.attach(model)
+      # prefill in fixed-size token chunks through the fused kernels when every block takes that path (state updates must skip padding)
+      probe = Tensor.empty(1, 1, config.dim, device=nn.state.get_parameters(model)[0].device)
+      for b in model.blk: b._init_state(probe)
+      if getenv("AMD_CHUNK", 1) and all(b._decode_fused(probe) and hasattr(b, "_fused_ok") and b._fused_ok() for b in model.blk):
+        model._chunk_T = amd_gemv.MAX_T
     # NOTE: without this contiguous, it unpacks the weights from the model every time. we shouldn't need this, but for now it's faster
     if realize:
       for s in (params:=nn.state.get_parameters(model)): s.replace(s.contiguous())
@@ -476,20 +576,24 @@ class Transformer:
     return min(block._reusable_prefix_len(prefix_len, len(self._cached_tokens)) for block in self.blk)
 
   def generate(self, tokens:list[int], chunk_size:int=32, temperature:float=0.0):
-    if self.has_recurrent_block and not amd_custom_kernels_supported(self.token_embd.weight.device): chunk_size = 1
+    # the fused AMD kernels take fixed-size chunks with a runtime count of valid tokens (one JIT capture for every prompt length)
+    chunk_T = getattr(self, "_chunk_T", 0)
+    if chunk_T: chunk_size = chunk_T
+    elif self.has_recurrent_block and not amd_custom_kernels_supported(self.token_embd.weight.device): chunk_size = 1
     v_start_pos = UOp.variable("start_pos", 0, self.max_context-1)
     v_toks = UOp.variable("toks", 1, chunk_size)
     # TODO: use UOp.variable for temperature once float variables are supported
     temp = Tensor([temperature])
-    # assign all input tokens once, then slice from start_pos for the model call
-    t = Tensor(tokens + [0] * (self.max_context - len(tokens)), dtype="int32").reshape(1, self.max_context)
+    # assign all input tokens once, then slice from start_pos for the model call (padded so a fixed chunk never runs past the end)
+    t = Tensor(tokens + [0] * (self.max_context + chunk_size - len(tokens)), dtype="int32").reshape(1, -1)
     # recompute start_pos from what's currently valid in the caches
     start_pos = self.get_start_pos(tokens)
     out, prompt_len = None, len(tokens)
     while len(tokens) < self.max_context:
       n_toks = min(chunk_size, len(tokens) - start_pos)
       sp, nt = v_start_pos.bind(start_pos), v_toks.bind(n_toks)
-      out = self(t[:, sp:sp+nt] if start_pos < prompt_len or out is None else out, sp, temp).realize()
+      if chunk_T and (start_pos < prompt_len or out is None): out = self(t[:, sp:sp+chunk_size], sp, temp, nt).realize()
+      else: out = self(t[:, sp:sp+nt] if start_pos < prompt_len or out is None else out, sp, temp).realize()
       start_pos += n_toks
       # chunked prefill: keep processing until all prompt tokens are consumed
       if start_pos < len(tokens): continue

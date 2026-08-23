@@ -64,7 +64,12 @@ class Handler(HTTPRequestHandler):
   server: LLMServer
   def log_request(self, code='-', size='-'): pass
   def do_GET(self):
-    if self.path == "/v1/models": self.send_data(json.dumps({"object":"list","data":[{"id":self.server.model_name,"object":"model"}]}).encode())
+    if self.path in ("/health", "/v1/health"):
+      self.send_data(b"ok")
+    elif self.path == "/props":
+      self.send_data(json.dumps({"default_generation_settings": {"n_ctx": self.server.model.max_context}}).encode())
+    elif self.path == "/v1/models":
+      self.send_data(json.dumps({"object":"list","data":[{"id":self.server.model_name,"object":"model"}]}).encode())
     else: self.send_data((pathlib.Path(__file__).parent / "chat.html").read_bytes(), content_type="text/html")
   def run_model(self, ids:list[int], model_name:str, include_usage=False, max_tokens:int|None=None, temperature:float=0.0,
                 reasoning:bool=False):
@@ -128,7 +133,21 @@ class Handler(HTTPRequestHandler):
     if self.path == "/v1/chat/completions":
       # render and tokenize
       normalize_messages(body["messages"])
-      rendered = self.server.template.render(messages=body["messages"], tools=body.get("tools"), add_generation_prompt=True, preserve_thinking=True)
+      # Feedthrough reasoning: keep prior <think> / reasoning_content in the prompt.
+      # Qwen3.8 chat template defaults effort to xhigh if omitted; daily default is medium.
+      ctk = body.get("chat_template_kwargs") or {}
+      effort = body.get("reasoning_effort") or ctk.get("reasoning_effort")
+      if effort is None and isinstance(body.get("reasoning"), dict):
+        effort = body["reasoning"].get("effort")
+      if effort is None: effort = getattr(self.server, "reasoning_effort", "medium")
+      enable = body.get("enable_thinking")
+      if enable is None: enable = ctk.get("enable_thinking")
+      if enable is None: enable = getattr(self.server, "enable_thinking", True)
+      preserve = body.get("preserve_thinking")
+      if preserve is None: preserve = ctk.get("preserve_thinking", True)
+      rendered = self.server.template.render(
+        messages=body["messages"], tools=body.get("tools"), add_generation_prompt=True,
+        preserve_thinking=bool(preserve), enable_thinking=bool(enable), reasoning_effort=str(effort))
       ids: list[int] = self.server.tok.encode(rendered)
       stderr_log(f"prep:{(time.perf_counter()-request_st)*1e3:5.0f} ms  {colored('--', 'BLACK')}  ")
       if len(ids) >= self.server.model.max_context:
@@ -139,9 +158,10 @@ class Handler(HTTPRequestHandler):
 
       # reply
       max_tokens = body.get("max_completion_tokens") or body.get("max_tokens")
-      chunks = self.run_model(ids, body["model"], not body.get("stream") or body.get("stream_options",{}).get("include_usage", False),
-                              max_tokens=max_tokens, temperature=float(body.get("temperature", 0.0)),
-                              reasoning=rendered.rstrip().endswith("<think>"))
+      chunks = self.run_model(ids, body.get("model") or self.server.model_name,
+                              not body.get("stream") or body.get("stream_options",{}).get("include_usage", False),
+                              max_tokens=max_tokens, temperature=float(body.get("temperature", 0.6)),
+                              reasoning=bool(enable) or rendered.rstrip().endswith("<think>"))
       if body.get("stream"): self.stream_json(chunks)
       else:
         out, reasoning, tool_calls, finish_reason = [], [], [], "stop"
@@ -162,6 +182,8 @@ class Handler(HTTPRequestHandler):
       raise RuntimeError(f"unhandled path {self.path}")
 
 class LLMServer(TCPServerWithReuse):
-  def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any):
+  def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any,
+               reasoning_effort:str="medium", enable_thinking:bool=True):
     self.model, self.model_name, self.tok, self.template = model, model_name, tok, template
+    self.reasoning_effort, self.enable_thinking = reasoning_effort, enable_thinking
     super().__init__(server_address, Handler)
