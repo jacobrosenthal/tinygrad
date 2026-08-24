@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import cast, Callable, Type, TypeVar, Generic, Any
-import contextlib, decimal, statistics, time, ctypes, array, os, collections, itertools
+import contextlib, decimal, statistics, time, ctypes, array, os, struct, collections, itertools, re
 try: import fcntl # windows misses that
 except ImportError: fcntl = None #type:ignore[assignment]
 from tinygrad.helpers import DEV, PROFILE, getenv, from_mv, cpu_profile, ProfileRangeEvent, unwrap
@@ -370,7 +370,8 @@ class HCQProgram(Program[HCQDeviceType]):
     with hcq_profile(self.dev, queue=q, desc=self.name, enabled=wait or PROFILE, profile_key=self.profile_key) as (sig_st, sig_en):
       q.exec(self, kernargs, global_size, local_size)
 
-    q.signal(self.dev.timeline_signal, self.dev.next_timeline()).submit(self.dev)
+    q.signal(self.dev.timeline_signal, tv:=self.dev.next_timeline()).submit(self.dev)
+    self.dev.hang_log.append((tv, f"eager kernel {self.name} global={global_size} local={local_size}"))
 
     if wait: self.dev.synchronize(timeout=timeout)
     return (float(sig_en.timestamp - sig_st.timestamp) / 1e6) if wait else None
@@ -396,6 +397,8 @@ class HCQCompiled(Compiled, Generic[SignalType]):
     self.signal_t, self.hw_compute_queue_t, self.hw_copy_queue_t = signal_t, comp_queue_t, copy_queue_t
 
     self.timeline_value:int = 1
+    # (timeline value, what was submitted): eager kernels and graphs, read back by hang_report when the timeline stops advancing
+    self.hang_log: collections.deque[tuple[int, Any]] = collections.deque(maxlen=64)
     self.sig_prof_records:list[tuple[HCQSignal, HCQSignal, str|TracingKey, str, bytes|None]] = []
     self.prof_exec_counter:int = 0
     self.prof_prg_counter = itertools.count(0)
@@ -427,8 +430,39 @@ class HCQCompiled(Compiled, Generic[SignalType]):
     try: self.timeline_signal.wait(self.timeline_value - 1, timeout=timeout if timeout is not None and self.can_recover else None)
     except RuntimeError as e:
       self.error_state = e
+      self.hang_report(e)
       if hasattr(self, 'on_device_hang'): self.on_device_hang()
       raise e
+
+  def hang_report(self, err:Exception):
+    """what was in flight on this device when the timeline stopped advancing: printed and appended to /tmp/tinygrad_hang_<pid>.txt.
+    Graphs report the index of the kernel that never finished when they were built with HANG_DEBUG=1 (a progress signal per kernel)."""
+    try:
+      done = self.timeline_signal.value
+      lines = [f"=== hang report for {self.device}: {err}", f"timeline: expected {self.timeline_value - 1}, completed {done}"]
+      pending = [(tv, what) for tv, what in self.hang_log if tv > done]
+      if not pending: lines.append("no recorded submission is pending (the log holds the last 64 submissions)")
+      for tv, what in pending:
+        if isinstance(what, str):
+          lines.append(f"  pending timeline {tv}: {what}")
+          continue
+        graph, var_vals = what
+        lines.append(f"  pending timeline {tv}: graph of {len(graph.calls)} calls, var_vals={var_vals}")
+        if (sig:=graph.progress_signals.get(self)) is None:
+          lines.append("    (start with HANG_DEBUG=1 to record which kernel of the graph did not finish)")
+          continue
+        j = sig.value  # kernels 0..j-1 signaled completion, kernel j never did
+        lines.append(f"    progress: {j}/{len(graph.calls)} calls completed" +
+                     (" (the graph finished)" if j >= len(graph.calls) else f", call {j} did not finish:"))
+        for k in range(max(0, j - 3), min(len(graph.calls), j + 3)):
+          ast = graph.calls[k][1]
+          name = re.sub(r"\x1b\[[0-9;]*m", "", str(getattr(ast.arg, 'name', ast.op)))  # kernel names carry terminal colors
+          desc = f"{name} global={getattr(ast.arg, 'global_size', None)} local={getattr(ast.arg, 'local_size', None)}"
+          lines.append(f"    {'>>' if k == j else '  '} [{k}] {desc}")
+      report = "\n".join(lines)
+      print(report, flush=True)
+      with open(f"/tmp/tinygrad_hang_{os.getpid()}.txt", "a") as f: f.write(report + "\n")
+    except Exception as e: print(f"hang report failed: {e!r}")
 
     if self.timeline_value > (1 << 31): self._wrap_timeline_signal()
     if PROFILE:

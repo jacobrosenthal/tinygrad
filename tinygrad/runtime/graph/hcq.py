@@ -7,6 +7,9 @@ from tinygrad.dtype import dtypes
 from tinygrad.uop.ops import UOp, Ops, Variable
 from tinygrad.engine.jit import GraphRunner, MultiGraphRunner
 
+# HANG_DEBUG=1: every graph writes a per-device progress signal after each kernel, so HCQCompiled.hang_report can name the kernel that hung
+HANG_DEBUG = getenv("HANG_DEBUG", 0)
+
 class HCQGraph(MultiGraphRunner):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -14,6 +17,8 @@ class HCQGraph(MultiGraphRunner):
 
     # CPU Device is always last
     self.devices = sorted(self.devices, key=lambda x: 1 if x._is_cpu() else 0)
+    self.progress_signals: dict[HCQCompiled, HCQSignal] = \
+      {dev: dev.new_signal(value=0) for dev in self.devices if not dev._is_cpu()} if HANG_DEBUG else {}
 
     # Replace input buffers with variables.
     self.hcq_bufs = [[b._buf for b in bufs] for (_,_,bufs,_) in self.calls]
@@ -209,6 +214,8 @@ class HCQGraph(MultiGraphRunner):
       if PROFILE and j * 2 + 1 in self.prof_signal_is_used: enqueue_queue.timestamp(self.prof_signals[j * 2 + 1])
 
       if signal_val is not None: enqueue_queue.signal(signal, signal_val)
+      if enqueue_dev in self.progress_signals and enqueue_queue is self.comp_queues.get(enqueue_dev):
+        enqueue_queue.signal(self.progress_signals[enqueue_dev], j + 1)
 
     for dev in self.devices:
       for dep_dev in list(self.copy_to_devs[dev]) + [dev]:
@@ -291,9 +298,11 @@ class HCQGraph(MultiGraphRunner):
       self.comp_queues[dev].submit(dev, hcq_var_vals_local:=hcq_var_vals|self.device_vars.get(dev, {}))
       for copy_queue in self._dev_copy_queues(dev): copy_queue.submit(dev, hcq_var_vals_local)
       self.last_timeline[dev] = (dev.timeline_signal, dev.next_timeline())
+      dev.hang_log.append((self.last_timeline[dev][1], (self, var_vals)))
 
     # Launch graph
     for sig in self.queue_signals_to_reset: sig.value = 0
+    for sig in self.progress_signals.values(): sig.value = 0
     for sig in self.kick_signals.values(): sig.value = self.kickoff_value
 
     if wait:

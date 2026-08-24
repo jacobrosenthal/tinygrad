@@ -143,6 +143,12 @@ class FallbackTemplate:
 
 from tinygrad.llm.serve import LLMServer
 
+def find_mmproj(model_path, arg:str) -> str|None:
+  if arg in ("none", "0", ""): return None
+  if arg != "auto": return arg
+  import pathlib
+  return next((str(p) for p in sorted(pathlib.Path(model_path).parent.glob("mmproj*.gguf"))), None)
+
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument("--model", "-m", default=list(models.keys())[0], help=f"Model choice ({', '.join(models.keys())}) or path to a local GGUF file")
@@ -154,11 +160,15 @@ def main():
   parser.add_argument("--no_chat_template", action="store_true", help="Don't use the model's chat template, always use the fallback template")
   parser.add_argument("--reasoning-effort", default="medium", choices=["low","medium","xhigh","none"],
                       help="Qwen thinking depth (chat template). none disables thinking.")
+  parser.add_argument("--mmproj", default="auto", metavar="PATH",
+                      help="vision projector GGUF for image input (auto: mmproj*.gguf next to the model, none: disabled)")
   args = parser.parse_args()
 
   # load the model
   with Context(DEBUG=max(DEBUG.value, 2 if args.serve else 0)):
-    model, kv = Transformer.from_gguf(fetch(models.get(args.model, args.model)), args.max_context)
+    model_path = fetch(models.get(args.model, args.model))
+    mmproj = find_mmproj(model_path, args.mmproj)
+    model, kv = Transformer.from_gguf(model_path, args.max_context, vision=mmproj is not None)
   model_name = os.environ.get("QWEN_MODEL_ID") or kv.get('general.name') or kv.get('general.basename') or args.model
   file_sizes = [y.nbytes() for y in UOp.sink(*[x.uop for x in nn.state.get_parameters(model)]).toposort() if y.op is Ops.BUFFER]
   print(f"using model \"{model_name}\" with {sum(file_sizes):,} bytes and {sum(x.numel() for x in nn.state.get_parameters(model)):,} params, "
@@ -166,6 +176,16 @@ def main():
 
   # get tokenizer
   tok = SimpleTokenizer.from_gguf_kv(kv)
+
+  # vision encoder: images become embeddings at the <|image_pad|> tokens (must be attached before warmup: the prefill jits take that input)
+  vision = None
+  if mmproj is not None:
+    from tinygrad.llm.vision import VisionEncoder
+    if (pad_id := tok._special_tokens.get("<|image_pad|>")) is None: print(f"warning: {mmproj} ignored, the model has no <|image_pad|> token")
+    else:
+      vision = VisionEncoder(mmproj)
+      model.image_pad_id = pad_id
+      print(f"vision: {mmproj} ({vision.n_layers} layers, up to {vision.max_tokens} tokens per image)")
 
   # use the model's chat template if jinja2 is available (enables model-specific formatting)
   template: jinja2.Template|FallbackTemplate = FallbackTemplate(tok)
@@ -181,20 +201,26 @@ def main():
       template = env.from_string(ct)
     except ImportError: print("warning: jinja2 is not installed, the model's chat template is disabled")
 
-  # warmup the JIT
-  if args.warmup or args.serve:
+  # warmup the JIT (skipped when the whole warmed-up model came from the llm cache)
+  if (args.warmup or args.serve) and not getattr(model, "_from_cache", False):
     with Context(DEBUG=max(DEBUG.value, 1)): model.warmup()
+    from tinygrad.llm.cache import save_llm_cache
+    save_llm_cache(model, kv, str(model_path), args.max_context, "vision" if vision is not None else "")
+  if vision is not None and (args.warmup or args.serve):
+    with Context(DEBUG=max(DEBUG.value, 1)): vision.warmup()
 
   # start server
   if args.serve:
     enable_thinking = args.reasoning_effort != "none"
     effort = "medium" if args.reasoning_effort == "none" else args.reasoning_effort
     LLMServer((args.host, args.serve), model, model_name, tok, template,
-              reasoning_effort=effort, enable_thinking=enable_thinking).serve_forever()
+              reasoning_effort=effort, enable_thinking=enable_thinking, vision=vision).serve_forever()
 
   # do benchmark
   if args.benchmark is not None:
     gen = model.generate(toks:=[tok.bos_id or 0])
+    import time
+    st = time.perf_counter()
     for i in range(args.benchmark):
       profile_marker(f"decode @ {i}")
       GlobalCounters.reset()
@@ -205,6 +231,9 @@ def main():
         if log:
           with WallTimeEvent(BenchEvent.STEP): next(gen)
         else: next(gen)
+    # speculative decoding yields several tokens per model step, so the per-token lines alternate: report the overall rate too
+    print(f"{args.benchmark} tokens in {(dt:=time.perf_counter()-st)*1e3:.1f} ms: {args.benchmark/dt:.2f} tok/s" +
+          (f" (mtp accepted {a}/{n} drafts)" if (acc:=getattr(model, '_mtp_accept', None)) and (a:=acc[0]) is not None and (n:=acc[1]) else ""))
     exit(0)
 
   # interactive chat

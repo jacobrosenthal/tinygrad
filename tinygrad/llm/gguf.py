@@ -199,9 +199,12 @@ readers: dict[int, Callable[[io.BufferedIOBase], Any]] = { 8: read_str, 9: read_
     [ (0,"c",1), (1,"b",1), (2,"H",2), (3,"h",2), (4,"I",4), (5,"i",4), (6,"f",4), (7,"?",1), (10,"Q",8), (11,"q",8), (12,"d",8) ] } }
 read_uint32, read_int32, read_uint64, read_int64 = readers[4], readers[5], readers[10], readers[11]
 
-def _gguf_parse(tensor: Tensor, raw_out: dict|None=None) -> tuple[dict, dict[str, Tensor]]:
-  # with raw_out, the file stays where it is (usually DISK) and every tensor gets its own lazy copy to the default device.
-  # the raw bytes of tensor `name` are in raw_out[name] = (bytes, ggml_type, (rows, cols)), realize them to keep the packed weights resident
+# with raw_out, the whole tensor-data region is uploaded in one copy and each raw tensor is a zero-copy view of it.
+# base_registry records (base buffer, source path, data region offset) per parsed file so the jit cache can rebuild the views.
+base_registry: list[tuple[Any, str|None, int]] = []
+
+def _gguf_parse(tensor: Tensor, raw_out: dict|None=None, path: str|None=None) -> tuple[dict, dict[str, Tensor]]:
+  # with raw_out, the raw bytes of tensor `name` are in raw_out[name] = (bytes, ggml_type, (rows, cols)); they stay resident as views
   if raw_out is None: tensor = tensor.to(None).realize()  # TODO: remove the need for copy to default device
   r = io.BufferedReader(TensorIO(tensor), 1_000_000)
   magic, version, n_tensors, n_kv = r.read(4), read_int32(r), read_int64(r), read_int64(r)
@@ -219,11 +222,16 @@ def _gguf_parse(tensor: Tensor, raw_out: dict|None=None) -> tuple[dict, dict[str
   if raw_out is None:
     state_dict = {name: ggml_data_to_tensor(tensor[data_start + off:], prod(dims), typ).reshape(*reversed(dims)) for name, dims, typ, off in t_infos}
     return kv_data, state_dict
+  # one big copy of the tensor-data region to the default device (per-tensor copies run ~3x slower), then zero-copy views into it
+  from tinygrad.device import Buffer
+  from tinygrad.uop.ops import UOp
+  base = tensor[data_start:].to(None).contiguous().realize().uop.buffer
+  base_registry.append((base, path, data_start))
   state_dict = {}
   for name, dims, typ, off in t_infos:
     n = prod(dims)
     nbytes = n * _GGML_NATIVE[typ].itemsize if typ in _GGML_NATIVE else n // _GGML_QUANT[typ][0] * _GGML_QUANT[typ][1]
-    src = tensor[data_start + off:data_start + off + nbytes].to(None)
+    src = Tensor(UOp.from_buffer(Buffer(base.device, nbytes, dtypes.uint8, base=base, offset=off)))
     state_dict[name] = ggml_data_to_tensor(src, n, typ).reshape(*reversed(dims))
     if len(dims) == 2 and (typ in _GGML_QUANT or typ in (0, 1)): raw_out[name] = (src, typ, (dims[1], dims[0]))
   return kv_data, state_dict
@@ -249,8 +257,8 @@ def gguf_load(fn: Tensor|str|pathlib.Path, raw_out: dict|None=None) -> tuple[dic
 
   NOTE: The provided tensor must be on a device that supports execution.
   """
-  kv, sd = _gguf_parse(fn if isinstance(fn, Tensor) else Tensor(pathlib.Path(fn)), raw_out)
+  kv, sd = _gguf_parse(fn if isinstance(fn, Tensor) else Tensor(pathlib.Path(fn)), raw_out, path=None if isinstance(fn, Tensor) else str(fn))
   if kv.get('split.count', 1) <= 1: return kv, sd
   if isinstance(fn, Tensor): raise ValueError("multi-part GGUF requires a path argument (got Tensor)")
-  for pp in _gguf_split_paths(pathlib.Path(fn), kv)[1:]: sd.update(_gguf_parse(Tensor(pp), raw_out)[1])
+  for pp in _gguf_split_paths(pathlib.Path(fn), kv)[1:]: sd.update(_gguf_parse(Tensor(pp), raw_out, path=str(pp))[1])
   return kv, sd

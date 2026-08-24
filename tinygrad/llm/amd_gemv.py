@@ -95,22 +95,29 @@ DEV u32 nib_lut(u32 n, u32 lut0_lo, u32 lut0_hi, u32 lut1_lo, u32 lut1_hi) {
 """
 
 # x quantization: float x[K] -> int8 q[K], f32 xs[K/32] (block scale), f32 xsum16[K/16] (sum of the dequantized x per 16)
-def _quant_src(K:int, in_dtype:str) -> str:
+def _quant_src(K:int, in_dtype:str, BLK:int=32) -> str:
+  # one wave per BLK-block: lane holds elements blk*BLK + 32*c + lane, c < BLK/32. xs per block, xsum16 per 16 (dequantized sums)
+  C = BLK // 32
   return PRELUDE + rf"""
 KERNEL(quant_x, 256)(i8* __restrict__ q, float* __restrict__ xs, float* __restrict__ xsum16, const {in_dtype}* __restrict__ x) {{
   const u32 lane = lane_id(), blk = wg_id() * 8 + (tid() >> 5);
-  if (blk * 32 >= {K}u) return;
-  const float v = (float)x[blk * 32 + lane];
-  float a = __builtin_fabsf(v);
+  if (blk * {BLK} >= {K}u) return;
+  float v[{C}], a = 0.0f;
+  #pragma unroll
+  for (int c = 0; c < {C}; c++) {{ v[c] = (float)x[blk * {BLK} + c * 32 + lane]; a = __builtin_fmaxf(a, __builtin_fabsf(v[c])); }}
   a = __builtin_fmaxf(a, dpp_shr(a, 0x111)); a = __builtin_fmaxf(a, dpp_shr(a, 0x112));
   a = __builtin_fmaxf(a, dpp_shr(a, 0x114)); a = __builtin_fmaxf(a, dpp_shr(a, 0x118));
   const float m = __builtin_fmaxf(read_lane(a, 15), read_lane(a, 31));
   const float d = m / 127.0f, id = d != 0.0f ? 1.0f / d : 0.0f;
-  const i32 qi = (i32)__builtin_rintf(v * id);
-  q[blk * 32 + lane] = (i8)qi;
-  const float s = row_sum16((float)qi);
-  if (lane == 15) xsum16[blk * 2] = d * s;
-  if (lane == 31) {{ xsum16[blk * 2 + 1] = d * s; xs[blk] = d; }}
+  #pragma unroll
+  for (int c = 0; c < {C}; c++) {{
+    const i32 qi = (i32)__builtin_rintf(v[c] * id);
+    q[blk * {BLK} + c * 32 + lane] = (i8)qi;
+    const float s = row_sum16((float)qi);
+    if (lane == 15) xsum16[(blk * {C} + c) * 2] = d * s;
+    if (lane == 31) xsum16[(blk * {C} + c) * 2 + 1] = d * s;
+  }}
+  if (lane == 31) xs[blk] = d;
 }}
 """
 
@@ -522,21 +529,29 @@ def _grid_tensor(name:str, device:str) -> Tensor:
   flat = [_signed_word(w, nib) for w in words for nib in range(16)] if name.endswith("_signed") else list(words)
   return Tensor(flat, dtype=dtypes.uint32, device=device).realize()
 
-MAX_T = 8  # tokens per batched gemv launch (weights stream once per T tokens)
+MAX_T = getenv("MAX_T", 8)  # tokens per batched gemv launch (weights stream once per T tokens)
+PREFILL_T = getenv("PREFILL_T", 256)  # prefill chunk: T > MAX_T tokens go through the dequant + tensor-core GEMM (amd_prefill)
+def fused_T(T:int) -> bool:
+  """token counts the fused kernels take: the decode gemv batch or a prefill chunk (multiple of 64 up to PREFILL_T)"""
+  return T <= MAX_T or (T % 64 == 0 and T <= PREFILL_T)
 
-def quantize_x(x:Tensor) -> tuple[Tensor, Tensor, Tensor]:
-  """float x[T, K] -> (int8 q[T*K], f32 scale[T*K/32], f32 sum16[T*K/16]), the per-32-block quantization of every token row"""
+def xblk(T:int) -> int:
+  """activation quantization block: 32 for the decode gemv (T <= MAX_T), 128 for the prefill GEMM"""
+  return 32 if T <= MAX_T else 128
+
+def quantize_x(x:Tensor, BLK:int=32) -> tuple[Tensor, Tensor, Tensor]:
+  """float x[T, K] -> (int8 q[T*K], f32 scale[T*K/BLK], f32 sum16[T*K/16]), the per-block quantization of every token row"""
   K = int(x.numel())
-  assert K % 32 == 0
+  assert K % BLK == 0
   x = x.reshape(K)
   if x.dtype not in (dtypes.float32, dtypes.float16): x = x.float()
   in_dtype = "float" if x.dtype == dtypes.float32 else "_Float16"
   q = Tensor.empty(K, dtype=dtypes.int8, device=x.device)
-  xs = Tensor.empty(K // 32, dtype=dtypes.float32, device=x.device)
+  xs = Tensor.empty(K // BLK, dtype=dtypes.float32, device=x.device)
   xsum16 = Tensor.empty(K // 16, dtype=dtypes.float32, device=x.device)
-  name = f"quant_x_{K}_{in_dtype.strip('_')}"
-  src = _quant_src(K, in_dtype).replace("KERNEL(quant_x,", f"KERNEL({name},")
-  outs = q.custom_kernel(xs, xsum16, x, fxn=_src_program(name, src, (K // 32 + 7) // 8, 256, Estimates(ops=4 * K, mem=5 * K), _arch(x.device)))
+  name = f"quant_x_{K}_{in_dtype.strip('_')}" + (f"_b{BLK}" if BLK != 32 else "")
+  src = _quant_src(K, in_dtype, BLK).replace("KERNEL(quant_x,", f"KERNEL({name},")
+  outs = q.custom_kernel(xs, xsum16, x, fxn=_src_program(name, src, (K // BLK + 7) // 8, 256, Estimates(ops=4 * K, mem=5 * K), _arch(x.device)))
   return outs[0], outs[1], outs[2]
 
 def gemv_config(ggml_type:int, N:int, K:int, T:int=1, WG:int=0) -> tuple[int, int, int, int]:
@@ -586,9 +601,9 @@ def gemv_multi(ws:list[tuple[Tensor, int, int]], K:int, xq:Tensor, xs:Tensor, xs
   return [outs[2 * i] for i in range(len(ws))]
 
 def _tokens(x:Tensor, K:int) -> int:
-  """number of K-vectors in x (0 when x is not a batch of at most MAX_T K-vectors)"""
+  """number of K-vectors in x (0 when x is not a batch of K-vectors the fused kernels take, see fused_T)"""
   n = x.numel()
-  if x.shape[-1] != K or not isinstance(n, int) or n % K != 0 or n // K > MAX_T: return 0
+  if x.shape[-1] != K or not isinstance(n, int) or n % K != 0 or not fused_T(n // K): return 0
   return n // K
 
 def linear_decode_multi(lins:list[nn.Linear], x:Tensor) -> list[Tensor]:
@@ -596,8 +611,11 @@ def linear_decode_multi(lins:list[nn.Linear], x:Tensor) -> list[Tensor]:
   gws:list[GGMLWeight] = [lin._ggml for lin in lins]  # type: ignore[attr-defined]
   K = gws[0].K
   T = _tokens(x, K)
-  xq, xs, xsum16 = quantize_x_cached(x.reshape(T, K))
-  ys = gemv_multi([(gw.raw, gw.ggml_type, gw.N) for gw in gws], K, xq, xs, xsum16, T)
+  xq, xs, xsum16 = quantize_x_cached(x.reshape(T, K), xblk(T))
+  if T > MAX_T:
+    from tinygrad.llm.amd_prefill import gemm
+    ys = [gemm(gw.raw, gw.ggml_type, gw.N, K, xq, xs, T) for gw in gws]
+  else: ys = gemv_multi([(gw.raw, gw.ggml_type, gw.N) for gw in gws], K, xq, xs, xsum16, T)
   dt = x.dtype if dtypes.is_float(x.dtype) else dtypes.float32
   return [y.cast(dt).reshape(*x.shape[:-1], gw.N) for y, gw in zip(ys, gws)]
 
@@ -613,10 +631,11 @@ class GGMLWeight:
 
 _xq_cache: dict[UOp, tuple[Tensor, Tensor, Tensor]] = {}
 def _xq_key(x:Tensor) -> UOp: return x.uop.base  # views (reshape/cast-free) of the same activation share the quantization
-def quantize_x_cached(x:Tensor) -> tuple[Tensor, Tensor, Tensor]:
+def quantize_x_cached(x:Tensor, BLK:int=32) -> tuple[Tensor, Tensor, Tensor]:
   if (r:=_xq_cache.get(k:=_xq_key(x))) is None:
     if len(_xq_cache) >= 16: _xq_cache.clear()
-    _xq_cache[k] = r = quantize_x(x)
+    _xq_cache[k] = r = quantize_x(x, BLK)
+  assert r[1].numel() * BLK == x.numel(), "cached activation quantization has a different block size"
   return r
 def cache_quant(x:Tensor, q:Tensor, xs:Tensor, xsum16:Tensor):
   if len(_xq_cache) >= 16: _xq_cache.clear()
@@ -632,8 +651,11 @@ def linear_decode(lin:nn.Linear, x:Tensor, residual:Tensor|None=None) -> Tensor:
   """Linear on <= MAX_T tokens through the packed-weight gemv, optionally fusing `+ residual` into the epilogue"""
   gw:GGMLWeight = lin._ggml  # type: ignore[attr-defined]
   T = _tokens(x, gw.K)
-  xq, xs, xsum16 = quantize_x_cached(x.reshape(T, gw.K))
-  y = gemv(gw.raw, gw.ggml_type, gw.N, gw.K, xq, xs, xsum16, residual, T)
+  xq, xs, xsum16 = quantize_x_cached(x.reshape(T, gw.K), xblk(T))
+  if T > MAX_T:
+    from tinygrad.llm.amd_prefill import gemm
+    y = gemm(gw.raw, gw.ggml_type, gw.N, gw.K, xq, xs, T, residual)
+  else: y = gemv(gw.raw, gw.ggml_type, gw.N, gw.K, xq, xs, xsum16, residual, T)
   y = y.cast(x.dtype if dtypes.is_float(x.dtype) else dtypes.float32)
   if lin.bias is not None: y = y.reshape(T, gw.N) + lin.bias
   return y.reshape(*x.shape[:-1], gw.N)
@@ -702,129 +724,92 @@ def attach(model) -> list[GGMLWeight]:
 
 _sp_cache: dict = {}
 _fwd_id = 0
-def new_forward():
-  """call at the start of every model forward: the [start_pos, n_tok] tensor is shared between the layers of one pass only (one from an
-  earlier pass is already realized and the JIT would capture it as a constant instead of a kernel reading the variables)"""
-  global _fwd_id
+_n_keep: int|UOp|Tensor|None = None
+def _sp_elem_key(x:int|UOp|Tensor) -> int|bytes:
+  if isinstance(x, int): return x
+  if isinstance(x, Tensor): return id(x)
+  return x.key
+def new_forward(n_keep:int|UOp|Tensor|None=None):
+  """call at the start of every model forward (and again before the MTP pass): the [start_pos, n_tok, n_keep] tensor is shared between
+  the layers of one pass only (one from an earlier pass is already realized and the JIT would capture it as a constant instead of a
+  kernel reading the variables). n_keep is how many tokens of this chunk commit GDN/conv state; default n_tok. a Tensor is allowed
+  (n_keep + accept for the MTP pass)."""
+  global _fwd_id, _n_keep
   _fwd_id += 1
+  _n_keep = n_keep
   _sp_cache.clear()
-def start_pos_tensor(start_pos:UOp|int, device:str, n_tok:UOp|int=1) -> Tensor:
-  """[start_pos, n_tok] as an int32 tensor (kernels read them from memory, no dependency on symbolic variable plumbing)"""
-  key = (_fwd_id, start_pos if isinstance(start_pos, int) else start_pos.key, n_tok if isinstance(n_tok, int) else n_tok.key, device)
+  import sys
+  if (pf:=sys.modules.get("tinygrad.llm.amd_prefill")) is not None: pf.new_forward()
+def end_forward():
+  """drop the per-pass caches: a cached tensor whose graph spans the pass (the MTP sp tensor depends on the sampled tokens) would stay
+  alive between steps and make every realize walk the whole graph"""
+  _sp_cache.clear(); _xq_cache.clear()
+def start_pos_tensor(start_pos:UOp|int, device:str, n_tok:UOp|int=1, n_keep:int|UOp|Tensor|None=None) -> Tensor:
+  """[start_pos, n_tok, n_keep] as an int32 tensor (kernels read them from memory, no dependency on symbolic variable plumbing)"""
+  if n_keep is None: n_keep = _n_keep
+  if n_keep is None: n_keep = n_tok
+  key = (_fwd_id, _sp_elem_key(start_pos), _sp_elem_key(n_tok), _sp_elem_key(n_keep), device)
   if (t:=_sp_cache.get(key)) is None:
     if len(_sp_cache) >= 8: _sp_cache.clear()
     sp = (Tensor.zeros(1, dtype=dtypes.int32, device=device) + start_pos).cast(dtypes.int32)
     nt = (Tensor.zeros(1, dtype=dtypes.int32, device=device) + n_tok).cast(dtypes.int32)
-    _sp_cache[key] = t = sp.cat(nt).contiguous()
+    nk = n_keep.reshape(1).cast(dtypes.int32) if isinstance(n_keep, Tensor) else \
+         (Tensor.zeros(1, dtype=dtypes.int32, device=device) + n_keep).cast(dtypes.int32)
+    _sp_cache[key] = t = sp.cat(nt, nk).contiguous()
   return t
 
 def _gdn_conv_src(C:int, KC:int, T:int) -> str:
   # conv_state: (KC-1, C) f32 in/out, qkv: (T, C) f32 new rows, w: (C, KC) f32. conv_out: (T, C) f32 = silu(sum_i win[t+i][c] * w[c][i])
-  # sp_p = [start_pos, n_tok]: tokens t >= n_tok are padding, the new conv state is the last KC-1 rows of [state | qkv[:n_tok]]
+  # sp_p = [start_pos, n_tok, n_keep]: tokens t >= n_tok are padding, the new conv state is the last KC-1 rows of [state | qkv[:n_keep]]
+  # one thread per channel walks the window sequentially (any T): win[m] = m < KC-1 ? state[m] : qkv[m - (KC-1)]
   return PRELUDE + rf"""
 KERNEL(gdn_conv, 256)(float* __restrict__ conv_out, float* __restrict__ conv_state, const float* __restrict__ qkv,
                       const float* __restrict__ w, const i32* __restrict__ sp_p) {{
-  const i32 start_pos = sp_p[0], n = sp_p[1];
+  const i32 start_pos = sp_p[0], nk = sp_p[2];
   const u32 c = wg_id() * 256 + tid();
   if (c >= {C}u) return;
   const bool reset = start_pos == 0;
-  float win[{KC} - 1 + {T}];
+  float win[{KC}];  // the last KC window values, win[KC-1] = newest
   #pragma unroll
-  for (int i = 0; i < {KC} - 1; i++) win[i] = reset ? 0.0f : conv_state[i * {C} + c];
-  #pragma unroll
-  for (int t = 0; t < {T}; t++) win[{KC} - 1 + t] = qkv[t * {C} + c];
+  for (int i = 0; i < {KC} - 1; i++) win[i + 1] = reset ? 0.0f : conv_state[i * {C} + c];
   float wv[{KC}];
   #pragma unroll
   for (int i = 0; i < {KC}; i++) wv[i] = w[c * {KC} + i];
-  #pragma unroll
-  for (int t = 0; t < {T}; t++) {{
+  for (i32 t = 0; t < {T}; t++) {{
+    #pragma unroll
+    for (int i = 0; i < {KC} - 1; i++) win[i] = win[i + 1];
+    win[{KC} - 1] = qkv[t * {C} + c];
     float acc = 0.0f;
     #pragma unroll
-    for (int i = 0; i < {KC}; i++) acc += win[t + i] * wv[i];
+    for (int i = 0; i < {KC}; i++) acc += win[i] * wv[i];
     conv_out[t * {C} + c] = acc / (1.0f + __builtin_expf(-acc));
+    // after consuming qkv[t] the window holds [state | qkv[:t+1]][t+1 .. t+KC): the new state once t + 1 == nk
+    if (t + 1 == nk) {{
+      #pragma unroll
+      for (int i = 0; i < {KC} - 1; i++) conv_state[i * {C} + c] = win[i + 1];
+    }}
   }}
-  #pragma unroll
-  for (int i = 0; i < {KC} - 1; i++) {{
-    float v = 0.0f;
+  if (nk == 0) {{  // nothing committed: the state is the old window (zeros after a reset)
     #pragma unroll
-    for (int m = 0; m < {KC} - 1 + {T}; m++) v = (m == n + i) ? win[m] : v;
-    conv_state[i * {C} + c] = v;
+    for (int i = 0; i < {KC} - 1; i++) conv_state[i * {C} + c] = reset ? 0.0f : conv_state[i * {C} + c];
   }}
 }}
 """
 
-def _gdn_step_src(H:int, HK:int, V:int, K:int, C:int, eps:float, qk_eps:float, T:int) -> str:
-  # one workgroup (512 threads) per v-head h: 4 threads per state row (v), 32 k each. the state stays in registers over the T steps
-  assert V == 128 and K == 128 and T <= 8
+def _gdn_step_src(H:int, HK:int, V:int, K:int, C:int, eps:float, qk_eps:float, T:int, BLK:int=32) -> str:
+  # one workgroup (512 threads) per v-head h: 4 threads per state row (v), 32 k each. the state stays in registers over the T steps,
+  # which are processed in groups of TG tokens staged in LDS. z is quantized per BLK (32: one wave per 32-block, 128: one wave per
+  # token: the head's V=128 outputs are one block)
+  assert V == 128 and K == 128 and BLK in (32, 128)
+  TG = min(T, 16); NG = T // TG
+  assert T % TG == 0
   QD = HK * K  # q/k width in conv_out
   BAR = '__builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup");'
-  return PRELUDE + rf"""
-#define dpp_xmask(v, m) __builtin_bit_cast(float, __builtin_amdgcn_update_dpp(0, __builtin_bit_cast(i32, (v)), 0x160 | (m), 0xf, 0xf, true))
-DEV float sum4(float v) {{ v += dpp_xmask(v, 1); v += dpp_xmask(v, 2); return v; }}
-KERNEL(gdn_step, 512)(float* __restrict__ z, i8* __restrict__ zq, float* __restrict__ zs, float* __restrict__ zsum16,
-                      float* __restrict__ state, const float* __restrict__ conv_out,
-                      const float* __restrict__ alpha_raw, const float* __restrict__ beta_raw, const float* __restrict__ dt_bias,
-                      const float* __restrict__ A, const float* __restrict__ gate, const float* __restrict__ norm_w, const i32* __restrict__ sp_p) {{
-  __attribute__((shared)) float qs[{T}][{K}], ks[{T}][{K}], vs[{T}][{V}], outs[{T}][{V}], red[{T}][4], dec[{T}], bet[{T}];
-  const i32 start_pos = sp_p[0];
-  const u32 n = __builtin_amdgcn_readfirstlane((u32)sp_p[1]);
-  const u32 h = wg_id(), t = tid(), lane = lane_id(), wave = t >> 5;
-  const u32 hk = h % {HK};
-  // load q, k, v of this head for all T tokens
-  for (u32 i = t; i < {T} * {K}; i += 512) {{
-    const u32 tt = i / {K}, kk = i % {K};
-    qs[tt][kk] = conv_out[tt * {C} + hk * {K} + kk]; ks[tt][kk] = conv_out[tt * {C} + {QD} + hk * {K} + kk]; vs[tt][kk] = conv_out[tt * {C} + 2 * {QD} + h * {V} + kk];
-  }}
-  if (t < {T}) {{  // per-token decay and beta of this head
-    const float a_in = alpha_raw[t * {H} + h] + dt_bias[h];
-    const float sp = a_in > 20.0f ? a_in : __builtin_logf(1.0f + __builtin_expf(a_in));  // softplus
-    dec[t] = start_pos + (i32)t == 0 ? 0.0f : __builtin_expf(sp * A[h]);                 // state reset folds into the decay
-    bet[t] = 1.0f / (1.0f + __builtin_expf(-beta_raw[t * {H} + h]));
-  }}
-  {BAR}
-  for (u32 p = wave; p < 2 * {T}; p += 16) {{  // |q_t| (even p) and |k_t| (odd p)
-    const float* src = (p & 1) ? ks[p >> 1] : qs[p >> 1];
-    float s = 0.0f;
-    #pragma unroll
-    for (int i = 0; i < {K} / 32; i++) {{ const float x = src[lane * ({K} / 32) + i]; s += x * x; }}
-    s = wave_sum(s);
-    if (lane == 0) red[p >> 1][p & 1] = __builtin_fmaxf(__builtin_sqrtf(s), {qk_eps}f);
-  }}
-  {BAR}
-  // this thread: row v = t >> 2, k range [32*(t&3), +32)
-  const u32 v = t >> 2, k0 = (t & 3) * 32;
-  float* srow = state + ((u64)h * {V} + v) * {K} + k0;
-  float s[32], kk[32];
-  #pragma unroll
-  for (int i = 0; i < 32; i++) s[i] = srow[i];
-  for (u32 tt = 0; tt < n; tt++) {{
-    const float qscale = {K**-0.5}f / red[tt][0], kscale = 1.0f / red[tt][1], decay = dec[tt], beta = bet[tt];
-    float dot = 0.0f;
-    #pragma unroll
-    for (int i = 0; i < 32; i++) {{ kk[i] = ks[tt][k0 + i] * kscale; s[i] *= decay; dot += s[i] * kk[i]; }}
-    dot = sum4(dot);
-    const float delta = (vs[tt][v] - dot) * beta;
-    float o = 0.0f;
-    #pragma unroll
-    for (int i = 0; i < 32; i++) {{ s[i] += delta * kk[i]; o += s[i] * qs[tt][k0 + i]; }}
-    o = sum4(o) * qscale;
-    if ((t & 3) == 0) outs[tt][v] = o;
-  }}
-  #pragma unroll
-  for (int i = 0; i < 32; i++) srow[i] = s[i];
-  {BAR}
-  if (wave < {T}) {{  // rms of the output of token `wave`
-    float ss = 0.0f;
-    #pragma unroll
-    for (int i = 0; i < {V} / 32; i++) {{ const float x = wave < n ? outs[wave][lane * ({V} / 32) + i] : 0.0f; ss += x * x; }}
-    ss = wave_sum(ss);
-    if (lane == 0) red[wave][2] = 1.0f / __builtin_sqrtf(ss / {V}.0f + {eps}f);
-  }}
-  {BAR}
-  for (u32 i = t; i < {T} * {V}; i += 512) {{  // each wave handles one 32-block of one token: gated norm + quantization
-    const u32 tt = i / {V}, vv = i % {V}, e = tt * {H * V} + h * {V} + vv;
+  quant32 = rf"""
+  for (u32 i = t; i < {TG} * {V}; i += 512) {{  // each wave handles one 32-block of one token: gated norm + quantization
+    const u32 tt = i / {V}, vv = i % {V}, tok = g0 + tt, e = tok * {H * V} + h * {V} + vv;
     const float g = gate[e];
-    const float y = tt < n ? outs[tt][vv] * red[tt][2] * norm_w[vv] * (g / (1.0f + __builtin_expf(-g))) : 0.0f;
+    const float y = tok < n ? outs[tt][vv] * red[tt][2] * norm_w[vv] * (g / (1.0f + __builtin_expf(-g))) : 0.0f;
     z[e] = y;
     float a = __builtin_fabsf(y);
     a = __builtin_fmaxf(a, dpp_shr(a, 0x111)); a = __builtin_fmaxf(a, dpp_shr(a, 0x112));
@@ -836,6 +821,112 @@ KERNEL(gdn_step, 512)(float* __restrict__ z, i8* __restrict__ zq, float* __restr
     const float sq = row_sum16((float)qi);
     if (lane == 15) zsum16[(e >> 5) * 2] = d * sq;
     if (lane == 31) {{ zsum16[(e >> 5) * 2 + 1] = d * sq; zs[e >> 5] = d; }}
+  }}
+"""
+  quant128 = rf"""
+  if (wave < {TG}) {{  // one wave per token: the head's {V} outputs are one 128-block
+    const u32 tt = wave, tok = g0 + tt;
+    float y[4], a = 0.0f;
+    #pragma unroll
+    for (int c = 0; c < 4; c++) {{
+      const u32 vv = c * 32 + lane, e = tok * {H * V} + h * {V} + vv;
+      const float g = gate[e];
+      y[c] = tok < n ? outs[tt][vv] * red[tt][2] * norm_w[vv] * (g / (1.0f + __builtin_expf(-g))) : 0.0f;
+      z[e] = y[c];
+      a = __builtin_fmaxf(a, __builtin_fabsf(y[c]));
+    }}
+    a = __builtin_fmaxf(a, dpp_shr(a, 0x111)); a = __builtin_fmaxf(a, dpp_shr(a, 0x112));
+    a = __builtin_fmaxf(a, dpp_shr(a, 0x114)); a = __builtin_fmaxf(a, dpp_shr(a, 0x118));
+    const float m = __builtin_fmaxf(read_lane(a, 15), read_lane(a, 31));
+    const float d = m / 127.0f, id = d != 0.0f ? 1.0f / d : 0.0f;
+    #pragma unroll
+    for (int c = 0; c < 4; c++) {{
+      const u32 vv = c * 32 + lane, e = tok * {H * V} + h * {V} + vv;
+      const i32 qi = (i32)__builtin_rintf(y[c] * id);
+      zq[e] = (i8)qi;
+      const float sq = row_sum16((float)qi);
+      if (lane == 15) zsum16[(e >> 5) * 2] = d * sq;
+      if (lane == 31) zsum16[(e >> 5) * 2 + 1] = d * sq;
+    }}
+    if (lane == 31) zs[(tok * {H * V} + h * {V}) >> 7] = d;
+  }}
+"""
+  return PRELUDE + rf"""
+#define dpp_xmask(v, m) __builtin_bit_cast(float, __builtin_amdgcn_update_dpp(0, __builtin_bit_cast(i32, (v)), 0x160 | (m), 0xf, 0xf, true))
+DEV float sum4(float v) {{ v += dpp_xmask(v, 1); v += dpp_xmask(v, 2); return v; }}
+KERNEL(gdn_step, 512)(float* __restrict__ z, i8* __restrict__ zq, float* __restrict__ zs, float* __restrict__ zsum16,
+                      float* __restrict__ state, const float* __restrict__ conv_out,
+                      const float* __restrict__ alpha_raw, const float* __restrict__ beta_raw, const float* __restrict__ dt_bias,
+                      const float* __restrict__ A, const float* __restrict__ gate, const float* __restrict__ norm_w, const i32* __restrict__ sp_p) {{
+  __attribute__((shared)) float qs[{TG}][{K}], ks[{TG}][{K}], vs[{TG}][{V}], outs[{TG}][{V}], red[{TG}][4], dec[{TG}], bet[{TG}];
+  const i32 start_pos = sp_p[0];
+  const u32 n = __builtin_amdgcn_readfirstlane((u32)sp_p[1]);
+  const u32 nk = __builtin_amdgcn_readfirstlane((u32)sp_p[2]);
+  const u32 h = wg_id(), t = tid(), lane = lane_id(), wave = t >> 5;
+  const u32 hk = h % {HK};
+  // this thread: row v = t >> 2, k range [32*(t&3), +32)
+  const u32 v = t >> 2, k0 = (t & 3) * 32;
+  float* srow = state + ((u64)h * {V} + v) * {K} + k0;
+  float s[32], kk[32];
+  #pragma unroll
+  for (int i = 0; i < 32; i++) s[i] = srow[i];
+  if (nk == 0) {{  // nothing committed this chunk: the state is the old one (zeros after a reset)
+    #pragma unroll
+    for (int i = 0; i < 32; i++) srow[i] = start_pos == 0 ? 0.0f : s[i];
+  }}
+  for (u32 g0 = 0; g0 < {T}u; g0 += {TG}) {{
+    if (g0 >= n) break;
+    {BAR}
+    // load q, k, v of this head for the group's tokens
+    for (u32 i = t; i < {TG} * {K}; i += 512) {{
+      const u32 tt = i / {K}, kk_ = i % {K}, tok = g0 + tt;
+      qs[tt][kk_] = conv_out[tok * {C} + hk * {K} + kk_]; ks[tt][kk_] = conv_out[tok * {C} + {QD} + hk * {K} + kk_];
+      vs[tt][kk_] = conv_out[tok * {C} + 2 * {QD} + h * {V} + kk_];
+    }}
+    if (t < {TG}) {{  // per-token decay and beta of this head
+      const u32 tok = g0 + t;
+      const float a_in = alpha_raw[tok * {H} + h] + dt_bias[h];
+      const float sp = a_in > 20.0f ? a_in : __builtin_logf(1.0f + __builtin_expf(a_in));  // softplus
+      dec[t] = start_pos + (i32)tok == 0 ? 0.0f : __builtin_expf(sp * A[h]);               // state reset folds into the decay
+      bet[t] = 1.0f / (1.0f + __builtin_expf(-beta_raw[tok * {H} + h]));
+    }}
+    {BAR}
+    for (u32 p = wave; p < 2 * {TG}; p += 16) {{  // |q_t| (even p) and |k_t| (odd p)
+      const float* src = (p & 1) ? ks[p >> 1] : qs[p >> 1];
+      float ss = 0.0f;
+      #pragma unroll
+      for (int i = 0; i < {K} / 32; i++) {{ const float x = src[lane * ({K} / 32) + i]; ss += x * x; }}
+      ss = wave_sum(ss);
+      if (lane == 0) red[p >> 1][p & 1] = __builtin_fmaxf(__builtin_sqrtf(ss), {qk_eps}f);
+    }}
+    {BAR}
+    for (u32 tt = 0; tt < {TG}u && g0 + tt < n; tt++) {{
+      const float qscale = {K**-0.5}f / red[tt][0], kscale = 1.0f / red[tt][1], decay = dec[tt], beta = bet[tt];
+      float dot = 0.0f;
+      #pragma unroll
+      for (int i = 0; i < 32; i++) {{ kk[i] = ks[tt][k0 + i] * kscale; s[i] *= decay; dot += s[i] * kk[i]; }}
+      dot = sum4(dot);
+      const float delta = (vs[tt][v] - dot) * beta;
+      float o = 0.0f;
+      #pragma unroll
+      for (int i = 0; i < 32; i++) {{ s[i] += delta * kk[i]; o += s[i] * qs[tt][k0 + i]; }}
+      o = sum4(o) * qscale;
+      if ((t & 3) == 0) outs[tt][v] = o;
+      if (g0 + tt + 1 == nk) {{
+        #pragma unroll
+        for (int i = 0; i < 32; i++) srow[i] = s[i];
+      }}
+    }}
+    {BAR}
+    if (wave < {TG}) {{  // rms of the output of token `wave` of the group
+      float ss = 0.0f;
+      #pragma unroll
+      for (int i = 0; i < {V} / 32; i++) {{ const float x = g0 + wave < n ? outs[wave][lane * ({V} / 32) + i] : 0.0f; ss += x * x; }}
+      ss = wave_sum(ss);
+      if (lane == 0) red[wave][2] = 1.0f / __builtin_sqrtf(ss / {V}.0f + {eps}f);
+    }}
+    {BAR}
+    {quant32 if BLK == 32 else quant128}
   }}
 }}
 """
@@ -856,12 +947,13 @@ def gdn_decode(conv_state:Tensor, rec_state:Tensor, qkv:Tensor, conv_w:Tensor, a
     return UOp(Ops.PROGRAM, src=(sink, UOp(Ops.LINEAR, src=()), UOp(Ops.SOURCE, arg=hip_to_ir(src, arch))))
   conv_out = conv_out.custom_kernel(conv_state, qkv.reshape(T * C).float(), conv_w, sp_t, fxn=conv_fxn)[0]
   z = Tensor.empty(T * H * V, dtype=dtypes.float32, device=dev)
-  zq, zs, zsum16 = (Tensor.empty(n, dtype=dt, device=dev) for n, dt in ((T * H * V, dtypes.int8), (T * H * V // 32, dtypes.float32), (T * H * V // 16, dtypes.float32)))
-  name = f"gdn_step_{H}_{HK}_{V}_{K}_t{T}"
+  BLK = xblk(T)
+  zq, zs, zsum16 = (Tensor.empty(n, dtype=dt, device=dev) for n, dt in ((T * H * V, dtypes.int8), (T * H * V // BLK, dtypes.float32), (T * H * V // 16, dtypes.float32)))
+  name = f"gdn_step_{H}_{HK}_{V}_{K}_t{T}" + (f"_b{BLK}" if BLK != 32 else "")
   def step_fxn(zz, zzq, zzs, zzsum, st, co, ar, br, db, aa, g, nw, sp):
     sink = UOp.sink(UOp.special(H, "gidx0"), UOp.special(512, "lidx0"), zz, zzq, zzs, zzsum, st, co, ar, br, db, aa, g, nw, sp,
                     arg=KernelInfo(name=name, estimates=Estimates(ops=T * H * V * K * 6, mem=H * V * K * 8)))
-    src = _gdn_step_src(H, HK, V, K, C, eps, qk_eps, T).replace("KERNEL(gdn_step,", f"KERNEL({name},")
+    src = _gdn_step_src(H, HK, V, K, C, eps, qk_eps, T, BLK).replace("KERNEL(gdn_step,", f"KERNEL({name},")
     return UOp(Ops.PROGRAM, src=(sink, UOp(Ops.LINEAR, src=()), UOp(Ops.SOURCE, arg=hip_to_ir(src, arch))))
   outs = z.custom_kernel(zq, zs, zsum16, rec_state, conv_out, alpha_raw.reshape(T * H).float(), beta_raw.reshape(T * H).float(),
                          dt_bias, A, gate.reshape(T * H * V).float(), norm_w, sp_t, fxn=step_fxn)
@@ -872,25 +964,47 @@ def gdn_decode(conv_state:Tensor, rec_state:Tensor, qkv:Tensor, conv_w:Tensor, a
 # ---------------------------------------------------------------------------------------------------------------------------------------
 # fused activation producers: they return the float activation and pre-populate the int8 quantization cache keyed by its uop
 
-def _act_quant_src(K:int, mode:str, in_dtype:str) -> str:
-  # mode "rmsnorm": y = x * rsqrt(mean(x^2) + eps) * w   (one workgroup, K <= 256*32)
-  # mode "silumul": y = silu(a) * b                       (per 32-block, independent)
-  NW = K // 32
-  assert NW <= 1024 or mode != "rmsnorm"
+def _act_quant_src(K:int, mode:str, in_dtype:str, BLK:int=32) -> str:
+  # mode "rmsnorm": y = x * rsqrt(mean(x^2) + eps) * w   (one workgroup per row, K <= 1024*BLK)
+  # mode "silumul": y = silu(a) * b                       (per block, independent)
+  # a wave quantizes one BLK-block at a time (C = BLK/32 chunks of 32 lanes): xs per block, xsum16 per 16
+  C, NBLK = BLK // 32, K // BLK
   WG = 1024 if mode == "rmsnorm" else 256
-  body = rf"""
-  const u32 lane = lane_id(), wave = tid() >> 5, blk = wg_id() * ({WG} / 32) + wave;
-  {"" if mode == "rmsnorm" else f"if (blk >= {NW}u) return;"}
-  const u32 e = blk * 32 + lane;
-  """ + (r"""
+  NWAVES = WG // 32
+  NPER = (NBLK + NWAVES - 1) // NWAVES  # blocks per wave (rmsnorm: the row loops over them)
+  assert NBLK <= 1024 * NWAVES or mode != "rmsnorm"
+  quant = r"""
+    float a = 0.0f;
+    #pragma unroll
+    for (int c = 0; c < C; c++) a = __builtin_fmaxf(a, __builtin_fabsf(v[c]));
+    a = __builtin_fmaxf(a, dpp_shr(a, 0x111)); a = __builtin_fmaxf(a, dpp_shr(a, 0x112));
+    a = __builtin_fmaxf(a, dpp_shr(a, 0x114)); a = __builtin_fmaxf(a, dpp_shr(a, 0x118));
+    const float m = __builtin_fmaxf(read_lane(a, 15), read_lane(a, 31));
+    const float d = m / 127.0f, id = d != 0.0f ? 1.0f / d : 0.0f;
+    #pragma unroll
+    for (int c = 0; c < C; c++) {
+      const u32 ee = b * BLK + c * 32 + lane;
+      y[ee] = v[c];
+      const i32 qi = (i32)__builtin_rintf(v[c] * id);
+      q[ee] = (i8)qi;
+      const float sq = row_sum16((float)qi);
+      if (lane == 15) xsum16[(b * C + c) * 2] = d * sq;
+      if (lane == 31) xsum16[(b * C + c) * 2 + 1] = d * sq;
+    }
+    if (lane == 31) xs[b] = d;
+"""
+  body = (r"""
   __attribute__((shared)) float red[32];
-  // one workgroup per token row
   const u32 row = wg_id();
-  x += (u64)row * K; y += (u64)row * K; q += (u64)row * K; xs += row * (K / 32); xsum16 += row * (K / 16);
-  float xv[NPER];
+  x += (u64)row * K; y += (u64)row * K; q += (u64)row * K; xs += row * NBLK; xsum16 += row * (K / 16);
+  float xv[NPER][C];
   float ss = 0.0f;
   #pragma unroll
-  for (int i = 0; i < NPER; i++) { xv[i] = (float)x[(wave * NPER + i) * 32 + lane]; ss += xv[i] * xv[i]; }
+  for (int i = 0; i < NPER; i++) {
+    const u32 b = wave + i * NWAVES;
+    #pragma unroll
+    for (int c = 0; c < C; c++) { xv[i][c] = b < NBLK ? (float)x[b * BLK + c * 32 + lane] : 0.0f; ss += xv[i][c] * xv[i][c]; }
+  }
   ss = wave_sum(ss);
   if (lane == 0) red[wave] = ss;
   __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup");
@@ -900,50 +1014,40 @@ def _act_quant_src(K:int, mode:str, in_dtype:str) -> str:
   const float rs = 1.0f / __builtin_sqrtf(tot / (float)K + EPS);
   #pragma unroll
   for (int i = 0; i < NPER; i++) {
-    const u32 b = wave * NPER + i, ee = b * 32 + lane;
-    const float v = xv[i] * rs * w[ee];
-    y[ee] = v;
-    float a = __builtin_fabsf(v);
-    a = __builtin_fmaxf(a, dpp_shr(a, 0x111)); a = __builtin_fmaxf(a, dpp_shr(a, 0x112));
-    a = __builtin_fmaxf(a, dpp_shr(a, 0x114)); a = __builtin_fmaxf(a, dpp_shr(a, 0x118));
-    const float m = __builtin_fmaxf(read_lane(a, 15), read_lane(a, 31));
-    const float d = m / 127.0f, id = d != 0.0f ? 1.0f / d : 0.0f;
-    const i32 qi = (i32)__builtin_rintf(v * id);
-    q[ee] = (i8)qi;
-    const float s = row_sum16((float)qi);
-    if (lane == 15) xsum16[b * 2] = d * s;
-    if (lane == 31) { xsum16[b * 2 + 1] = d * s; xs[b] = d; }
-  }
-""" if mode == "rmsnorm" else r"""
-  const float g = (float)x[e];
-  const float v = g / (1.0f + __builtin_expf(-g)) * (float)w[e];
-  y[e] = v;
-  float a = __builtin_fabsf(v);
-  a = __builtin_fmaxf(a, dpp_shr(a, 0x111)); a = __builtin_fmaxf(a, dpp_shr(a, 0x112));
-  a = __builtin_fmaxf(a, dpp_shr(a, 0x114)); a = __builtin_fmaxf(a, dpp_shr(a, 0x118));
-  const float m = __builtin_fmaxf(read_lane(a, 15), read_lane(a, 31));
-  const float d = m / 127.0f, id = d != 0.0f ? 1.0f / d : 0.0f;
-  const i32 qi = (i32)__builtin_rintf(v * id);
-  q[e] = (i8)qi;
-  const float s = row_sum16((float)qi);
-  if (lane == 15) xsum16[blk * 2] = d * s;
-  if (lane == 31) { xsum16[blk * 2 + 1] = d * s; xs[blk] = d; }
-""")
+    const u32 b = wave + i * NWAVES;
+    if (b >= NBLK) break;
+    float v[C];
+    #pragma unroll
+    for (int c = 0; c < C; c++) v[c] = xv[i][c] * rs * w[b * BLK + c * 32 + lane];
+""" + quant + "  }\n" if mode == "rmsnorm" else r"""
+  const u32 b = wg_id() * NWAVES + wave;
+  if (b >= NBLK) return;
+  {
+    float v[C];
+    #pragma unroll
+    for (int c = 0; c < C; c++) { const u32 e = b * BLK + c * 32 + lane; const float g = (float)x[e]; v[c] = g / (1.0f + __builtin_expf(-g)) * (float)w[e]; }
+""" + quant + "  }\n")
   return PRELUDE + rf"""
 #define K {K}
-#define NWAVES {WG // 32}
-#define NPER {max(1, NW // (WG // 32))}
+#define BLK {BLK}
+#define C {C}
+#define NBLK {NBLK}
+#define NWAVES {NWAVES}
+#define NPER {NPER}
 KERNEL(act_quant, {WG})(float* __restrict__ y, i8* __restrict__ q, float* __restrict__ xs, float* __restrict__ xsum16,
                         const {in_dtype}* __restrict__ x, const {"float" if mode == "rmsnorm" else in_dtype}* __restrict__ w) {{
+  const u32 lane = lane_id(), wave = tid() >> 5;
   {body}
 }}
 """
 
 def _act_quant(x:Tensor, w:Tensor, mode:str, eps:float=0.0) -> Tensor:
-  """x: T rows of K (T <= MAX_T). rmsnorm: w[K] float, one workgroup per row. silumul: w has the shape of x, elementwise"""
+  """x: T rows of K. rmsnorm: w[K] float, one workgroup per row. silumul: w has the shape of x, elementwise.
+  the int8 quantization (block xblk(T)) of the result is cached on the returned tensor"""
   K = int(x.shape[-1])
   T = _tokens(x, K)
-  assert T, f"{x.shape} is not a batch of at most {MAX_T} K-vectors"
+  assert T, f"{x.shape} is not a batch of K-vectors"
+  BLK = xblk(T)
   x = x.reshape(T * K)
   if x.dtype not in (dtypes.float32, dtypes.float16): x = x.float()
   in_dtype = "float" if x.dtype == dtypes.float32 else "_Float16"
@@ -952,12 +1056,12 @@ def _act_quant(x:Tensor, w:Tensor, mode:str, eps:float=0.0) -> Tensor:
   dev = x.device
   y = Tensor.empty(T * K, dtype=dtypes.float32, device=dev)
   q = Tensor.empty(T * K, dtype=dtypes.int8, device=dev)
-  xs = Tensor.empty(T * K // 32, dtype=dtypes.float32, device=dev)
+  xs = Tensor.empty(T * K // BLK, dtype=dtypes.float32, device=dev)
   xsum16 = Tensor.empty(T * K // 16, dtype=dtypes.float32, device=dev)
   WG = 1024 if mode == "rmsnorm" else 256
-  n_wg = T if mode == "rmsnorm" else (T * K // 32 + WG // 32 - 1) // (WG // 32)
-  name = f"{mode}_quant_{K}_{in_dtype.strip('_')}" + (f"_t{T}" if mode != "rmsnorm" else "")
-  src = _act_quant_src(K if mode == "rmsnorm" else T * K, mode, in_dtype).replace("EPS", f"{eps}f").replace("KERNEL(act_quant,", f"KERNEL({name},")
+  n_wg = T if mode == "rmsnorm" else (T * K // BLK + WG // 32 - 1) // (WG // 32)
+  name = f"{mode}_quant_{K}_{in_dtype.strip('_')}" + (f"_t{T}" if mode != "rmsnorm" else "") + (f"_b{BLK}" if BLK != 32 else "")
+  src = _act_quant_src(K if mode == "rmsnorm" else T * K, mode, in_dtype, BLK).replace("EPS", f"{eps}f").replace("KERNEL(act_quant,", f"KERNEL({name},")
   outs = y.custom_kernel(q, xs, xsum16, x, w, fxn=_src_program(name, src, n_wg, WG, Estimates(ops=8 * T * K, mem=10 * T * K), _arch(dev)))
   y, q, xs, xsum16 = outs[0], outs[1], outs[2], outs[3]
   cache_quant(y, q, xs, xsum16)
@@ -987,35 +1091,156 @@ def install():
   nn.RMSNorm.__call__ = _rmsnorm_call  # type: ignore[method-assign]
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
+# KV cache quantization (TurboQuant style): keys/values are rotated by a fixed random orthogonal transform (random signs + Walsh-Hadamard),
+# normalized and scalar-quantized per coordinate with a Lloyd-Max codebook for N(0,1) (the coordinates of a rotated unit vector are
+# ~N(0,1/D)). the key residual is projected with a second transform and stored as 1 bit per coordinate (QJL), an unbiased inner product
+# estimate that removes most of the remaining score error. q is rotated in-kernel, so scores are computed directly in the rotated space.
+
+def lloyd_max(bits:int, iters:int=500) -> list[float]:
+  """MSE-optimal scalar quantizer centroids for N(0,1), sorted"""
+  import math
+  n = 2 ** bits
+  pdf = lambda x: math.exp(-x * x / 2) / math.sqrt(2 * math.pi)
+  cdf = lambda x: 0.5 * (1 + math.erf(x / math.sqrt(2)))
+  c = [-2.5 + 5.0 * (i + 0.5) / n for i in range(n)]
+  for _ in range(iters):
+    b = [-40.0] + [(c[i] + c[i + 1]) / 2 for i in range(n - 1)] + [40.0]
+    c = [(pdf(b[i]) - pdf(b[i + 1])) / (cdf(b[i + 1]) - cdf(b[i])) for i in range(n)]
+  return c
+
+def kv_sign(i:int, seed:int) -> int:
+  """deterministic pseudo-random sign bit for coordinate i (1 = negative), same hash as the kernel"""
+  return bin(((i ^ seed) * 0x9E3779B1) & 0xffffffff).count("1") & 1
+KV_SEED_ROT, KV_SEED_QJL = 0x1234567, 0x7654321
+
+class KVQuant:
+  """byte layout of the quantized cache of one kv head: planar arrays [MAXC][bytes] per plane, head region = MAXC * bytes_per_pos.
+  k{2,4}: main index plane (2 or 4 bits per coordinate), k1: extra 1-bit plane (3-bit codes), kj: QJL sign bits, ks: (norm/16, qjl scale) f32"""
+  def __init__(self, kbits:int, vbits:int, qjl:bool, D:int=256):
+    assert kbits in (2, 3, 4) and vbits in (2, 3, 4) and D == 256
+    self.kbits, self.vbits, self.qjl, self.D = kbits, vbits, qjl, D
+    self.cbk, self.cbv = lloyd_max(kbits), lloyd_max(vbits)
+    planes: list[tuple[str, int]] = [("kq", D // 8 * (2 if kbits == 2 else 4 if kbits == 4 else 2))]
+    if kbits == 3: planes.append(("k1", D // 8))
+    if qjl: planes.append(("kj", D // 8))
+    planes.append(("ks", 8))
+    planes.append(("vq", D // 8 * (2 if vbits == 2 else 4 if vbits == 4 else 2)))
+    if vbits == 3: planes.append(("v1", D // 8))
+    planes.append(("vs", 4))
+    self.planes = dict(planes)
+    self.bytes_per_pos = sum(self.planes.values())
+    self.key = f"k{kbits}{'j' if qjl else ''}v{vbits}"
+  def offsets(self, maxc:int) -> dict[str, int]:
+    off, out = 0, {}
+    for name, b in self.planes.items(): out[name] = off; off += maxc * b
+    return out
+  def cache_bytes(self, hkv:int, maxc:int) -> int: return hkv * maxc * self.bytes_per_pos
+
+def kv_quant_spec() -> KVQuant|None:
+  """KV_QUANT=0 keeps the f32 cache. KV_KBITS/KV_VBITS in {2,3,4}, KV_QJL adds the 1-bit key residual (default k4+qjl, v4: ~6.8x smaller)"""
+  if not getenv("KV_QUANT", 1): return None
+  return KVQuant(getenv("KV_KBITS", 4), getenv("KV_VBITS", 4), bool(getenv("KV_QJL", 1)))
+
+# ---------------------------------------------------------------------------------------------------------------------------------------
 # fused single-token attention (flash-decoding): q/k norm + rope + kv cache write + chunked softmax(q k^T) v, merged by a second kernel
 
-def _attn_src(H:int, HKV:int, D:int, RD:int, MAXC:int, CH:int, eps:float, gated:bool, qk_norm:bool, toff:int=0) -> str:
-  G = H // HKV  # q heads per kv head
-  NCH = (MAXC + CH - 1) // CH
-  assert D == 256 and G <= 8 and RD % 2 == 0 and RD <= 64
-  QSTRIDE = 2 * D if gated else D  # q_raw layout per head: [q(D), gate(D)] when gated
-  # toff: the token of a batch this launch handles (position start_pos + toff, row toff of q/k/v/out). tokens >= sp_p[1] are padding
-  return PRELUDE + rf"""
-#define WG 256
-#define NW 8
-#define TOFF {toff}
-// partial attention of one kv head over one chunk of CH positions, all G q-heads of the group
-KERNEL(attn_part, WG)(float* __restrict__ pacc, float* __restrict__ pm, float* __restrict__ pl, float* __restrict__ cache,
-                      const float* __restrict__ q_raw, const float* __restrict__ k_raw, const float* __restrict__ v_raw,
-                      const float* __restrict__ qnw, const float* __restrict__ knw, const float* __restrict__ freqs, const i32* __restrict__ sp_p) {{
-  __attribute__((shared)) float q_s[{G}][{D}], knew[{D}], vnew[{D}], acc_s[{G}][{D}], red[NW][{G}][2], rot[{G}][{RD}];
-  if (TOFF >= sp_p[1]) return;
-  const i32 start_pos = sp_p[0] + TOFF;
-  q_raw += TOFF * {H * QSTRIDE}; k_raw += TOFF * {HKV * D}; v_raw += TOFF * {HKV * D};
-  const u32 kvh = wg_id() / {NCH}, chunk = wg_id() % {NCH};
-  const u32 pos0 = chunk * {CH};
-  if (pos0 > (u32)start_pos) return;
-  const u32 n = __builtin_amdgcn_readfirstlane((u32)start_pos + 1 - pos0 < {CH}u ? (u32)start_pos + 1 - pos0 : {CH}u);
-  const u32 t = tid(), lane = lane_id(), wave = t >> 5;
-  float* K = cache + (u64)kvh * {MAXC} * {D};
-  float* V = cache + (u64)({HKV} + kvh) * {MAXC} * {D};
-  const float* fr = freqs + (u64)start_pos * {RD};
-  // 1. normalize q (G heads) and the new k, v: wave w < G handles q head w, wave G handles k, wave G+1 handles v
+# device code shared by the decode and prefill attention kernels (expects WG and BAR() defined)
+ATTN_DEV = r"""
+// pseudo-random sign of coordinate i (1 = negative); the python side (kv_sign) uses the same hash
+DEV bool kv_sgn(u32 i, u32 seed) { return __builtin_popcount((i ^ seed) * 0x9E3779B1u) & 1u; }
+// in-place (unnormalized) Walsh-Hadamard transform of nvec contiguous 256-vectors in LDS, all WG threads, barriers inside
+DEV void wht_vecs(float* v, const u32 nvec, const u32 t) {
+  #pragma unroll
+  for (u32 h = 1; h < 256; h <<= 1) {
+    BAR();
+    for (u32 i = t; i < nvec * 128; i += WG) {
+      const u32 a = ((i >> 7) << 8) + (((i & 127) & ~(h - 1)) << 1) + ((i & 127) & (h - 1)), b = a + h;
+      const float x = v[a], y = v[b];
+      v[a] = x + y; v[b] = x - y;
+    }
+  }
+  BAR();
+}
+"""
+
+# --- the quantized cache: per-lane loads of the 8 coordinates [8*lane, 8*lane+8), index extraction, new-token quantization + stores
+def kv_load_idx(kvq:KVQuant, off:dict, D:int, pre:str, bits:int, plane:str, plane1:str) -> str:
+  """loads the packed indices of coordinates [8*lane, +8) of position `pos` into {pre}n (and {pre}n1 for 3 bits)"""
+  if bits == 4: return f"const u32 {pre}n = ld_u32(Kh + {off[plane]} + (u64)pos * {D // 2} + lane * 4);"
+  r = f"const u32 {pre}n = ld_u16(Kh + {off[plane]} + (u64)pos * {D // 4} + lane * 2);"
+  if bits == 3: r += f" const u32 {pre}n1 = ld_u8(Kh + {off[plane1]} + (u64)pos * {D // 8} + lane);"
+  return r
+def kv_idx_of(pre:str, bits:int, i:int) -> str:
+  if bits == 4: return f"(({pre}n >> {4 * i}) & 15u)"
+  if bits == 2: return f"(({pre}n >> {2 * i}) & 3u)"
+  return f"((({pre}n >> {2 * i}) & 3u) | ((({pre}n1 >> {i}) & 1u) << 2))"
+def kv_store_idx(off:dict, D:int, bits:int, plane:str, plane1:str) -> str:
+  """stores idx_s[D] (LDS) as the packed planes of position start_pos; thread t"""
+  if bits == 4: return f"if (t < {D // 2}) Kh[{off[plane]} + (u64)start_pos * {D // 2} + t] = (u8)(idx_s[2 * t] | (idx_s[2 * t + 1] << 4));"
+  r = f"if (t < {D // 4}) Kh[{off[plane]} + (u64)start_pos * {D // 4} + t] = (u8)((idx_s[4 * t] & 3u) | ((idx_s[4 * t + 1] & 3u) << 2) | ((idx_s[4 * t + 2] & 3u) << 4) | ((idx_s[4 * t + 3] & 3u) << 6));"
+  if bits == 3:
+    r += f"\n    if (t < {D // 8}) {{ u32 b = 0; for (int i = 0; i < 8; i++) b |= ((idx_s[8 * t + i] >> 2) & 1u) << i; Kh[{off[plane1]} + (u64)start_pos * {D // 8} + t] = (u8)b; }}"
+  return r
+def kv_cb_init(kvq:KVQuant) -> str:
+  """LDS codebooks cbk_s/cbv_s[16] via select chains (a const array would land in .rodata, which the ELF loader does not relocate)"""
+  cbk = " ".join(f"t == {i} ? {c:.7f}f :" for i, c in enumerate(kvq.cbk)) + " 0.0f"
+  cbv = " ".join(f"t == {i} ? {c:.7f}f :" for i, c in enumerate(kvq.cbv)) + " 0.0f"
+  return "if (t < 16) { cbk_s[t] = " + cbk + "; cbv_s[t] = " + cbv + "; }"
+def kv_rotate_code(kvq:KVQuant, D:int, G:int, NV:int) -> str:
+  """rotate the NV LDS vectors (q heads, [qjl q heads], k, v) into the quantization space: signs + WHT / 16 (qjl q: signs2 + WHT)"""
+  J = kvq.qjl
+  return f"""// 2b. rotate q, k, v into the quantization space (signs + WHT / 16){" and project q for the QJL residual estimate (signs2 + WHT)" if J else ""}
+  for (u32 i = t; i < {NV * D}; i += WG) {{
+    const u32 vec = i / {D}, d = i % {D};
+    {f"if (vec >= {G} && vec < {2 * G}) vecs[vec][d] = kv_sgn(d, {KV_SEED_QJL}u) ? -q_s[vec - {G}][d] : q_s[vec - {G}][d]; else" if J else ""}
+    vecs[vec][d] = kv_sgn(d, {KV_SEED_ROT}u) ? -vecs[vec][d] : vecs[vec][d];
+  }}
+  wht_vecs(&vecs[0][0], {NV}, t);
+  for (u32 i = t; i < {NV * D}; i += WG) {{ const u32 vec = i / {D}; if ({f"vec < {G} || vec >= {2 * G}" if J else "true"}) vecs[vec][i % {D}] *= 1.0f / 16.0f; }}
+  BAR();"""
+def kv_write_code(kvq:KVQuant, off:dict, D:int) -> str:
+  """quantize the rotated knew/vnew (LDS) into the cache planes of position start_pos (needs has_new, r_s, idx_s, red2, cbk_s, cbv_s)"""
+  J = kvq.qjl
+  qjl_store = f"""
+    // QJL: project the residual with the second transform, keep the sign bits and the residual norm
+    {{ const float rr = r_s[t]; const float ssr = wave_sum(rr * rr); if (lane == 0) red2[wave] = ssr; }}
+    BAR();
+    const float nr = __builtin_sqrtf(red2[0] + red2[1] + red2[2] + red2[3] + red2[4] + red2[5] + red2[6] + red2[7]) / 16.0f;
+    r_s[t] = kv_sgn(t, {KV_SEED_QJL}u) ? -r_s[t] : r_s[t];
+    wht_vecs(r_s, 1, t);
+    idx_s[t] = r_s[t] >= 0.0f ? 1u : 0u;
+    BAR();
+    if (t < {D // 8}) {{ u32 b = 0; for (int i = 0; i < 8; i++) b |= idx_s[8 * t + i] << i; Kh[{off['kj']} + (u64)start_pos * {D // 8} + t] = (u8)b; }}
+    if (t == 0) ((float*)(Kh + {off['ks']}))[start_pos * 2 + 1] = nk * nr * {(3.141592653589793 / 2) ** 0.5 / D}f;""" if J else ""
+  return f"""// 3b. quantize the rotated new k and v (per-vector norm + Lloyd-Max index per coordinate) into the cache planes
+  if (has_new) {{
+    float ss = knew[t] * knew[t]; ss = wave_sum(ss); if (lane == 0) red2[wave] = ss;
+    BAR();
+    const float nk = __builtin_sqrtf(red2[0] + red2[1] + red2[2] + red2[3] + red2[4] + red2[5] + red2[6] + red2[7]);
+    const float z = knew[t] * (nk > 0.0f ? 16.0f / nk : 0.0f);
+    u32 idx = 0;
+    #pragma unroll
+    for (int j = 1; j < {2 ** kvq.kbits}; j++) idx += z > 0.5f * (cbk_s[j] + cbk_s[j - 1]) ? 1u : 0u;
+    r_s[t] = z - cbk_s[idx]; idx_s[t] = idx;
+    if (t == 0) {{ ((float*)(Kh + {off['ks']}))[start_pos * 2] = nk / 16.0f; {"" if J else f"((float*)(Kh + {off['ks']}))[start_pos * 2 + 1] = 0.0f;"} }}
+    BAR();
+    {kv_store_idx(off, D, kvq.kbits, "kq", "k1")}{qjl_store}
+    BAR();
+    ss = vnew[t] * vnew[t]; ss = wave_sum(ss); if (lane == 0) red2[wave] = ss;
+    BAR();
+    const float nv = __builtin_sqrtf(red2[0] + red2[1] + red2[2] + red2[3] + red2[4] + red2[5] + red2[6] + red2[7]);
+    const float zv = vnew[t] * (nv > 0.0f ? 16.0f / nv : 0.0f);
+    idx = 0;
+    #pragma unroll
+    for (int j = 1; j < {2 ** kvq.vbits}; j++) idx += zv > 0.5f * (cbv_s[j] + cbv_s[j - 1]) ? 1u : 0u;
+    idx_s[t] = idx;
+    if (t == 0) ((float*)(Kh + {off['vs']}))[start_pos] = nv / 16.0f;
+    BAR();
+    {kv_store_idx(off, D, kvq.vbits, "vq", "v1")}
+  }}"""
+def kv_qk_prep_code(H:int, HKV:int, D:int, RD:int, G:int, QSTRIDE:int, eps:float, qk_norm:bool) -> str:
+  """steps 1-2 of the attention kernels: normalize q (G heads), the new k, v into LDS (q_s, knew, vnew) and apply rope (fr = freqs row)"""
+  return rf"""// 1. normalize q (G heads) and the new k, v: wave w < G handles q head w, wave G handles k, wave G+1 handles v
   if (wave < {G}) {{
     const float* src = q_raw + (u64)({G} * kvh + wave) * {QSTRIDE};
     float x[8]; float ss = 0.0f;
@@ -1037,7 +1262,7 @@ KERNEL(attn_part, WG)(float* __restrict__ pacc, float* __restrict__ pm, float* _
     #pragma unroll
     for (int i = 0; i < 8; i++) vnew[lane * 8 + i] = src[lane * 8 + i];
   }}
-  __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup");
+  BAR();
   // 2. rope on the first RD dims of q (each head) and k: pairs (d, d + RD/2); compute into rot[], then write back
   if (t < {G + 1} * {RD // 2}) {{
     const u32 hh = t / {RD // 2}, d = t % {RD // 2};
@@ -1047,19 +1272,83 @@ KERNEL(attn_part, WG)(float* __restrict__ pacc, float* __restrict__ pm, float* _
   }}
   float k1 = 0.0f, k2 = 0.0f;
   if (t < {RD // 2}) {{ const float c = fr[t], s = fr[t + {RD // 2}]; k1 = knew[t] * c - knew[t + {RD // 2}] * s; k2 = knew[t + {RD // 2}] * c + knew[t] * s; }}
-  __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup");
+  BAR();
   for (u32 i = t; i < {G} * {RD}; i += WG) q_s[i / {RD}][i % {RD}] = rot[i / {RD}][i % {RD}];
   if (t < {RD // 2}) {{ knew[t] = k1; knew[t + {RD // 2}] = k2; }}
-  __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup");
+  BAR();"""
+
+def _attn_src(H:int, HKV:int, D:int, RD:int, MAXC:int, CH:int, eps:float, gated:bool, qk_norm:bool, toff:int=0, kvq:KVQuant|None=None) -> str:
+  G = H // HKV  # q heads per kv head
+  NCH = (MAXC + CH - 1) // CH
+  assert D == 256 and G <= 8 and RD % 2 == 0 and RD <= 64
+  QSTRIDE = 2 * D if gated else D  # q_raw layout per head: [q(D), gate(D)] when gated
+  Q, J = kvq is not None, kvq is not None and kvq.qjl
+  NV = 2 * G + 2 if J else G + 2  # LDS vectors: q heads, (qjl-projected q heads), new k, new v
+  SQ = f"vecs + {G}" if J else "vecs"  # qjl-projected q (unused without qjl)
+  # --- the quantized cache: per-lane loads of the 8 coordinates [8*lane, 8*lane+8), index extraction, new-token quantization + stores
+  if Q:
+    off = kvq.offsets(MAXC)
+    loads = f"""{kv_load_idx(kvq, off, D, "k", kvq.kbits, "kq", "k1")} {kv_load_idx(kvq, off, D, "v", kvq.vbits, "vq", "v1")}
+      {f"const u32 kj = ld_u8(Kh + {off['kj']} + (u64)pos * {D // 8} + lane);" if J else ""}
+      const float ka = ld_f32(Kh + {off['ks']} + (u64)pos * 8), va = ld_f32(Kh + {off['vs']} + (u64)pos * 4);
+      {f"const float kb = ld_f32(Kh + {off['ks']} + (u64)pos * 8 + 4);" if J else ""}
+      {" ".join(f"kk[{i}] = cbk_s[{kv_idx_of('k', kvq.kbits, i)}] * ka;" for i in range(8))}
+      {" ".join(f"vv[{i}] = cbv_s[{kv_idx_of('v', kvq.vbits, i)}] * va;" for i in range(8))}
+      {" ".join(f"kjs[{i}] = ((kj >> {i}) & 1u) ? kb : -kb;" for i in range(8)) if J else ""}"""
+    rotate = kv_rotate_code(kvq, D, G, NV)
+    write_new = kv_write_code(kvq, off, D)
+    cache_decl = f"u8* Kh = cache + (u64)kvh * {MAXC * kvq.bytes_per_pos};"
+    lds_extra = "__attribute__((shared)) float cbk_s[16], cbv_s[16], r_s[256], red2[NW]; __attribute__((shared)) u32 idx_s[256];"
+    cb_init = kv_cb_init(kvq)
+    unrotate = f"""// undo the value rotation: out = signs * WHT(acc) / 16
+  y_s[t] = y; wht_vecs(y_s, 1, t); y = (kv_sgn(t, {KV_SEED_ROT}u) ? -y_s[t] : y_s[t]) * (1.0f / 16.0f);"""
+  else:
+    loads = f"""const u32x4 ka = ld_u32x4((const u8*)(K + (u64)pos * {D} + lane * 8)), kb = ld_u32x4((const u8*)(K + (u64)pos * {D} + lane * 8 + 4));
+      const u32x4 va = ld_u32x4((const u8*)(V + (u64)pos * {D} + lane * 8)), vb = ld_u32x4((const u8*)(V + (u64)pos * {D} + lane * 8 + 4));
+      kk[0] = __builtin_bit_cast(float, (u32)ka.x); kk[1] = __builtin_bit_cast(float, (u32)ka.y); kk[2] = __builtin_bit_cast(float, (u32)ka.z); kk[3] = __builtin_bit_cast(float, (u32)ka.w);
+      kk[4] = __builtin_bit_cast(float, (u32)kb.x); kk[5] = __builtin_bit_cast(float, (u32)kb.y); kk[6] = __builtin_bit_cast(float, (u32)kb.z); kk[7] = __builtin_bit_cast(float, (u32)kb.w);
+      vv[0] = __builtin_bit_cast(float, (u32)va.x); vv[1] = __builtin_bit_cast(float, (u32)va.y); vv[2] = __builtin_bit_cast(float, (u32)va.z); vv[3] = __builtin_bit_cast(float, (u32)va.w);
+      vv[4] = __builtin_bit_cast(float, (u32)vb.x); vv[5] = __builtin_bit_cast(float, (u32)vb.y); vv[6] = __builtin_bit_cast(float, (u32)vb.z); vv[7] = __builtin_bit_cast(float, (u32)vb.w);"""
+    rotate, unrotate, lds_extra, cb_init = "", "", "", ""
+    write_new = f"if (has_new && t < {D}) {{ K[(u64)start_pos * {D} + t] = knew[t]; V[(u64)start_pos * {D} + t] = vnew[t]; }}"
+    cache_decl = f"float* K = cache + (u64)kvh * {MAXC} * {D}; float* V = cache + (u64)({HKV} + kvh) * {MAXC} * {D};"
+  # toff: the token of a batch this launch handles (position start_pos + toff, row toff of q/k/v/out). tokens >= sp_p[1] are padding
+  return PRELUDE + rf"""
+#define WG 256
+#define NW 8
+#define TOFF {toff}
+#define BAR() __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup")
+{ATTN_DEV}
+// partial attention of one kv head over one chunk of CH positions, all G q-heads of the group
+KERNEL(attn_part, WG)(float* __restrict__ pacc, float* __restrict__ pm, float* __restrict__ pl, {"u8" if Q else "float"}* __restrict__ cache,
+                      const float* __restrict__ q_raw, const float* __restrict__ k_raw, const float* __restrict__ v_raw,
+                      const float* __restrict__ qnw, const float* __restrict__ knw, const float* __restrict__ freqs, const i32* __restrict__ sp_p) {{
+  __attribute__((shared)) float vecs[{NV}][{D}], acc_s[{G}][{D}], red[NW][{G}][2], rot[{G}][{RD}];
+  {lds_extra}
+  float (*q_s)[{D}] = vecs; float (*sq_s)[{D}] = {SQ}; float* knew = vecs[{NV - 2}]; float* vnew = vecs[{NV - 1}];
+  if (TOFF >= sp_p[1]) return;
+  const i32 start_pos = sp_p[0] + TOFF;
+  q_raw += TOFF * {H * QSTRIDE}; k_raw += TOFF * {HKV * D}; v_raw += TOFF * {HKV * D};
+  const u32 kvh = wg_id() / {NCH}, chunk = wg_id() % {NCH};
+  const u32 pos0 = chunk * {CH};
+  if (pos0 > (u32)start_pos) return;
+  const u32 n = __builtin_amdgcn_readfirstlane((u32)start_pos + 1 - pos0 < {CH}u ? (u32)start_pos + 1 - pos0 : {CH}u);
+  const u32 t = tid(), lane = lane_id(), wave = t >> 5;
+  {cache_decl}
+  {cb_init}
+  const float* fr = freqs + (u64)start_pos * {RD};
+  {kv_qk_prep_code(H, HKV, D, RD, G, QSTRIDE, eps, qk_norm)}
+  {rotate}
   // 3. the chunk holding start_pos writes the new k, v into the cache (and uses the LDS copies for that position)
   const bool has_new = pos0 + n - 1 == (u32)start_pos;
-  if (has_new && t < {D}) {{ K[(u64)start_pos * {D} + t] = knew[t]; V[(u64)start_pos * {D} + t] = vnew[t]; }}
+  {write_new}
   // 4. online softmax over this wave's positions: pos0 + wave*PER .. ; lane owns dims [8*lane, 8*lane+8)
   float qv[{G}][8];
   #pragma unroll
   for (int h = 0; h < {G}; h++)
     #pragma unroll
     for (int i = 0; i < 8; i++) qv[h][i] = q_s[h][lane * 8 + i];
+  {f"float sqv[{G}][8]; for (int h = 0; h < {G}; h++) for (int i = 0; i < 8; i++) sqv[h][i] = sq_s[h][lane * 8 + i];" if J else ""}
   float m[{G}], l[{G}], acc[{G}][8];
   #pragma unroll
   for (int h = 0; h < {G}; h++) {{ m[h] = -1e30f; l[h] = 0.0f;
@@ -1072,22 +1361,18 @@ KERNEL(attn_part, WG)(float* __restrict__ pacc, float* __restrict__ pm, float* _
     const u32 pos = pos0 + p;
     const bool is_new = has_new && pos == (u32)start_pos;
     float kk[8], vv[8];
+    {"float kjs[8];" if J else ""}
     if (is_new) {{
       #pragma unroll
-      for (int i = 0; i < 8; i++) {{ kk[i] = knew[lane * 8 + i]; vv[i] = vnew[lane * 8 + i]; }}
+      for (int i = 0; i < 8; i++) {{ kk[i] = knew[lane * 8 + i]; vv[i] = vnew[lane * 8 + i]; {"kjs[i] = 0.0f;" if J else ""} }}
     }} else {{
-      const u32x4 ka = ld_u32x4((const u8*)(K + (u64)pos * {D} + lane * 8)), kb = ld_u32x4((const u8*)(K + (u64)pos * {D} + lane * 8 + 4));
-      const u32x4 va = ld_u32x4((const u8*)(V + (u64)pos * {D} + lane * 8)), vb = ld_u32x4((const u8*)(V + (u64)pos * {D} + lane * 8 + 4));
-      kk[0] = __builtin_bit_cast(float, (u32)ka.x); kk[1] = __builtin_bit_cast(float, (u32)ka.y); kk[2] = __builtin_bit_cast(float, (u32)ka.z); kk[3] = __builtin_bit_cast(float, (u32)ka.w);
-      kk[4] = __builtin_bit_cast(float, (u32)kb.x); kk[5] = __builtin_bit_cast(float, (u32)kb.y); kk[6] = __builtin_bit_cast(float, (u32)kb.z); kk[7] = __builtin_bit_cast(float, (u32)kb.w);
-      vv[0] = __builtin_bit_cast(float, (u32)va.x); vv[1] = __builtin_bit_cast(float, (u32)va.y); vv[2] = __builtin_bit_cast(float, (u32)va.z); vv[3] = __builtin_bit_cast(float, (u32)va.w);
-      vv[4] = __builtin_bit_cast(float, (u32)vb.x); vv[5] = __builtin_bit_cast(float, (u32)vb.y); vv[6] = __builtin_bit_cast(float, (u32)vb.z); vv[7] = __builtin_bit_cast(float, (u32)vb.w);
+      {loads}
     }}
     #pragma unroll
     for (int h = 0; h < {G}; h++) {{
       float d = 0.0f;
       #pragma unroll
-      for (int i = 0; i < 8; i++) d += qv[h][i] * kk[i];
+      for (int i = 0; i < 8; i++) {{ d += qv[h][i] * kk[i]; {"d += sqv[h][i] * kjs[i];" if J else ""} }}
       const float sc = wave_sum(d);
       const float mn = __builtin_fmaxf(m[h], sc);
       const float corr = __builtin_expf(m[h] - mn), pw = __builtin_expf(sc - mn);
@@ -1103,7 +1388,7 @@ KERNEL(attn_part, WG)(float* __restrict__ pacc, float* __restrict__ pm, float* _
     for (int h = 0; h < {G}; h++) {{ red[wave][h][0] = m[h]; red[wave][h][1] = l[h]; }}
   }}
   for (u32 i = t; i < {G} * {D}; i += WG) acc_s[i / {D}][i % {D}] = 0.0f;
-  __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup");
+  BAR();
   float M[{G}], Lsum[{G}];
   #pragma unroll
   for (int h = 0; h < {G}; h++) {{
@@ -1124,7 +1409,7 @@ KERNEL(attn_part, WG)(float* __restrict__ pacc, float* __restrict__ pm, float* _
         for (int i = 0; i < 8; i++) acc_s[h][lane * 8 + i] += acc[h][i] * sc;
       }}
     }}
-    __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup");
+    BAR();
   }}
   // 6. write the chunk partials: pacc[(kvh*G+h)][chunk][D], pm/pl[(kvh*G+h)][chunk]
   for (u32 i = t; i < {G} * {D}; i += WG) {{
@@ -1137,6 +1422,7 @@ KERNEL(attn_part, WG)(float* __restrict__ pacc, float* __restrict__ pm, float* _
 KERNEL(attn_merge, 256)(float* __restrict__ out, i8* __restrict__ oq, float* __restrict__ os, float* __restrict__ osum16,
                         const float* __restrict__ pacc, const float* __restrict__ pm, const float* __restrict__ pl,
                         const float* __restrict__ q_raw, const i32* __restrict__ sp_p) {{
+  {"__attribute__((shared)) float y_s[256];" if Q else ""}
   const bool pad = TOFF >= sp_p[1];
   const i32 start_pos = sp_p[0] + TOFF;
   q_raw += TOFF * {H * QSTRIDE}; out += TOFF * {H * D}; oq += TOFF * {H * D}; os += TOFF * {H * D // 32}; osum16 += TOFF * {H * D // 16};
@@ -1151,6 +1437,7 @@ KERNEL(attn_merge, 256)(float* __restrict__ out, i8* __restrict__ oq, float* __r
     a += pacc[((u64)h * {NCH} + c) * {D} + t] * w;
   }}
   float y = pad ? 0.0f : a / L;
+  {unrotate}
   {"const float g = q_raw[h * " + str(QSTRIDE) + " + " + str(D) + " + t]; y *= 1.0f / (1.0f + __builtin_expf(-g));" if gated else ""}
   out[h * {D} + t] = y;
   // quantize this 32-block (one wave = one block)
@@ -1169,14 +1456,20 @@ KERNEL(attn_merge, 256)(float* __restrict__ out, i8* __restrict__ oq, float* __r
 """
 
 def attn_decode(cache:Tensor, q_raw:Tensor, k_raw:Tensor, v_raw:Tensor, qnw:Tensor|None, knw:Tensor|None, freqs:Tensor, start_pos:UOp|int,
-                H:int, HKV:int, D:int, RD:int, MAXC:int, eps:float, gated:bool, T:int=1, n_tok:UOp|int|None=None) -> Tensor:
-  """attention of T tokens (positions start_pos.., tokens >= n_tok are padding) with the kv cache (2, 1, HKV, MAXC, D) f32 updated in place.
-  one fused kernel pair per token, chained. returns (T, H*D) f32 (gated), quantization cached"""
+                H:int, HKV:int, D:int, RD:int, MAXC:int, eps:float, gated:bool, T:int=1, n_tok:UOp|int|None=None, kvq:KVQuant|None=None) -> Tensor:
+  """attention of T tokens (positions start_pos.., tokens >= n_tok are padding) with the kv cache updated in place: (2, 1, HKV, MAXC, D) f32,
+  or the quantized u8 layout of kvq (see KVQuant).
+  one fused kernel pair per token, chained; prefill chunks (T > MAX_T) go through amd_prefill.attn_prefill (needs the quantized cache).
+  returns (T, H*D) f32 (gated), quantization cached"""
+  if T > MAX_T:
+    assert kvq is not None, "prefill attention needs the quantized kv cache"
+    from tinygrad.llm.amd_prefill import attn_prefill
+    return attn_prefill(cache, q_raw, k_raw, v_raw, qnw, knw, freqs, start_pos, H, HKV, D, RD, MAXC, eps, gated, T, n_tok, kvq)
   CH = 128
   NCH = (MAXC + CH - 1) // CH
   dev, arch = cache.device, _arch(cache.device)
   qk_norm = qnw is not None
-  sfx = f"_{H}_{HKV}_{D}_{RD}_{MAXC}_{int(gated)}{int(qk_norm)}"
+  sfx = f"_{H}_{HKV}_{D}_{RD}_{MAXC}_{int(gated)}{int(qk_norm)}{'_' + kvq.key if kvq is not None else ''}"
   pacc = Tensor.empty(H * NCH * D, dtype=dtypes.float32, device=dev)
   pm = Tensor.empty(H * NCH, dtype=dtypes.float32, device=dev)
   pl = Tensor.empty(H * NCH, dtype=dtypes.float32, device=dev)
@@ -1187,7 +1480,7 @@ def attn_decode(cache:Tensor, q_raw:Tensor, k_raw:Tensor, v_raw:Tensor, qnw:Tens
   out = Tensor.empty(T * H * D, dtype=dtypes.float32, device=dev)
   oq, os_, osum16 = (Tensor.empty(n, dtype=dt, device=dev) for n, dt in ((T * H * D, dtypes.int8), (T * H * D // 32, dtypes.float32), (T * H * D // 16, dtypes.float32)))
   for toff in range(T):
-    src = _attn_src(H, HKV, D, RD, MAXC, CH, eps, gated, qk_norm, toff)
+    src = _attn_src(H, HKV, D, RD, MAXC, CH, eps, gated, qk_norm, toff, kvq)
     tsfx = f"{sfx}_t{toff}"
     # one kernel per source/ELF (the loader expects a single kernel per program)
     cut = src.index("// merge the chunks")

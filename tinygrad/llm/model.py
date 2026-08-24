@@ -1,6 +1,7 @@
 from __future__ import annotations
 import enum, functools, itertools, pathlib
 from dataclasses import dataclass, replace
+from typing import Any
 from tinygrad import Tensor, nn, UOp, TinyJit, getenv, function, dtypes
 from tinygrad.llm.kernels.amd import Linear, gated_delta_prefill, flash_attention, amd_custom_kernels_supported
 from tinygrad.helpers import DEBUG, Timing
@@ -81,6 +82,7 @@ class TransformerConfig:
   routed_scaling_factor: float = 1.0
   qkv_bias: bool = False
   expert_bias: bool = False
+  rope_sections: tuple[int, ...]|None = None  # m-rope (t, h, w, extra) pair counts per section, interleaved (Qwen3-VL / Qwen3.5)
 
 class FFNBlock:
   def __init__(self, config:TransformerConfig):
@@ -159,8 +161,8 @@ class FFNBlock:
   # number of tokens x holds if it is a batch the fused AMD kernels take (B=1, T <= MAX_T), else 0
   @staticmethod
   def _n_fused(x:Tensor) -> int:
-    from tinygrad.llm.amd_gemv import MAX_T
-    return x.shape[1] if x.shape[0] == 1 and isinstance(x.shape[1], int) and x.shape[1] <= MAX_T else 0
+    from tinygrad.llm.amd_gemv import fused_T
+    return x.shape[1] if x.shape[0] == 1 and isinstance(x.shape[1], int) and fused_T(x.shape[1]) else 0
   # decode of up to MAX_T tokens with the packed-weight kernels: no function boundary (it copies in and out), residual adds fused into
   # the gemv epilogues. n_tok (runtime) is the number of valid tokens of a padded chunk
   def _decode_fused(self, x:Tensor) -> bool:
@@ -198,18 +200,19 @@ class TransformerBlock(FFNBlock):
       self._attn_params = (self.attn_q_norm.weight.float().contiguous().realize(), self.attn_k_norm.weight.float().contiguous().realize()) if qk else (None, None)
     qnw, knw = self._attn_params
     attn = amd_gemv.attn_decode(self.cache_kv, q, k, v, qnw, knw, self.freqs_cis, start_pos, c.n_heads, c.n_kv_heads, c.head_dim, c.rope_dim,
-                                c.max_context, c.norm_eps, c.attn_output_gate, T, n_tok)
+                                c.max_context, c.norm_eps, c.attn_output_gate, T, n_tok, self.kv_quant)
     return amd_gemv.linear_decode(self.attn_output, attn.reshape(1, T, -1), residual=residual)
 
   def _fused_ok(self) -> bool:
     c = self.config
     return all(hasattr(l, "_ggml") for l in (self.attn_q, self.attn_k, self.attn_v)) and bool(getenv("AMD_ATTN", 1)) and \
        c.head_dim == 256 and c.n_heads % c.n_kv_heads == 0 and c.n_heads // c.n_kv_heads <= 8 and c.qk_norm in (0, c.head_dim) and \
-       c.rope_dim <= 64 and self.cache_kv.dtype == dtypes.float32
+       c.rope_dim <= 64 and (self.cache_kv.dtype == dtypes.float32 or self.kv_quant is not None)
 
   def _attention(self, x:Tensor, start_pos:int|UOp, residual:Tensor|None=None, n_tok:int|UOp|None=None) -> Tensor:
     if residual is not None and self._n_fused(x) and self._fused_ok(): return self._attention_fused(x, start_pos, residual, n_tok)
     assert n_tok is None, "padded token chunks need the fused attention path"
+    assert self.kv_quant is None, "the quantized kv cache is only readable by the fused attention kernel"
     if residual is not None and all(hasattr(l, "_ggml") for l in (self.attn_q, self.attn_k, self.attn_v)):
       from tinygrad.llm.amd_gemv import linear_decode_multi
       q, k, v = linear_decode_multi([self.attn_q, self.attn_k, self.attn_v], x)
@@ -255,11 +258,20 @@ class TransformerBlock(FFNBlock):
       return linear_decode(self.attn_output, attn.contiguous(), residual=residual)
     return self.attn_output(attn)
 
+  kv_quant = None  # amd_gemv.KVQuant when the cache is quantized (only the fused kernel can read it)
   def _init_state(self, x:Tensor):
     if not hasattr(self, "cache_kv"):
-      # zeroed so the flash kernels can safely read whole tiles past the valid region (masked lanes multiply by 0)
-      self.cache_kv = Tensor.zeros(2, x.shape[0], self.config.n_kv_heads, self.config.max_context, self.config.head_dim,
-                                   dtype=dtypes.half, device=x.device)
+      c = self.config
+      # the fused attention kernel (AMD, head_dim 256) keeps a quantized cache; every other path uses the dense f32 one
+      if x.shape[0] == 1 and all(hasattr(l, "_ggml") for l in (self.attn_q, self.attn_k, self.attn_v)) and getenv("AMD_ATTN", 1) and \
+         c.head_dim == 256 and c.n_heads % c.n_kv_heads == 0 and c.n_heads // c.n_kv_heads <= 8 and c.qk_norm in (0, c.head_dim) and c.rope_dim <= 64:
+        from tinygrad.llm import amd_gemv
+        self.kv_quant = amd_gemv.kv_quant_spec()
+      if self.kv_quant is not None:
+        self.cache_kv = Tensor.empty(self.kv_quant.cache_bytes(c.n_kv_heads, c.max_context), dtype=dtypes.uint8, device=x.device)
+      else:
+        # zeroed so the flash kernels can safely read whole tiles past the valid region (masked lanes multiply by 0)
+        self.cache_kv = Tensor.zeros(2, x.shape[0], c.n_kv_heads, c.max_context, c.head_dim, dtype=dtypes.default_float, device=x.device)
       self.freqs_cis = precompute_freqs_cis(self.config.rope_dim, self.config.max_context, self.config.rope_theta, device=x.device)
 
 class MLATransformerBlock(FFNBlock):
@@ -424,6 +436,18 @@ class GatedDeltaNetBlock(FFNBlock):
       if hasattr(self.attn_qkv, "_ggml"):  # f32 copies of the small params for the fused decode kernels, realized outside the function capture
         self._gdn_params = tuple(t.float().contiguous().realize() for t in (self.ssm_conv1d["weight"], self.ssm_dt["bias"], self.ssm_a, self.ssm_norm.weight))
 
+class MTPModule:
+  """Qwen3.8 nextn (MTP) draft layer: eh_proj(cat(enorm(embed(t_{i+1})), hnorm(h_i))) -> TransformerBlock -> shared lm_head."""
+  def __init__(self, config:TransformerConfig):
+    self.blk = TransformerBlock(config)
+    self.eh_proj = Linear(2 * config.dim, config.dim, bias=False)
+    self.enorm = nn.RMSNorm(config.dim, config.norm_eps)
+    self.hnorm = nn.RMSNorm(config.dim, config.norm_eps)
+    self.shared_head_norm = nn.RMSNorm(config.dim, config.norm_eps)
+
+  def __call__(self, hidden:Tensor, next_emb:Tensor, start_pos:int|UOp, n_tok:int|UOp|None=None) -> Tensor:
+    return self.blk(self.eh_proj(self.enorm(next_emb).cat(self.hnorm(hidden), dim=-1)), start_pos, n_tok)
+
 class Transformer:
   def __init__(self, config:TransformerConfig):
     dense_config = replace(config, num_experts=0, num_experts_per_tok=0, shared_expert_dim=0, hidden_dim=config.dense_hidden_dim or config.hidden_dim)
@@ -438,16 +462,29 @@ class Transformer:
     self.max_context = config.max_context
     self.has_recurrent_block = any(isinstance(b, GatedDeltaNetBlock) for b in self.blk)
     self._cached_tokens: list[int] = []
+    # vision: set when an encoder is attached. image tokens (the pad id) take their embeddings from an `emb` input of the prefill chunk
+    self.image_pad_id: int|None = None
+    self._cached_media: tuple = ()
+    self._emb_zero: dict[int, Tensor] = {}
+    self._pos_dirty = False
+    self.mtp: MTPModule|None = None
+    self.mtp_k = 1
+    self._spec_jits: dict = {}
     # we specialize the JIT for prefill and rollout
     self.prefill_jit = TinyJit(self.forward)
     self.rollout_jit = TinyJit(self.forward)
 
-  def forward(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp|None=None) -> Tensor:
+  def _embed(self, tokens:Tensor, emb:Tensor|None) -> Tensor:
+    x = self.token_embd(tokens).float()                   # (B, T, D)
+    # image tokens take the rows of `emb` (vision encoder output placed at their positions, zeros elsewhere)
+    return x if emb is None else (tokens == self.image_pad_id).unsqueeze(-1).where(emb, x)
+
+  def forward(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp|None=None, emb:Tensor|None=None) -> Tensor:
     # n_tok: number of valid tokens when `tokens` is a padded fixed-size chunk (fused AMD path), the rest are ignored
     if hasattr(self, "_ggml_raw"):
       from tinygrad.llm import amd_gemv
       amd_gemv.new_forward()
-    x = self.token_embd(tokens).float()                   # (B, T, D)
+    x = self._embed(tokens, emb)
     for block in self.blk: x = block(x, start_pos, n_tok)
     # only run the output projection on the last (valid) token
     last = x[:, -1:] if n_tok is None else x.shrink((None, (n_tok - 1, n_tok), None)).contiguous()
@@ -455,13 +492,89 @@ class Transformer:
     # Gumbel-max trick: argmax(logits/temp - log(-log(uniform))) is equivalent to sampling from softmax(logits/temp)
     return (logits / temperature.maximum(1e-12) - (Tensor.rand_like(logits).maximum(1e-12).log().neg()).log()).argmax(-1, keepdim=True)
 
-  def __call__(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp|None=None) -> Tensor:
+  @staticmethod
+  def _sample_rows(logits:Tensor, temperature:Tensor) -> Tensor:
+    # per-row Gumbel-max sampling (same as _sample): the draft is verified by sample-then-compare so temperature>0 stays lossless
+    return (logits / temperature.maximum(1e-12) - (Tensor.rand_like(logits).maximum(1e-12).log().neg()).log()).argmax(-1)
+
+  def forward_spec(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp, n_keep:int|UOp,
+                   emb:Tensor|None=None) -> tuple[Tensor, ...]:
+    """main model on a T-token chunk (n_keep tokens commit GDN/conv state; the rest are the K drafts being verified), then K chained
+    passes of the MTP draft layer. returns (res[T+K] = sampled tokens of the T rows + the K new drafts, next chunk if L drafts were
+    accepted for L = 0..K). the next chunks are realized here so the next step feeds a JIT output straight back in (realizing a fresh
+    Tensor each step walks the whole live graph); accept count / draft rows stay on GPU so the JIT has no Python branch."""
+    from tinygrad.llm import amd_gemv
+    from tinygrad.engine.realize import capturing
+    import gc
+    assert self.mtp is not None
+    K, T = self.mtp_k, int(tokens.shape[1])
+    prefill = not isinstance(n_keep, int)
+    amd_gemv.new_forward(n_keep)
+    x = self._embed(tokens, emb)
+    for block in self.blk:
+      x = block(x, start_pos, n_tok)
+      # long chunks: realize per block outside the JIT. the eager (first, pre-capture) run cannot memory-plan the custom kernels' in/out
+      # buffers, so one schedule for the whole chunk would allocate every layer's intermediates at once (~7 GB at T=256). inside a capture
+      # realize only records the schedule, the captured graph is planned as a whole. TinyJit runs with the cyclic GC disabled, and the
+      # finished block's graph is a reference cycle: collect it so its buffers are freed before the next block
+      if T > amd_gemv.MAX_T and not capturing:
+        x = x.realize()
+        gc.collect(1)
+    chunk, idx = tokens.reshape(T), Tensor.arange(T, dtype=dtypes.int32)
+    if prefill:  # only the last valid row is sampled (the output projection of a long chunk would be the biggest GEMM of the step)
+      lastx = x.shrink((None, (n_tok - 1, n_tok), None)).contiguous() if isinstance(n_tok, int) else \
+        ((idx == (n_tok - 1)).reshape(1, T, 1).where(x, 0)).sum(axis=1, keepdim=True)
+      out_last = Transformer._sample_rows(self.output(self.output_norm(lastx)), temperature).reshape(1).cast(dtypes.int32)
+      out = out_last.expand(T).contiguous()
+    else: out = Transformer._sample_rows(self.output(self.output_norm(x)), temperature).reshape(T).cast(dtypes.int32)
+    # rows < n_keep-1 see the next chunk token, the others the token sampled from them
+    next_toks = (idx < (n_keep - 1)).where(chunk[1:].cat(chunk[-1:]), out).reshape(1, T)
+    if prefill:  # nothing to verify
+      n_acc, j_last = 0, n_tok - 1
+    else:  # L = number of leading drafts that match what the model sampled in their place (lossless at any temperature)
+      acc = (out[n_keep-1:n_keep-1+K] == chunk[n_keep:n_keep+K]).cast(dtypes.int32)
+      n_acc = (acc.cumsum(0) == idx[:K] + 1).sum().reshape(1).cast(dtypes.int32)  # type: ignore[assignment]
+      j_last = n_keep - 1 + n_acc  # row of the last accepted position
+    def pick(t:Tensor, j) -> Tensor:  # row j of (1, T, ...) / (T,) as a (1, 1, ...) / (1,) tensor, j int, UOp or int32 Tensor
+      if isinstance(j, Tensor):
+        m = (idx == j.reshape(())).reshape(*([1, T] if t.ndim == 3 else [T]), *([1] * (t.ndim - 2 if t.ndim == 3 else 0)))
+        return (m.where(t, 0)).sum(axis=1 if t.ndim == 3 else 0, keepdim=True)
+      return t.shrink(((None,) if t.ndim == 3 else ()) + ((j, j + 1),) + ((None,) if t.ndim == 3 else ())).contiguous()
+    # MTP pass 1 over the chunk rows (fills its KV cache), then K-1 single-row passes chained on its own hidden state and draft
+    amd_gemv.new_forward(n_keep if prefill else n_keep + n_acc)
+    mx = self.mtp(x, self.token_embd(next_toks).float(), start_pos, n_tok)
+    h = pick(mx, j_last)
+    drafts = [Transformer._sample_rows(self.output(self.mtp.shared_head_norm(h)), temperature).reshape(1).cast(dtypes.int32)]
+    for k in range(1, K):
+      amd_gemv.new_forward(1)
+      h = self.mtp(h, self.token_embd(drafts[-1].reshape(1, 1)).float(), (j_last + start_pos) + k, 1)  # Tensor + UOp works, not UOp + Tensor
+      drafts.append(Transformer._sample_rows(self.output(self.mtp.shared_head_norm(h)), temperature).reshape(1).cast(dtypes.int32))
+    draft = drafts[0].cat(*drafts[1:]) if K > 1 else drafts[0]
+    # candidate next chunks: L accepted -> U = drafts[:L] + [out[n_keep-1+L]], chunk = U + new drafts
+    last = pick(out, j_last)
+    if prefill: cands = [last.cat(draft).reshape(1, 1 + K).contiguous()]
+    else: cands = [chunk[n_keep:n_keep+L].cat(out[n_keep-1+L:n_keep+L], draft).reshape(1, L + 1 + K).contiguous() for L in range(K + 1)]
+    res = out.cat(draft).contiguous()
+    amd_gemv.end_forward()
+    return (res, *cands)
+
+  def __call__(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp|None=None, emb:Tensor|None=None) -> Tensor:
     jit = self.prefill_jit if resolve(tokens.shape[1] != 1) else self.rollout_jit
-    return jit(tokens.contiguous(), start_pos, temperature, n_tok) if n_tok is not None else jit(tokens.contiguous(), start_pos, temperature)
+    kw = {} if emb is None else {"emb": emb}
+    if n_tok is not None: return jit(tokens.contiguous(), start_pos, temperature, n_tok, **kw)
+    return jit(tokens.contiguous(), start_pos, temperature, **kw)
 
   @staticmethod
   def from_gguf(gguf:Tensor|str|pathlib.Path, max_context:int|None=None,
-                realize=bool(getenv("REALIZE", 0))) -> tuple[Transformer, dict]:
+                realize=bool(getenv("REALIZE", 0)), vision:bool=False) -> tuple[Transformer, dict]:
+    # vision: the prefill jits take the image-embedding input (the pad token id is set by the caller before warmup)
+    # a warmed-up model may be cached whole (weights re-uploaded, jits unpickled): ~seconds instead of a full load + warmup
+    if not isinstance(gguf, Tensor):
+      from tinygrad.llm.cache import load_llm_cache
+      if (cached:=load_llm_cache(str(gguf), max_context, "vision" if vision else "")) is not None:
+        cached[0]._from_cache = True
+        return cached
+
     # TODO: remove the need for copy to default device
     raw: dict = {}
     kv, state_dict = gguf_load(gguf.to(None).realize() if isinstance(gguf, Tensor) else gguf, raw_out=raw)
@@ -521,6 +634,7 @@ class Transformer:
       head_dim=head_dim,
       rope_theta=kv[f'{arch}.rope.freq_base'],
       rope_dim=rope_dim,
+      rope_sections=tuple(kv[k]) if (k:=f'{arch}.rope.dimension_sections') in kv else None,
       v_head_dim=kv.get(f'{arch}.attention.value_length_mla', kv.get(f'{arch}.attention.value_length', head_dim)),
       max_context=max_context,
       qk_norm=int(state_dict['blk.0.attn_q_norm.weight'].shape[0]) if 'blk.0.attn_q_norm.weight' in state_dict else 0,
@@ -538,7 +652,20 @@ class Transformer:
       ssm_layers=ssm_layers,
       qkv_bias='blk.0.attn_q.bias' in state_dict,
       expert_bias=f"blk.{kv.get(f'{arch}.leading_dense_block_count', 0)}.exp_probs_b.bias" in state_dict)
+    mtp_prefix = f'blk.{config.num_blocks}.'
+    if getenv("MTP", 1) and any(k.startswith(mtp_prefix) for k in state_dict):
+      def _mtp_key(k:str) -> str:
+        if not k.startswith(mtp_prefix): return k
+        rest = k[len(mtp_prefix):]
+        return 'mtp.' + rest[len('nextn.'):] if rest.startswith('nextn.') else 'mtp.blk.' + rest
+      state_dict = {_mtp_key(k): v for k, v in state_dict.items()}
+      for k in [k for k in raw if k.startswith(mtp_prefix)]: raw[_mtp_key(k)] = raw.pop(k)
     model = Transformer(config)
+    if any(k.startswith('mtp.') for k in state_dict):
+      model.mtp = MTPModule(replace(config, qk_norm=config.head_dim) if config.ssm else config)
+      from tinygrad.llm.amd_gemv import MAX_T
+      model.mtp_k = getenv("MTP_K", 3)  # drafts per step: chunk = up to K+1 committed tokens + K drafts must fit the fused T <= MAX_T path
+      assert 1 <= model.mtp_k and 2 * model.mtp_k + 1 <= MAX_T, f"MTP_K={model.mtp_k} needs 2K+1 <= {MAX_T}"
     nn.state.load_state_dict(model, state_dict, verbose=False, consume=True, realize=False)  # NOTE: rope_freqs.weight (32,) is unused
     # the packed weights stay resident: realize the raw bytes of the model's tensors once (straight from disk), and the small
     # parameters (norms, biases, conv weights) so nothing is re-copied or re-cast every token
@@ -556,28 +683,120 @@ class Transformer:
       # prefill in fixed-size token chunks through the fused kernels when every block takes that path (state updates must skip padding)
       probe = Tensor.empty(1, 1, config.dim, device=nn.state.get_parameters(model)[0].device)
       for b in model.blk: b._init_state(probe)
+      if model.mtp is not None: model.mtp.blk._init_state(probe)
       if getenv("AMD_CHUNK", 1) and all(b._decode_fused(probe) and hasattr(b, "_fused_ok") and b._fused_ok() for b in model.blk):
-        model._chunk_T = amd_gemv.MAX_T
+        # the long prefill chunk (dequant + tensor-core GEMM, batched attention) needs the quantized kv cache in every attention block
+        blocks = list(model.blk) + ([model.mtp.blk] if model.mtp is not None else [])
+        model._chunk_T = amd_gemv.PREFILL_T if all(getattr(b, "kv_quant", True) is not None for b in blocks) else amd_gemv.MAX_T
     # NOTE: without this contiguous, it unpacks the weights from the model every time. we shouldn't need this, but for now it's faster
     if realize:
       for s in (params:=nn.state.get_parameters(model)): s.replace(s.contiguous())
       Tensor.realize(*params)
     return model, kv
 
-  def warmup(self):
-    for _ in range(2): list(zip(range(2), self.generate([0])))
+  def _spec_jit(self, T:int):
+    if T not in self._spec_jits: self._spec_jits[T] = TinyJit(self.forward_spec)
+    return self._spec_jits[T]
 
-  def get_start_pos(self, tokens:list[int]) -> int:
+  def warmup(self):
+    try: self._warmup()
+    finally:  # the eager pre-capture runs leave freed buffers in the allocator cache: hand that VRAM back (the display stack needs it)
+      from tinygrad import Device
+      for d in Device._opened_devices:
+        if hasattr(Device[d].allocator, "free_cache"): Device[d].allocator.free_cache()
+  def _warmup(self):
+    for _ in range(2): list(zip(range(2), self.generate([0])))
+    chunk_T = getattr(self, "_chunk_T", 0)
+    if self.mtp is None or not chunk_T: return
+    # generate() hits T=chunk_T (prefill) and T=K+1 (no accept); the chunk sizes after L accepted drafts get captured here
+    K, temp = self.mtp_k, Tensor([0.0])
+    v_sp = UOp.variable("start_pos", 0, self.max_context-1)
+    for _ in range(2):
+      for L in range(K + 1): self._spec_jit(T:=L + 1 + K)(Tensor([[0] * T], dtype="int32"), v_sp.bind(0), temp, T, L + 1)
+    self._cached_tokens = []  # the extra calls rewrote the state at position 0
+
+  def get_start_pos(self, tokens:list[int], media_key:tuple=()) -> int:
+    # image tokens are all the same pad id: the cached prefix only counts up to the first image that differs from the cached request
+    cached = self._cached_tokens
+    if (cut := self._media_cut(media_key)) is not None: cached = cached[:cut]
     # recurrent state can't be partially reused after divergence: reuse it only when tokens extend the cached prefix
     if self.has_recurrent_block:
-      return len(self._cached_tokens) if self._cached_tokens and len(self._cached_tokens) < len(tokens) \
-        and tokens[:len(self._cached_tokens)] == self._cached_tokens else 0
-    prefix_len = sum(1 for _ in itertools.takewhile(lambda ab: ab[0] == ab[1], zip(tokens[:-1], self._cached_tokens)))
+      return len(cached) if cached and len(cached) == len(self._cached_tokens) and len(cached) < len(tokens) \
+        and tokens[:len(cached)] == cached else 0
+    prefix_len = sum(1 for _ in itertools.takewhile(lambda ab: ab[0] == ab[1], zip(tokens[:-1], cached)))
     return min(block._reusable_prefix_len(prefix_len, len(self._cached_tokens)) for block in self.blk)
 
-  def generate(self, tokens:list[int], chunk_size:int=32, temperature:float=0.0):
+  # ---- vision: image embeddings replace the <|image_pad|> tokens, attention positions follow Qwen's m-rope ----
+  def _media_cut(self, media_key:tuple) -> int|None:
+    """token index of the first image that differs between this request and the cached one (None: same images)"""
+    for a, b in zip(media_key, self._cached_media):
+      if a != b: return min(a[0], b[0])
+    rest = media_key[len(self._cached_media):] or self._cached_media[len(media_key):]
+    return rest[0][0] if rest else None
+  def _media_spans(self, tokens:list[int], media:list) -> list[tuple[int, Any]]:
+    """(start index, ImageEmbeds) per image, matched in order to the runs of image pad tokens"""
+    spans, i = [], 0
+    for m in media:
+      while i < len(tokens) and tokens[i] != self.image_pad_id: i += 1
+      if i + m.n_tokens > len(tokens) or any(t != self.image_pad_id for t in tokens[i:i + m.n_tokens]):
+        raise ValueError(f"image {len(spans)} needs {m.n_tokens} pad tokens at {i}, the prompt does not match its images")
+      spans.append((i, m))
+      i += m.n_tokens
+    return spans
+  def _emb_chunk(self, spans:list[tuple[int, Any]], p:int, T:int) -> Tensor:
+    """(1, T, dim) embeddings for the tokens [p, p+T): the images' rows, zeros elsewhere (the model only reads the pad rows)"""
+    D = self.token_embd.weight.shape[1]
+    pieces, cur = [], p
+    for s, m in spans:
+      a, b = max(s, p), min(s + m.n_tokens, p + T)
+      if a >= b: continue
+      if a > cur: pieces.append(Tensor.zeros(a - cur, D, device=m.emb.device))
+      pieces.append(m.emb[a - s:b - s])
+      cur = b
+    if not pieces:
+      if T not in self._emb_zero: self._emb_zero[T] = Tensor.zeros(1, T, D, device=self.token_embd.weight.device).contiguous().realize()
+      return self._emb_zero[T]
+    if cur < p + T: pieces.append(Tensor.zeros(p + T - cur, D, device=pieces[0].device))
+    return Tensor.cat(*pieces, dim=0).reshape(1, T, D).contiguous().realize()
+  def _set_positions(self, tokens:list[int], spans:list[tuple[int, Any]]) -> None:
+    """rewrite the rope table for this prompt. text tokens count up; an image's tokens sit at (t, t+row, t+col) and the text after it
+    continues at t + max(rows, cols) (Qwen m-rope, interleaved sections). the table is indexed by token index, so the attention kernels
+    need no change; generated tokens keep counting up past the prompt. a text-only prompt restores the plain table"""
+    if not spans and not self._pos_dirty: return
+    import numpy as np
+    parts, cur, i = [], 0, 0
+    for s, m in spans:
+      parts.append(np.repeat(np.arange(cur, cur + s - i, dtype=np.int32)[:, None], 3, axis=1))
+      cur += s - i
+      r = np.arange(m.n_tokens, dtype=np.int32)
+      parts.append(np.stack([np.full_like(r, cur), cur + r // m.nx, cur + r % m.nx], axis=1))
+      cur, i = cur + m.n_pos, s + m.n_tokens
+    parts.append(np.repeat(np.arange(cur, cur + self.max_context - i, dtype=np.int32)[:, None], 3, axis=1))
+    c = self.blk[0].config
+    tables = {id(t): t for b in self.blk + ([self.mtp.blk] if self.mtp is not None else []) if (t := getattr(b, "freqs_cis", None)) is not None}
+    if not tables: return
+    n_pairs = c.rope_dim // 2
+    if (sec := c.rope_sections) is not None:  # ggml interleaved m-rope: pair i -> h if i%3==1, w if i%3==2, else t (within the section sizes)
+      comp = [1 if i % 3 == 1 and i < 3 * sec[1] else 2 if i % 3 == 2 and i < 3 * sec[2] else 0 for i in range(n_pairs)]
+    else: comp = [0] * n_pairs
+    freqs = (1.0 / (c.rope_theta ** (np.arange(0, c.rope_dim, 2, dtype=np.float32)[:n_pairs] / c.rope_dim))).astype(np.float32)
+    ang = np.concatenate(parts)[:, comp].astype(np.float32) * freqs[None]  # (max_context, n_pairs): position per rope pair
+    table = np.concatenate([np.cos(ang), np.sin(ang)], axis=1)
+    for t in tables.values(): t.assign(Tensor(table, device=t.device)).realize()
+    self._pos_dirty = bool(spans)
+
+  def generate(self, tokens:list[int], chunk_size:int=32, temperature:float=0.0, media:list|None=None):
+    # media: ImageEmbeds per image in the prompt (in order); their tokens are runs of image_pad_id in `tokens`
+    spans: list[tuple[int, Any]] = self._media_spans(tokens, media or []) if self.image_pad_id is not None else []
+    media_key = tuple((s, m.key) for s, m in spans)
+    start_pos = self.get_start_pos(tokens, media_key)
+    self._cached_media = media_key
+    if self.image_pad_id is not None: self._set_positions(tokens, spans)
     # the fused AMD kernels take fixed-size chunks with a runtime count of valid tokens (one JIT capture for every prompt length)
     chunk_T = getattr(self, "_chunk_T", 0)
+    if self.mtp is not None and chunk_T:
+      yield from self._generate_spec(tokens, chunk_T, temperature, spans, start_pos)
+      return
     if chunk_T: chunk_size = chunk_T
     elif self.has_recurrent_block and not amd_custom_kernels_supported(self.token_embd.weight.device): chunk_size = 1
     v_start_pos = UOp.variable("start_pos", 0, self.max_context-1)
@@ -586,13 +805,13 @@ class Transformer:
     temp = Tensor([temperature])
     # assign all input tokens once, then slice from start_pos for the model call (padded so a fixed chunk never runs past the end)
     t = Tensor(tokens + [0] * (self.max_context + chunk_size - len(tokens)), dtype="int32").reshape(1, -1)
-    # recompute start_pos from what's currently valid in the caches
-    start_pos = self.get_start_pos(tokens)
     out, prompt_len = None, len(tokens)
     while len(tokens) < self.max_context:
       n_toks = min(chunk_size, len(tokens) - start_pos)
       sp, nt = v_start_pos.bind(start_pos), v_toks.bind(n_toks)
-      if chunk_T and (start_pos < prompt_len or out is None): out = self(t[:, sp:sp+chunk_size], sp, temp, nt).realize()
+      if chunk_T and (start_pos < prompt_len or out is None):
+        emb = self._emb_chunk(spans, start_pos, chunk_size) if self.image_pad_id is not None else None
+        out = self(t[:, sp:sp+chunk_size], sp, temp, nt, emb).realize()
       else: out = self(t[:, sp:sp+nt] if start_pos < prompt_len or out is None else out, sp, temp).realize()
       start_pos += n_toks
       # chunked prefill: keep processing until all prompt tokens are consumed
@@ -600,3 +819,44 @@ class Transformer:
       tokens.append(int(out.item()))
       self._cached_tokens = tokens[:-1]
       yield tokens[-1]
+
+  def _generate_spec(self, tokens:list[int], chunk_T:int, temperature:float=0.0, spans:list|None=None, start_pos:int|None=None):
+    K = self.mtp_k
+    v_start_pos = UOp.variable("start_pos", 0, self.max_context-1)
+    v_toks = UOp.variable("toks", 1, chunk_T)
+    temp = Tensor([temperature])
+    p, prompt_len = self.get_start_pos(tokens) if start_pos is None else start_pos, len(tokens)
+    n_acc = n_step = 0
+    def run(chunk:Tensor, start_pos:int, n_tok:int|UOp, n_keep:int|UOp, emb:Tensor|None=None) -> tuple[list[int], tuple[Tensor, ...]]:
+      kw = {} if emb is None else {"emb": emb}
+      res, *cands = self._spec_jit(int(chunk.shape[1]))(chunk, v_start_pos.bind(start_pos), temp, n_tok, n_keep, **kw)
+      return res.tolist(), tuple(cands)
+    # prefill: commit every valid token (n_keep = n_tok), fill the MTP KV cache, last chunk yields the first decode chunk
+    while p < prompt_len:
+      n_toks = min(chunk_T, prompt_len - p)
+      nt = v_toks.bind(n_toks)
+      emb = self._emb_chunk(spans or [], p, chunk_T) if self.image_pad_id is not None else None
+      res, cands = run(Tensor([tokens[p:p + n_toks] + [0] * (chunk_T - n_toks)], dtype="int32"), p, nt, nt, emb)
+      p += n_toks
+      self._cached_tokens = tokens[:p]
+    first, drafts, chunk = res[n_toks - 1], res[-K:], cands[0]
+    tokens.append(first)
+    yield first
+    # decode: chunk = U + drafts (a JIT output of the previous step), n_keep = len(U). res = [out[0..T-1], K new drafts]
+    while len(tokens) < self.max_context:
+      T = int(chunk.shape[1]); n_keep = T - K
+      res, cands = run(chunk, p, T, n_keep)
+      # the state now holds the n_keep committed tokens: record that before yielding, the consumer may close the generator at any yield
+      p += n_keep
+      self._cached_tokens = tokens[:p]
+      n_step += 1
+      L = 0
+      while L < K and res[n_keep - 1 + L] == drafts[L]: L += 1
+      n_acc += L
+      self._mtp_accept = (n_acc, n_step)
+      for t in drafts[:L] + [res[n_keep - 1 + L]]:  # the accepted drafts and the token sampled after them
+        tokens.append(t)
+        yield t
+        if len(tokens) >= self.max_context: return
+      chunk, drafts = cands[L], res[-K:]
+      if DEBUG >= 1 and n_step % 32 == 0: print(f"mtp accept {n_acc}/{n_step * K} = {n_acc / n_step / K:.2f} ({n_acc / n_step + 1:.2f} tok/step)")
