@@ -127,11 +127,13 @@ def load_llm_cache(path:str, max_context:int|None, extra:str=""):
       with Timing("llm cache: unpickled model in ", enabled=DEBUG >= 1):
         model, kv = _Unpickler(f, bases).load()
     model._cached_tokens = []  # the state buffers were restored empty, the saved prefix is not resident
+    model._ckpt, model._ckpt_tokens = {}, None  # the checkpoint held garbage from warmup; take a fresh one on the next prefill
     from tinygrad import nn
-    # per-sequence state comes back uninitialized: zero it like _init_state did (the recurrent/conv state must start at zero)
-    zeroed = [t for name, t in nn.state.get_state_dict(model).items() if name.split(".")[-1] in _TRANSIENT and t.uop.is_realized]
+    # the recurrent/conv state must start at zero (kv caches are written before read, so they can stay lazy). the cached buffers come
+    # back unallocated, so zero + realize them here rather than filtering on is_realized (which would leave them uninitialized)
+    zeroed = [t for name, t in nn.state.get_state_dict(model).items() if name.split(".")[-1] in ("conv_state", "recurrent_state")]
     for t in zeroed: t.assign(Tensor.zeros(*t.shape, dtype=t.dtype, device=t.device))
-    Tensor.realize(*zeroed)
+    if zeroed: Tensor.realize(*zeroed)
     print(f"llm cache: loaded warmed-up model from {cf}")
     if getenv("AMD_GEMV", 1) and nn.state.get_parameters(model)[0].device.split(":")[0] == "AMD":
       from tinygrad.llm import amd_gemv
