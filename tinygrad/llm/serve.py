@@ -166,6 +166,11 @@ class Handler(HTTPRequestHandler):
     prompt_tokens = len(ids)
     cache_start_pos = model.get_start_pos(ids, tuple((s, m.key) for s, m in model._media_spans(ids, media)) if media else ())
     stderr_log(f"in:{colored(f'{cache_start_pos:5d}', 'green')} +{len(ids)-cache_start_pos:5d}  {colored('--', 'BLACK')}  ")
+    if cache_start_pos == 0 and (model._cached_tokens or model._ckpt_tokens):
+      # nothing was reused although something was cached: say where each candidate diverged (index/length), it is the whole story
+      div = lambda c: next((i for i, (a, b) in enumerate(zip(ids, c)) if a != b), min(len(ids), len(c)))
+      ck = model._ckpt_tokens or []
+      stderr_log(f"{colored(f'miss: live@{div(model._cached_tokens)}/{len(model._cached_tokens)} ckpt@{div(ck)}/{len(ck)}', 'yellow')}  {colored('--', 'BLACK')}  ")
     tmpl = {"id":f"chatcmpl-{uuid.uuid4().hex[:24]}", "object":"chat.completion.chunk", "created":int(time.time()), "model":model_name}
     def chunk(d:dict): return {"choices": [{"index":0, "delta":d, "finish_reason":None}], **tmpl}
     out: list[int] = []
@@ -276,7 +281,11 @@ class Handler(HTTPRequestHandler):
 
       # reply
       max_tokens = body.get("max_completion_tokens") or body.get("max_tokens")
-      self._pick_prefix_state(ids, media)
+      if body.get("cache_prompt") is False:
+        # llama.cpp's request field, same meaning: prefill from scratch. drops the live state and leaves the snapshots alone,
+        # which makes a cold reference run possible without a restart (the correctness tests compare against it)
+        self.server.model._cached_tokens, self.server.model._ckpt_tokens = [], None
+      else: self._pick_prefix_state(ids, media)
       chunks = self.run_model(ids, body.get("model") or self.server.model_name,
                               not body.get("stream") or body.get("stream_options",{}).get("include_usage", False),
                               max_tokens=max_tokens, temperature=float(body.get("temperature", 0.6)),
