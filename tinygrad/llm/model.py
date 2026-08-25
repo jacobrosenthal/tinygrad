@@ -8,6 +8,16 @@ from tinygrad.helpers import DEBUG, Timing
 from tinygrad.llm.gguf import gguf_load
 from tinygrad.uop.ops import resolve
 
+@dataclass
+class StateSnapshot:
+  """a saved decode state: the token prefix it was computed for, the media key, and a private copy of every state buffer"""
+  tokens: list[int]
+  media: tuple
+  bufs: list[Tensor]
+  ckpt_tokens: list[int]|None  # the prefill checkpoint that belongs to this state (see Transformer._save_checkpoint), if one was taken
+  ckpt_bufs: list[Tensor]
+  def nbytes(self) -> int: return sum(t.numel() * t.dtype.itemsize for t in self.bufs + self.ckpt_bufs)
+
 class ExpertGating(enum.IntEnum):
   SOFTMAX = 1
   SIGMOID = 2
@@ -738,15 +748,18 @@ class Transformer:
   def _state_tensors(self) -> list[tuple[str, Tensor]]:
     return [(f"{i}.{n}", t) for i, b in enumerate(self.blk) if isinstance(b, GatedDeltaNetBlock)
             for n in ("conv_state", "recurrent_state") if (t := getattr(b, n, None)) is not None]
-  def _save_checkpoint(self, tokens:list[int]):
-    if not self.has_recurrent_block or self._warming: return
+  def _ckpt_pairs(self) -> list[tuple[Tensor, Tensor]]:
+    """(live state tensor, its checkpoint buffer) per recurrent state tensor, allocating the checkpoint buffers on first use"""
     st = self._state_tensors()
     if len(self._ckpt) != len(st):
       self._ckpt = {k: {k.split(".")[-1]: Tensor.empty(*t.shape, dtype=t.dtype, device=t.device).contiguous().realize()} for k, t in st}
-    Tensor.realize(*[self._ckpt[k][k.split(".")[-1]].assign(t) for k, t in st])
+    return [(t, self._ckpt[k][k.split(".")[-1]]) for k, t in st]
+  def _save_checkpoint(self, tokens:list[int]):
+    if not self.has_recurrent_block or self._warming: return
+    Tensor.realize(*[c.assign(t) for t, c in self._ckpt_pairs()])
     self._ckpt_tokens = list(tokens)
   def _restore_checkpoint(self):
-    Tensor.realize(*[t.assign(self._ckpt[k][k.split(".")[-1]]) for k, t in self._state_tensors()])
+    Tensor.realize(*[t.assign(c) for t, c in self._ckpt_pairs()])
 
   def get_start_pos(self, tokens:list[int], media_key:tuple=()) -> int:
     # image tokens are all the same pad id: the cached prefix only counts up to the first image that differs from the cached request
@@ -763,6 +776,37 @@ class Transformer:
       return 0
     prefix_len = sum(1 for _ in itertools.takewhile(lambda ab: ab[0] == ab[1], zip(tokens[:-1], cached)))
     return min(block._reusable_prefix_len(prefix_len, len(self._cached_tokens)) for block in self.blk)
+
+  # ---- prefix-state snapshots: save/restore the whole decode state, so one conversation's cache survives another's requests ----
+  def prefix_match(self, tokens:list[int], cached:list[int]) -> int:
+    """how many leading tokens of `tokens` a state that ended at `cached` can serve. same rule as get_start_pos without the media cut"""
+    if self.has_recurrent_block:
+      return len(cached) if cached and len(cached) < len(tokens) and tokens[:len(cached)] == cached else 0
+    return sum(1 for _ in itertools.takewhile(lambda ab: ab[0] == ab[1], zip(tokens[:-1], cached)))
+  def snapshot_tensors(self) -> list[Tensor]:
+    """every buffer the forward pass mutates in place: attention kv caches, recurrent (ssm) states, the mtp block's kv cache.
+    the jits capture these by identity, so a snapshot clones their contents and a restore assigns back into the same buffers"""
+    out: list[Tensor] = []
+    for b in self.blk + ([self.mtp.blk] if self.mtp is not None else []):
+      for name in ("cache_kv", "cache_k", "conv_state", "recurrent_state"):
+        if (t := getattr(b, name, None)) is not None: out.append(t)
+    return out
+  def snapshot_state(self) -> StateSnapshot:
+    """copy the whole decode state, and the prefill checkpoint with it: a conversation almost always comes back extending its
+    previous prompt rather than the generated sequence, so the checkpoint is what a restored snapshot gets resumed from"""
+    bufs = [t.clone() for t in self.snapshot_tensors()]
+    ckpt_bufs = [c.clone() for _, c in self._ckpt_pairs()] if self._ckpt_tokens is not None else []
+    Tensor.realize(*bufs, *ckpt_bufs)
+    return StateSnapshot(list(self._cached_tokens), self._cached_media, bufs, list(self._ckpt_tokens) if self._ckpt_tokens is not None else None, ckpt_bufs)
+  def restore_state(self, snap:StateSnapshot) -> None:
+    live = self.snapshot_tensors()
+    assert len(live) == len(snap.bufs), "snapshot does not match the model's state layout"
+    writes = [t.assign(s) for t, s in zip(live, snap.bufs)]
+    if snap.ckpt_bufs: writes += [c.assign(s) for (_, c), s in zip(self._ckpt_pairs(), snap.ckpt_bufs)]
+    Tensor.realize(*writes)
+    self._cached_tokens, self._cached_media = list(snap.tokens), snap.media
+    # the live checkpoint belonged to the conversation that was live; its kv positions are gone now. take the snapshot's (if any)
+    self._ckpt_tokens = list(snap.ckpt_tokens) if snap.ckpt_bufs else None
 
   # ---- vision: image embeddings replace the <|image_pad|> tokens, attention positions follow Qwen's m-rope ----
   def _media_cut(self, media_key:tuple) -> int|None:

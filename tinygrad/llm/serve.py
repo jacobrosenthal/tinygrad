@@ -1,7 +1,7 @@
 from __future__ import annotations
 import base64, json, pathlib, re, time, typing, urllib.request, uuid
 from typing import TYPE_CHECKING
-from tinygrad.helpers import DEBUG, colored, stderr_log
+from tinygrad.helpers import DEBUG, colored, stderr_log, getenv
 from tinygrad.viz.serve import TCPServerWithReuse, HTTPRequestHandler
 if TYPE_CHECKING:
   from tinygrad.llm.cli import SimpleTokenizer
@@ -129,6 +129,37 @@ class Handler(HTTPRequestHandler):
     except Exception as e:
       stderr_log(f"prefix-cache recompute failed (non-fatal, next turn just won't reuse this one): {e}\n")
 
+  def _pick_prefix_state(self, ids:list[int], media:list) -> None:
+    """prefix-state snapshots (PREFIX_SNAPSHOTS=N saved slots, default 1; PREFIX_SNAPSHOT_MIN tokens, default 1024).
+    the model holds ONE decode state, so any request that doesn't extend the cached conversation evicts it -- another session,
+    a sub-agent, a housekeeping call -- and the next turn of the long conversation then reprocesses its whole 20K+ token
+    prefix from scratch (the recurrent blocks need an exact full-prefix match, so there is no partial reuse to fall back on).
+    Before such an eviction, save the live state; when a later request extends a saved conversation rather than the live one,
+    restore it, saving the live one into the freed slot if it is itself worth keeping (two long conversations alternating,
+    e.g. an agent and its sub-agent, keep swapping through one slot). A snapshot is a full copy of every state buffer
+    (~1.5 GB at max_context 65536 for Qwen3.8-27B with the quantized kv cache), so the slot count is kept small."""
+    srv, model = self.server, self.server.model
+    if srv.max_snapshots <= 0 or media: return
+    live = model.get_start_pos(ids)
+    best_i, best = -1, live
+    for i, s in enumerate(srv.snapshots):
+      # a snapshot serves a request that extends either its generated sequence or (far more often) its prefill checkpoint
+      if (m := max(model.prefix_match(ids, s.tokens), model.prefix_match(ids, s.ckpt_tokens or []))) > best: best_i, best = i, m
+    live_worth_keeping = live == 0 and len(model._cached_tokens) >= srv.snapshot_min_tokens
+    try:
+      if best_i >= 0:
+        snap = srv.snapshots.pop(best_i)
+        if live_worth_keeping: srv.snapshots.append(model.snapshot_state())
+        model.restore_state(snap)
+        stderr_log(f"{colored(f'restored snapshot ({best} tok)', 'cyan')}  {colored('--', 'BLACK')}  ")
+      elif live_worth_keeping:
+        srv.snapshots.append(snap := model.snapshot_state())
+        stderr_log(f"{colored(f'saved snapshot ({len(snap.tokens)} tok, {snap.nbytes()/1e9:.2f} GB)', 'cyan')}  {colored('--', 'BLACK')}  ")
+      while len(srv.snapshots) > srv.max_snapshots: srv.snapshots.pop(0)
+    except MemoryError as e:
+      srv.max_snapshots, srv.snapshots = 0, []
+      stderr_log(f"{colored(f'prefix snapshots disabled: {e}', 'red')}  {colored('--', 'BLACK')}  ")
+
   def run_model(self, ids:list[int], model_name:str, include_usage=False, max_tokens:int|None=None, temperature:float=0.0,
                 reasoning:bool=False, media:list|None=None):
     model, tok = self.server.model, self.server.tok
@@ -245,6 +276,7 @@ class Handler(HTTPRequestHandler):
 
       # reply
       max_tokens = body.get("max_completion_tokens") or body.get("max_tokens")
+      self._pick_prefix_state(ids, media)
       chunks = self.run_model(ids, body.get("model") or self.server.model_name,
                               not body.get("stream") or body.get("stream_options",{}).get("include_usage", False),
                               max_tokens=max_tokens, temperature=float(body.get("temperature", 0.6)),
@@ -281,4 +313,6 @@ class LLMServer(TCPServerWithReuse):
                reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None):
     self.model, self.model_name, self.tok, self.template, self.vision = model, model_name, tok, template, vision
     self.reasoning_effort, self.enable_thinking = reasoning_effort, enable_thinking
+    self.snapshots: list = []  # StateSnapshot, oldest first; see Handler._pick_prefix_state
+    self.max_snapshots, self.snapshot_min_tokens = getenv("PREFIX_SNAPSHOTS", 1), getenv("PREFIX_SNAPSHOT_MIN", 1024)
     super().__init__(server_address, Handler)
