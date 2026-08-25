@@ -101,6 +101,34 @@ class Handler(HTTPRequestHandler):
     elif self.path == "/v1/models":
       self.send_data(json.dumps({"object":"list","data":[{"id":self.server.model_name,"object":"model"}]}).encode())
     else: self.send_data((pathlib.Path(__file__).parent / "chat.html").read_bytes(), content_type="text/html")
+  def _recache_for_next_turn(self, messages:list[dict], reply:dict, preserve_thinking:bool, enable_thinking:bool, reasoning_effort:str,
+                              tools=None) -> None:
+    """After replying, re-render `messages + [reply]` (no generation prompt) and re-tokenize it, so
+    model._cached_tokens matches what a FUTURE request's fresh render+tokenize will produce for this same
+    prefix -- letting get_start_pos() find a real prefix match on the next turn.
+    This exists because the raw token stream that generate() actually cached is NOT safe to reuse directly:
+    (1) it may include a <think> block that a normal client strips before sending the next turn, and
+    (2) tokenizing "<the prompt>" alone and tokenizing "<the prompt><reply text>" as one string can legally
+    produce different token ids right at that boundary (BPE merges are decided over the whole string, e.g.
+    two adjacent newlines from the role header + the reply's own leading newline can merge into one token
+    that never existed in the original prompt-only tokenization). Recomputing from the same text both
+    sides will render sidesteps both: next turn's render() call hits the identical text up to this point,
+    so its tokenizer produces the identical ids.
+    Only meaningful for the fork's has_recurrent_block=True path, which requires an exact full-prefix
+    match -- but harmless to always run (a plain KV-cache model just uses the longest common prefix
+    anyway, so a mismatched tail there is quietly discarded)."""
+    try:
+      # deliberately drop reasoning_content here: essentially every OpenAI-compatible client (this includes
+      # the fork's own chat.html) sends only the visible `content` back on the next turn, never the model's
+      # own prior <think> block -- so that's the text a future request will actually re-render, and matching
+      # it (not what the server itself still remembers thinking) is what makes get_start_pos() find a hit.
+      replay = messages + [{"role": "assistant", "content": reply.get("content")}]
+      text = self.server.template.render(messages=replay, tools=tools, add_generation_prompt=False,
+        preserve_thinking=preserve_thinking, enable_thinking=enable_thinking, reasoning_effort=reasoning_effort)
+      self.server.model._cached_tokens = self.server.tok.encode(text)
+    except Exception as e:
+      stderr_log(f"prefix-cache recompute failed (non-fatal, next turn just won't reuse this one): {e}\n")
+
   def run_model(self, ids:list[int], model_name:str, include_usage=False, max_tokens:int|None=None, temperature:float=0.0,
                 reasoning:bool=False, media:list|None=None):
     model, tok = self.server.model, self.server.tok
@@ -221,22 +249,30 @@ class Handler(HTTPRequestHandler):
                               not body.get("stream") or body.get("stream_options",{}).get("include_usage", False),
                               max_tokens=max_tokens, temperature=float(body.get("temperature", 0.6)),
                               reasoning=bool(enable) or rendered.rstrip().endswith("<think>"), media=media)
-      if body.get("stream"): self.stream_json(chunks)
-      else:
-        out, reasoning, tool_calls, finish_reason = [], [], [], "stop"
+      def accumulate(chunks):
+        # shared by both branches: collect content/reasoning/tool_calls while passing chunks through untouched,
+        # so the prefix cache (see _recache_for_next_turn) can be kept in sync for streaming requests too
         for c in chunks:
-          if not c["choices"]: continue
-          choice = c["choices"][0]
-          if (delta := choice.get("delta", {})):
-            if delta.get("content"): out.append(delta["content"])
-            if delta.get("reasoning_content"): reasoning.append(delta["reasoning_content"])
-            tool_calls += [{k:v for k, v in tc.items() if k != "index"} for tc in delta.get("tool_calls", [])]
-          if choice.get("finish_reason"): finish_reason = choice["finish_reason"]
-        message: dict[str, typing.Any] = {"role":"assistant", "content":"".join(out) or None}
-        if reasoning: message["reasoning_content"] = "".join(reasoning)
-        if tool_calls: message["tool_calls"] = tool_calls
-        self.send_data(json.dumps({**c, "object":"chat.completion",
-          "choices":[{"index":0, "message":message, "finish_reason":finish_reason}]}).encode())
+          if c["choices"]:
+            choice = c["choices"][0]
+            if (delta := choice.get("delta", {})):
+              if delta.get("content"): out.append(delta["content"])
+              if delta.get("reasoning_content"): reasoning.append(delta["reasoning_content"])
+              tool_calls_raw.extend(delta.get("tool_calls", []))
+            if choice.get("finish_reason"): finish[0] = choice["finish_reason"]
+          yield c
+      out, reasoning, tool_calls_raw, finish = [], [], [], ["stop"]
+      if body.get("stream"): self.stream_json(accumulate(chunks))
+      else:
+        for c in accumulate(chunks): last = c
+      tool_calls = [{k:v for k, v in tc.items() if k != "index"} for tc in tool_calls_raw]
+      message: dict[str, typing.Any] = {"role":"assistant", "content":"".join(out) or None}
+      if reasoning: message["reasoning_content"] = "".join(reasoning)
+      if tool_calls: message["tool_calls"] = tool_calls
+      self._recache_for_next_turn(body["messages"], message, preserve, enable, effort, tools=body.get("tools"))
+      if not body.get("stream"):
+        self.send_data(json.dumps({**last, "object":"chat.completion",
+          "choices":[{"index":0, "message":message, "finish_reason":finish[0]}]}).encode())
     else:
       raise RuntimeError(f"unhandled path {self.path}")
 
