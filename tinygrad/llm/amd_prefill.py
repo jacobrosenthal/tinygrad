@@ -364,8 +364,12 @@ KERNEL(attn_prep, WG)(i8* __restrict__ qq, float* __restrict__ qsc, i8* __restri
 }}
 """
 
-def _attn_pf_src(H:int, HKV:int, D:int, RD:int, MAXC:int, gated:bool, kvq:KVQuant, QT:int) -> str:
+def _attn_pf_src(H:int, HKV:int, D:int, RD:int, MAXC:int, gated:bool, kvq:KVQuant, QT:int, CH:int=0) -> str:
+  """CH > 0: the flash-decoding variant attn_pfd: one workgroup per (QT query tokens x kv head x chunk of CH positions) that writes the
+  unnormalized partials (O rows, row max, row sum) instead of the output (merged over the chunks by attn_merge_mq)"""
   G = H // HKV
+  NCH = (MAXC + CH - 1) // CH if CH else 1
+  assert CH % 16 == 0
   NR, RT = QT * G, (QT * G + 15) // 16
   assert D == 256 and NR % 16 == 0
   NWAVE = RT * 2; WG = NWAVE * 32
@@ -390,9 +394,10 @@ DEV float row_max16(float v) {{
   v = __builtin_fmaxf(v, dpp_keep(v, 0x111)); v = __builtin_fmaxf(v, dpp_keep(v, 0x112));
   v = __builtin_fmaxf(v, dpp_keep(v, 0x114)); v = __builtin_fmaxf(v, dpp_keep(v, 0x118)); return v;
 }}
-KERNEL(attn_pf, WG)(float* __restrict__ out, i8* __restrict__ oq, float* __restrict__ os, float* __restrict__ osum16,
+KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float* __restrict__ pm, float* __restrict__ pl," if CH else
+                    "float* __restrict__ out, i8* __restrict__ oq, float* __restrict__ os, float* __restrict__ osum16,"}
                     const i8* __restrict__ qq, const float* __restrict__ qsc, const i8* __restrict__ sqq, const float* __restrict__ sqsc,
-                    const u8* __restrict__ cache, const float* __restrict__ q_raw, const i32* __restrict__ sp_p) {{
+                    const u8* __restrict__ cache, {"" if CH else "const float* __restrict__ q_raw, "}const i32* __restrict__ sp_p) {{
   __attribute__((shared)) u8 qbuf[{(2 if J else 1) * NR * LQ}];  // Qs[NR][LQ] (| SQs[NR][LQ]); reused as Os[16][D] f32 in the epilogue
   __attribute__((shared)) i8 Ks[16 * {LQ}]{f", KJs[16 * {LQ}]" if J else ""};
   __attribute__((shared)) _Float16 Vt[{D} * 16];            // [dim][pos]
@@ -400,12 +405,16 @@ KERNEL(attn_pf, WG)(float* __restrict__ out, i8* __restrict__ oq, float* __restr
   __attribute__((shared)) float ka_s[16], kb_s[16], va_s[16], qsc_s[{NR}], sqsc_s[{NR}], cbv_s[16];
   __attribute__((shared)) i32 cbk8_s[16];
   i8* Qs = (i8*)qbuf; {f"i8* SQs = (i8*)qbuf + {NR * LQ};" if J else ""}
-  const u32 qb = wg_id() / {HKV}, kvh = wg_id() % {HKV};
+  {f"const u32 chunk = wg_id() % {NCH}, wg2 = wg_id() / {NCH}; const u32 qb = wg2 / {HKV}, kvh = wg2 % {HKV};" if CH else
+     f"const u32 qb = wg_id() / {HKV}, kvh = wg_id() % {HKV};"}
   const u32 qt0 = qb * {QT}, n = (u32)sp_p[1];
   if (qt0 >= n) return;
   const u32 nq = n - qt0 < {QT}u ? n - qt0 : {QT}u;
   const i32 sp = sp_p[0];
   const u32 kv_end = (u32)sp + qt0 + nq;  // positions [0, kv_end)
+  // this workgroup's positions [pos0, pend)
+  {f"const u32 pos0 = chunk * {CH}; if (pos0 >= kv_end) return; const u32 pend = pos0 + {CH} < kv_end ? pos0 + {CH} : kv_end;" if CH else
+     "const u32 pos0 = 0, pend = kv_end;"}
   const u32 t = tid(), lane = lane_id(), wave = t >> 5, rt = wave >> 1, dh = wave & 1, l16 = lane & 15, h = lane >> 4;
   const u8* Kh = cache + (u64)kvh * {MAXC * kvq.bytes_per_pos};
   if (t < 16) {{ cbk8_s[t] = {cbk8}; cbv_s[t] = {cbv}; }}
@@ -434,13 +443,13 @@ KERNEL(attn_pf, WG)(float* __restrict__ out, i8* __restrict__ oq, float* __restr
   #pragma unroll
   for (int dt = 0; dt < 8; dt++) O[dt] = (f32x8){{0, 0, 0, 0, 0, 0, 0, 0}};
   _Float16* Pw = Ps + wave * 256;
-  const u32 ntiles = (kv_end + 15) / 16;
-  for (u32 tile = 0; tile < ntiles; tile++) {{
+  const u32 ntiles = (pend + 15) / 16;
+  for (u32 tile = pos0 / 16; tile < ntiles; tile++) {{
     BAR();
     // dequantize the tile: K as codebook int8, QJL signs as +-1, V as f16 (transposed)
     for (u32 pp = wave; pp < 16; pp += {NWAVE}) {{
       const u32 pos = tile * 16 + pp;
-      if (pos < kv_end) {{
+      if (pos < pend) {{
         {kv_load_idx(kvq, off, D, "k", kvq.kbits, "kq", "k1")} {kv_load_idx(kvq, off, D, "v", kvq.vbits, "vq", "v1")}
         {f"const u32 kj = ld_u8(Kh + {off['kj']} + (u64)pos * {D // 8} + lane);" if J else ""}
         const float va = ld_f32(Kh + {off['vs']} + (u64)pos * 4);
@@ -478,7 +487,7 @@ KERNEL(attn_pf, WG)(float* __restrict__ out, i8* __restrict__ oq, float* __restr
     #pragma unroll
     for (int i = 0; i < 8; i++) {{
       float sc = (float)ci[i] * qs_r[i] * ka{" + (float)cj[i] * sqs_r[i] * kb" if J else ""};
-      sc = (pos > row_pos[i] || (u32)pos >= kv_end) ? -1e30f : sc;
+      sc = (pos > row_pos[i] || (u32)pos >= pend) ? -1e30f : sc;
       float rm = row_max16(sc); rm = h ? read_lane(rm, 31) : read_lane(rm, 15);
       const float mn = __builtin_fmaxf(m[i], rm), corr = __builtin_expf(m[i] - mn);
       p[i] = __builtin_expf(sc - mn);
@@ -497,6 +506,21 @@ KERNEL(attn_pf, WG)(float* __restrict__ out, i8* __restrict__ oq, float* __restr
     }}
     __builtin_amdgcn_fence(__ATOMIC_SEQ_CST, "wavefront");
   }}
+  {"" if not CH else f"""// partials of this chunk: unnormalized O rows, row max m and row sum l (merged over the chunks by attn_merge_mq)
+  #pragma unroll
+  for (int i = 0; i < 8; i++) {{
+    const u32 r = rt * 16 + 2 * i + h, tl = r / {G}, hh = r % {G};
+    if (tl < nq) {{
+      const u64 row = (u64)(qt0 + tl) * {H} + {G} * kvh + hh;
+      float* dst = pacc + (row * {NCH} + chunk) * {D} + dh * 128 + l16;
+      #pragma unroll
+      for (int dt = 0; dt < 8; dt++) dst[dt * 16] = O[dt][i];
+      if (l16 == 0 && dh == 0) {{ pm[row * {NCH} + chunk] = m[i]; pl[row * {NCH} + chunk] = l[i]; }}
+    }}
+  }}
+  return;
+#if 0  // the full-output epilogue below refers to the outputs attn_pf has and attn_pfd does not
+  """}
   // epilogue per row tile: O / l into LDS, undo the rotation (signs * WHT / 16), gate, write + quantize per 128
   float* Os = (float*)qbuf;
   #pragma unroll
@@ -538,6 +562,7 @@ KERNEL(attn_pf, WG)(float* __restrict__ out, i8* __restrict__ oq, float* __restr
       if (lane == 31) os[e0 >> 7] = dq;
     }}
   }}
+{"#endif" if CH else ""}
 }}
 """
 
@@ -576,6 +601,105 @@ def attn_prefill(cache:Tensor, q_raw:Tensor, k_raw:Tensor, v_raw:Tensor, qnw:Ten
                     arg=KernelInfo(name=name, estimates=Estimates(ops=T * H * MAXC * D * 4, mem=HKV * MAXC * kvq.bytes_per_pos * (T // QT))))
     return UOp(Ops.PROGRAM, src=(sink, UOp(Ops.LINEAR, src=()), UOp(Ops.SOURCE, arg=ir_pf)))
   outs = out.custom_kernel(oq, os_, osum16, qq, qsc, sqq, sqsc, cache, q_raw.reshape(-1).float(), sp_t, fxn=pf_fxn)
+  out = outs[0]
+  cache_quant(out, outs[1], outs[2], outs[3])
+  return out.reshape(T, H * D)
+
+def _attn_merge_mq_src(H:int, D:int, NCH:int, CH:int, gated:bool) -> str:
+  """merge the chunk partials of attn_pfd for every (token, head) row, undo the value rotation, apply the gate and quantize per 32 for the
+  decode gemv. one workgroup per row, thread = dim"""
+  QSTRIDE = 2 * D if gated else D
+  return PRELUDE + rf"""
+#define WG 256
+#define BAR() __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup")
+{ATTN_DEV}
+KERNEL(attn_merge_mq, WG)(float* __restrict__ out, i8* __restrict__ oq, float* __restrict__ os, float* __restrict__ osum16,
+                          const float* __restrict__ pacc, const float* __restrict__ pm, const float* __restrict__ pl,
+                          const float* __restrict__ q_raw, const i32* __restrict__ sp_p) {{
+  __attribute__((shared)) float y_s[{D}];
+  const u32 row = wg_id(), tok = row / {H}, hd = row % {H}, t = tid(), lane = lane_id();
+  const bool pad = tok >= (u32)sp_p[1];
+  const i32 start_pos = sp_p[0] + (i32)tok;
+  const u32 nch = pad ? 0 : ((u32)start_pos + {CH}) / {CH};  // chunks holding positions <= start_pos (all written by attn_pfd)
+  float M = -1e30f;
+  for (u32 c = 0; c < nch; c++) M = __builtin_fmaxf(M, pm[row * {NCH} + c]);
+  float L = 0.0f, a = 0.0f;
+  for (u32 c = 0; c < nch; c++) {{
+    const float w = __builtin_expf(pm[row * {NCH} + c] - M);
+    L += pl[row * {NCH} + c] * w;
+    a += pacc[((u64)row * {NCH} + c) * {D} + t] * w;
+  }}
+  float y = pad || L == 0.0f ? 0.0f : a / L;
+  // undo the value rotation: out = signs * WHT(acc) / 16
+  y_s[t] = y; wht_vecs(y_s, 1, t); y = (kv_sgn(t, {KV_SEED_ROT}u) ? -y_s[t] : y_s[t]) * (1.0f / 16.0f);
+  {f"const float g = q_raw[(u64)row * {QSTRIDE} + {D} + t]; y *= 1.0f / (1.0f + __builtin_expf(-g));" if gated else ""}
+  const u64 e = (u64)row * {D} + t;
+  out[e] = y;
+  // quantize this 32-block (one wave = one block)
+  float ab = __builtin_fabsf(y);
+  ab = __builtin_fmaxf(ab, dpp_shr(ab, 0x111)); ab = __builtin_fmaxf(ab, dpp_shr(ab, 0x112));
+  ab = __builtin_fmaxf(ab, dpp_shr(ab, 0x114)); ab = __builtin_fmaxf(ab, dpp_shr(ab, 0x118));
+  const float mx = __builtin_fmaxf(read_lane(ab, 15), read_lane(ab, 31));
+  const float dq = mx / 127.0f, id = dq != 0.0f ? 1.0f / dq : 0.0f;
+  const i32 qi = (i32)__builtin_rintf(y * id);
+  const u32 blk = (u32)(e >> 5);
+  oq[e] = (i8)qi;
+  const float sq = row_sum16((float)qi);
+  if (lane == 15) osum16[blk * 2] = dq * sq;
+  if (lane == 31) {{ osum16[blk * 2 + 1] = dq * sq; os[blk] = dq; }}
+}}
+"""
+
+def attn_decode_mq(cache:Tensor, q_raw:Tensor, k_raw:Tensor, v_raw:Tensor, qnw:Tensor|None, knw:Tensor|None, freqs:Tensor, start_pos:UOp|int,
+                   H:int, HKV:int, D:int, RD:int, MAXC:int, eps:float, gated:bool, T:int, n_tok:UOp|int|None, kvq:KVQuant, CH:int) -> Tensor:
+  """multi-query flash decoding of a T <= QT token chunk over the quantized cache: attn_prep (all T new k, v into the cache, q rows int8)
+  + attn_pfd (one workgroup per kv head x CH-position chunk scoring all T x G rows: the cache is read once per step, not once per token)
+  + attn_merge_mq. same outputs as amd_gemv.attn_decode (T, H*D) f32 with the per-32 int8 quantization cached"""
+  G = H // HKV
+  QT = 8
+  assert T <= QT
+  NCH = (MAXC + CH - 1) // CH
+  qk_norm = qnw is not None
+  dev, arch = cache.device, _arch(cache.device)
+  sp_t = start_pos_tensor(start_pos, dev, T if n_tok is None else n_tok)
+  dummy = qnw if qk_norm else Tensor.zeros(D, device=dev)
+  dummyk = knw if qk_norm else dummy
+  J = kvq.qjl
+  q_raw, k_raw, v_raw = q_raw.reshape(-1).float(), k_raw.reshape(-1).float(), v_raw.reshape(-1).float()
+  qq, sqq = Tensor.empty(T * H * D, dtype=dtypes.int8, device=dev), Tensor.empty(T * H * D if J else 8, dtype=dtypes.int8, device=dev)
+  qsc, sqsc = Tensor.empty(T * H, dtype=dtypes.float32, device=dev), Tensor.empty(T * H if J else 8, dtype=dtypes.float32, device=dev)
+  sfx = f"_{H}_{HKV}_{D}_{RD}_{MAXC}_{int(gated)}{int(qk_norm)}_{kvq.key}"
+  src = _attn_prep_src(H, HKV, D, RD, MAXC, eps, gated, qk_norm, kvq).replace("KERNEL(attn_prep,", f"KERNEL(attn_prep{sfx},")
+  ir = hip_to_ir(src, arch)
+  def prep_fxn(*params):
+    sink = UOp.sink(UOp.special(T * HKV, "gidx0"), UOp.special(256, "lidx0"), *params,
+                    arg=KernelInfo(name=f"attn_prep{sfx}", estimates=Estimates(ops=T * H * D * 64, mem=T * H * D * 8)))
+    return UOp(Ops.PROGRAM, src=(sink, UOp(Ops.LINEAR, src=()), UOp(Ops.SOURCE, arg=ir)))
+  outs = qq.custom_kernel(qsc, sqq, sqsc, cache, q_raw, k_raw, v_raw, dummy, dummyk, freqs, sp_t, fxn=prep_fxn)
+  qq, qsc, sqq, sqsc, cache = outs[0], outs[1], outs[2], outs[3], outs[4]
+  # chunk partials: [T*H rows][NCH][D] (rows of padding tokens and chunks past the context are left unwritten and never read)
+  pacc = Tensor.empty(T * H * NCH * D, dtype=dtypes.float32, device=dev)
+  pm = Tensor.empty(T * H * NCH, dtype=dtypes.float32, device=dev)
+  pl = Tensor.empty(T * H * NCH, dtype=dtypes.float32, device=dev)
+  name = f"attn_pfd{sfx}_c{CH}"
+  src = _attn_pf_src(H, HKV, D, RD, MAXC, gated, kvq, QT, CH).replace("KERNEL(attn_pfd,", f"KERNEL({name},")
+  ir_pf = hip_to_ir(src, arch)
+  NWG, WGS = HKV * NCH, 32 * 2 * ((QT * G + 15) // 16)
+  def pfd_fxn(*params):
+    sink = UOp.sink(UOp.special(NWG, "gidx0"), UOp.special(WGS, "lidx0"), *params,
+                    arg=KernelInfo(name=name, estimates=Estimates(ops=T * H * MAXC * D * 4, mem=HKV * MAXC * kvq.bytes_per_pos)))
+    return UOp(Ops.PROGRAM, src=(sink, UOp(Ops.LINEAR, src=()), UOp(Ops.SOURCE, arg=ir_pf)))
+  outs = pacc.custom_kernel(pm, pl, qq, qsc, sqq, sqsc, cache, sp_t, fxn=pfd_fxn)
+  pacc, pm, pl = outs[0], outs[1], outs[2]
+  out = Tensor.empty(T * H * D, dtype=dtypes.float32, device=dev)
+  oq, os_, osum16 = (Tensor.empty(n, dtype=dt, device=dev) for n, dt in ((T * H * D, dtypes.int8), (T * H * D // 32, dtypes.float32), (T * H * D // 16, dtypes.float32)))
+  mname = f"attn_merge_mq_{H}_{D}_{MAXC}_{CH}_{int(gated)}"
+  ir_m = hip_to_ir(_attn_merge_mq_src(H, D, NCH, CH, gated).replace("KERNEL(attn_merge_mq,", f"KERNEL({mname},"), arch)
+  def merge_fxn(*params):
+    sink = UOp.sink(UOp.special(T * H, "gidx0"), UOp.special(256, "lidx0"), *params,
+                    arg=KernelInfo(name=mname, estimates=Estimates(ops=T * H * NCH * D * 2, mem=T * H * NCH * D * 4)))
+    return UOp(Ops.PROGRAM, src=(sink, UOp(Ops.LINEAR, src=()), UOp(Ops.SOURCE, arg=ir_m)))
+  outs = out.custom_kernel(oq, os_, osum16, pacc, pm, pl, q_raw, sp_t, fxn=merge_fxn)
   out = outs[0]
   cache_quant(out, outs[1], outs[2], outs[3])
   return out.reshape(T, H * D)

@@ -462,6 +462,11 @@ class Transformer:
     self.max_context = config.max_context
     self.has_recurrent_block = any(isinstance(b, GatedDeltaNetBlock) for b in self.blk)
     self._cached_tokens: list[int] = []
+    # recurrent-state checkpoint taken after every prompt prefill (see _save_checkpoint); the dict keys end in the _TRANSIENT names so
+    # tinygrad.llm.cache drops the buffers like the live state
+    self._ckpt: dict[str, dict[str, Tensor]] = {}
+    self._ckpt_tokens: list[int]|None = None
+    self._warming = False
     # vision: set when an encoder is attached. image tokens (the pad id) take their embeddings from an `emb` input of the prefill chunk
     self.image_pad_id: int|None = None
     self._cached_media: tuple = ()
@@ -705,6 +710,7 @@ class Transformer:
       for d in Device._opened_devices:
         if hasattr(Device[d].allocator, "free_cache"): Device[d].allocator.free_cache()
   def _warmup(self):
+    self._warming = True
     for _ in range(2): list(zip(range(2), self.generate([0])))
     chunk_T = getattr(self, "_chunk_T", 0)
     if self.mtp is None or not chunk_T: return
@@ -714,6 +720,23 @@ class Transformer:
     for _ in range(2):
       for L in range(K + 1): self._spec_jit(T:=L + 1 + K)(Tensor([[0] * T], dtype="int32"), v_sp.bind(0), temp, T, L + 1)
     self._cached_tokens = []  # the extra calls rewrote the state at position 0
+    self._warming, self._ckpt_tokens = False, None
+
+  # ---- recurrent-state checkpoints: a chat turn's next prompt extends the previous *prompt*, not the cached sequence (the template
+  # strips the reasoning of earlier answers), and GDN state cannot be rewound. so the state right after each prefill is kept aside and
+  # the next request resumes from it, prefilling only the stripped answer + the new message instead of the whole conversation ----
+  def _state_tensors(self) -> list[tuple[str, Tensor]]:
+    return [(f"{i}.{n}", t) for i, b in enumerate(self.blk) if isinstance(b, GatedDeltaNetBlock)
+            for n in ("conv_state", "recurrent_state") if (t := getattr(b, n, None)) is not None]
+  def _save_checkpoint(self, tokens:list[int]):
+    if not self.has_recurrent_block or self._warming: return
+    st = self._state_tensors()
+    if len(self._ckpt) != len(st):
+      self._ckpt = {k: {k.split(".")[-1]: Tensor.empty(*t.shape, dtype=t.dtype, device=t.device).contiguous().realize()} for k, t in st}
+    Tensor.realize(*[self._ckpt[k][k.split(".")[-1]].assign(t) for k, t in st])
+    self._ckpt_tokens = list(tokens)
+  def _restore_checkpoint(self):
+    Tensor.realize(*[t.assign(self._ckpt[k][k.split(".")[-1]]) for k, t in self._state_tensors()])
 
   def get_start_pos(self, tokens:list[int], media_key:tuple=()) -> int:
     # image tokens are all the same pad id: the cached prefix only counts up to the first image that differs from the cached request
@@ -721,8 +744,13 @@ class Transformer:
     if (cut := self._media_cut(media_key)) is not None: cached = cached[:cut]
     # recurrent state can't be partially reused after divergence: reuse it only when tokens extend the cached prefix
     if self.has_recurrent_block:
-      return len(cached) if cached and len(cached) == len(self._cached_tokens) and len(cached) < len(tokens) \
-        and tokens[:len(cached)] == cached else 0
+      if cached and len(cached) == len(self._cached_tokens) and len(cached) < len(tokens) and tokens[:len(cached)] == cached: return len(cached)
+      ck = self._ckpt_tokens
+      if ck and (cut is None or cut >= len(ck)) and len(ck) < len(tokens) and tokens[:len(ck)] == ck:
+        self._restore_checkpoint()
+        self._cached_tokens = list(ck)
+        return len(ck)
+      return 0
     prefix_len = sum(1 for _ in itertools.takewhile(lambda ab: ab[0] == ab[1], zip(tokens[:-1], cached)))
     return min(block._reusable_prefix_len(prefix_len, len(self._cached_tokens)) for block in self.blk)
 
@@ -816,6 +844,7 @@ class Transformer:
       start_pos += n_toks
       # chunked prefill: keep processing until all prompt tokens are consumed
       if start_pos < len(tokens): continue
+      if len(tokens) == prompt_len: self._save_checkpoint(tokens)
       tokens.append(int(out.item()))
       self._cached_tokens = tokens[:-1]
       yield tokens[-1]
@@ -840,6 +869,7 @@ class Transformer:
       p += n_toks
       self._cached_tokens = tokens[:p]
     first, drafts, chunk = res[n_toks - 1], res[-K:], cands[0]
+    self._save_checkpoint(tokens[:prompt_len])
     tokens.append(first)
     yield first
     # decode: chunk = U + drafts (a JIT output of the previous step), n_keep = len(U). res = [out[0..T-1], K new drafts]

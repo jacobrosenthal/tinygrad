@@ -440,6 +440,12 @@ class HCQCompiled(Compiled, Generic[SignalType]):
     try:
       done = self.timeline_signal.value
       lines = [f"=== hang report for {self.device}: {err}", f"timeline: expected {self.timeline_value - 1}, completed {done}"]
+      # hardware queue pointers: read_ptr stuck behind write_ptr with nothing faulting means the command processor stopped consuming packets
+      for qn in ("compute_queue", "sdma_queue"):
+        with contextlib.suppress(Exception):
+          q = getattr(self, qn, None)
+          if callable(q): q = q(0)  # AMD: sdma_queue(idx)
+          if q is not None: lines.append(f"  {qn}: read_ptr={q.read_ptr[0]} write_ptr={q.write_ptr[0]} put_value={q.put_value}")
       pending = [(tv, what) for tv, what in self.hang_log if tv > done]
       if not pending: lines.append("no recorded submission is pending (the log holds the last 64 submissions)")
       for tv, what in pending:

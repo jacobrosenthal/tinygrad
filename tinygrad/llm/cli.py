@@ -164,6 +164,17 @@ def main():
                       help="vision projector GGUF for image input (auto: mmproj*.gguf next to the model, none: disabled)")
   args = parser.parse_args()
 
+  # SIGTERM/SIGINT: drain the devices before exiting. python's default action exits without cleanup, and on AMD (MES queues) tearing a
+  # process down with kernels in flight page-faults the running waves and can wedge the firmware into a full GPU reset
+  import signal
+  def _graceful_exit(signum, frame):
+    from tinygrad import Device
+    for d in list(Device._opened_devices):
+      try: Device[d].synchronize()
+      except Exception: pass
+    os._exit(128 + signum)
+  for sig in (signal.SIGTERM, signal.SIGINT): signal.signal(sig, _graceful_exit)
+
   # load the model
   with Context(DEBUG=max(DEBUG.value, 2 if args.serve else 0)):
     model_path = fetch(models.get(args.model, args.model))

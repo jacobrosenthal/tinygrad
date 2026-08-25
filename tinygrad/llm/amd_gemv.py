@@ -1354,9 +1354,10 @@ KERNEL(attn_part, WG)(float* __restrict__ pacc, float* __restrict__ pm, float* _
   for (int h = 0; h < {G}; h++) {{ m[h] = -1e30f; l[h] = 0.0f;
     #pragma unroll
     for (int i = 0; i < 8; i++) acc[h][i] = 0.0f; }}
+  // positions interleaved over the waves (p = pp * NW + wave) so a partially filled chunk still spreads over all NW waves
   const u32 PER = {CH} / NW;
   for (u32 pp = 0; pp < PER; pp++) {{
-    const u32 p = wave * PER + pp;
+    const u32 p = pp * NW + wave;
     if (p >= n) break;
     const u32 pos = pos0 + p;
     const bool is_new = has_new && pos == (u32)start_pos;
@@ -1465,11 +1466,20 @@ def attn_decode(cache:Tensor, q_raw:Tensor, k_raw:Tensor, v_raw:Tensor, qnw:Tens
     assert kvq is not None, "prefill attention needs the quantized kv cache"
     from tinygrad.llm.amd_prefill import attn_prefill
     return attn_prefill(cache, q_raw, k_raw, v_raw, qnw, knw, freqs, start_pos, H, HKV, D, RD, MAXC, eps, gated, T, n_tok, kvq)
-  CH = 128
+  # positions per workgroup: larger chunks amortize the per-workgroup q prep and shrink the partials (G*D floats per chunk) the merge
+  # kernel reads back, which at long context cost as much traffic as the quantized cache itself with 128; smaller chunks give more
+  # parallelism at short context
+  CH = getenv("AMD_ATTN_CH", 256)
+  assert CH % 16 == 0
+  if kvq is not None and getenv("AMD_ATTN_MQ", 1):
+    # multi-query flash decoding: the whole chunk of tokens scores every cache chunk in one pass (tensor cores), cache read once per step
+    from tinygrad.llm.amd_prefill import attn_decode_mq
+    return attn_decode_mq(cache, q_raw, k_raw, v_raw, qnw, knw, freqs, start_pos, H, HKV, D, RD, MAXC, eps, gated, T, n_tok, kvq,
+                          getenv("AMD_ATTN_MQ_CH", CH))
   NCH = (MAXC + CH - 1) // CH
   dev, arch = cache.device, _arch(cache.device)
   qk_norm = qnw is not None
-  sfx = f"_{H}_{HKV}_{D}_{RD}_{MAXC}_{int(gated)}{int(qk_norm)}{'_' + kvq.key if kvq is not None else ''}"
+  sfx = f"_{H}_{HKV}_{D}_{RD}_{MAXC}_{CH}_{int(gated)}{int(qk_norm)}{'_' + kvq.key if kvq is not None else ''}"
   pacc = Tensor.empty(H * NCH * D, dtype=dtypes.float32, device=dev)
   pm = Tensor.empty(H * NCH, dtype=dtypes.float32, device=dev)
   pl = Tensor.empty(H * NCH, dtype=dtypes.float32, device=dev)

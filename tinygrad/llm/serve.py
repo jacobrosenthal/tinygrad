@@ -91,7 +91,11 @@ class Handler(HTTPRequestHandler):
   def log_request(self, code='-', size='-'): pass
   def do_GET(self):
     if self.path in ("/health", "/v1/health"):
-      self.send_data(b"ok")
+      # a device whose GPU was reset (or that hung unrecoverably) can never serve again: report it so launchers do not reuse this process
+      from tinygrad import Device
+      dead = [d for d in Device._opened_devices if getattr(Device[d], "error_state", None) is not None]
+      if dead: self.send_data(f"device error: {dead[0]}: {Device[dead[0]].error_state}".encode(), content_type="text/plain", status_code=503)
+      else: self.send_data(b"ok")
     elif self.path == "/props":
       self.send_data(json.dumps({"default_generation_settings": {"n_ctx": self.server.model.max_context}}).encode())
     elif self.path == "/v1/models":
@@ -148,6 +152,16 @@ class Handler(HTTPRequestHandler):
       log_stats()
     except GeneratorExit:
       if not completed: log_stats(interrupted=True)
+      raise
+    except Exception as e:
+      # a device hang/reset is permanent for this process: exit now so the launcher restarts a fresh server (its stale queues cannot serve,
+      # and tearing them down later only triggers another GPU reset at a surprising moment)
+      from tinygrad import Device
+      dead = [d for d in Device._opened_devices if getattr(Device[d], "error_state", None) is not None]
+      if dead:
+        import os
+        stderr_log(f"\ndevice {dead[0]} is in error state ({Device[dead[0]].error_state}): exiting\n")
+        os._exit(3)
       raise
 
   def do_POST(self):
