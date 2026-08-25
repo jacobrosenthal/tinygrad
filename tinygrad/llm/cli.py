@@ -160,6 +160,9 @@ def main():
   parser.add_argument("--no_chat_template", action="store_true", help="Don't use the model's chat template, always use the fallback template")
   parser.add_argument("--reasoning-effort", default="medium", choices=["low","medium","xhigh","none"],
                       help="Qwen thinking depth (chat template). none disables thinking.")
+  parser.add_argument("--temperature", type=float, default=1.0, help="sampling temperature used when a request sends none (default 1.0, Qwen's thinking-mode recommendation)")
+  parser.add_argument("--top-p", type=float, default=1.0, help="nucleus sampling threshold, fixed for the server's lifetime (1.0 = off; Qwen recommends 0.95)")
+  parser.add_argument("--top-k", type=int, default=0, help="top-k sampling, fixed for the server's lifetime (0 = off; Qwen recommends 20)")
   parser.add_argument("--mmproj", default="auto", metavar="PATH",
                       help="vision projector GGUF for image input (auto: mmproj*.gguf next to the model, none: disabled)")
   args = parser.parse_args()
@@ -179,7 +182,7 @@ def main():
   with Context(DEBUG=max(DEBUG.value, 2 if args.serve else 0)):
     model_path = fetch(models.get(args.model, args.model))
     mmproj = find_mmproj(model_path, args.mmproj)
-    model, kv = Transformer.from_gguf(model_path, args.max_context, vision=mmproj is not None)
+    model, kv = Transformer.from_gguf(model_path, args.max_context, vision=mmproj is not None, top_p=args.top_p, top_k=args.top_k)
   model_name = os.environ.get("QWEN_MODEL_ID") or kv.get('general.name') or kv.get('general.basename') or args.model
   file_sizes = [y.nbytes() for y in UOp.sink(*[x.uop for x in nn.state.get_parameters(model)]).toposort() if y.op is Ops.BUFFER]
   print(f"using model \"{model_name}\" with {sum(file_sizes):,} bytes and {sum(x.numel() for x in nn.state.get_parameters(model)):,} params, "
@@ -218,7 +221,7 @@ def main():
     with Context(DEBUG=max(DEBUG.value, 1)): model.warmup()
     if not getattr(model, "_from_cache", False):
       from tinygrad.llm.cache import save_llm_cache
-      save_llm_cache(model, kv, str(model_path), args.max_context, "vision" if vision is not None else "")
+      save_llm_cache(model, kv, str(model_path), args.max_context, model._cache_extra)  # same key from_gguf loads with
   if vision is not None and (args.warmup or args.serve):
     with Context(DEBUG=max(DEBUG.value, 1)): vision.warmup()
 
@@ -227,7 +230,7 @@ def main():
     enable_thinking = args.reasoning_effort != "none"
     effort = "medium" if args.reasoning_effort == "none" else args.reasoning_effort
     LLMServer((args.host, args.serve), model, model_name, tok, template,
-              reasoning_effort=effort, enable_thinking=enable_thinking, vision=vision).serve_forever()
+              reasoning_effort=effort, enable_thinking=enable_thinking, vision=vision, temperature=args.temperature).serve_forever()
 
   # do benchmark
   if args.benchmark is not None:

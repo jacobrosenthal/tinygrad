@@ -490,6 +490,9 @@ class Transformer:
     self._pos_dirty = False
     self.mtp: MTPModule|None = None
     self.mtp_k = 1
+    # top_p/top_k: server-fixed (see _apply_top_pk), set by from_gguf from the --top-p/--top-k CLI flags.
+    # disabled (1.0 / 0) unless set -- matches the old temperature-only sampling behavior.
+    self.top_p, self.top_k = 1.0, 0
     self._spec_jits: dict = {}
     # we specialize the JIT for prefill and rollout
     self.prefill_jit = TinyJit(self.forward)
@@ -510,12 +513,51 @@ class Transformer:
     # only run the output projection on the last (valid) token
     last = x[:, -1:] if n_tok is None else x.shrink((None, (n_tok - 1, n_tok), None)).contiguous()
     logits = self.output(self.output_norm(last))[:, -1, :]
+    logits = Transformer._apply_top_pk(logits, self.top_p, self.top_k)
     # Gumbel-max trick: argmax(logits/temp - log(-log(uniform))) is equivalent to sampling from softmax(logits/temp)
     return (logits / temperature.maximum(1e-12) - (Tensor.rand_like(logits).maximum(1e-12).log().neg()).log()).argmax(-1, keepdim=True)
 
   @staticmethod
-  def _sample_rows(logits:Tensor, temperature:Tensor) -> Tensor:
+  def _apply_top_pk(logits:Tensor, top_p:float, top_k:int) -> Tensor:
+    """Server-fixed top_k/top_p filtering (set at startup from the --top-p/--top-k CLI flags, baked
+    into the JIT graph as Python constants). Not a per-request parameter: tinygrad's
+    topk/sort need a static k, and the fused AMD/MTP graphs are already expensive to (re)compile
+    (see docs/development/qwen38-mtp-fork-splizard.md), so this must stay fixed for the server's
+    lifetime like MTP/KV_QUANT rather than vary per request like temperature does.
+    top_k=0 or top_p>=1.0 disables the respective filter (matches vLLM/SGLang semantics).
+
+    The top_k candidates come from k rounds of max()+mask-out (iterative argmax), NOT Tensor.topk:
+    topk() is sort()+slice, and sort() is a bitonic sort over the whole ~152K vocab (padded to 2^18,
+    18 stages) that expanded to ~1300 kernels per sampling site -- one warmup graph took 273s just to
+    *schedule* ("scheduled 1475 kernels in 272891 ms", 2026-08-25 sweep) and blew the 30-minute
+    startup timeout. k rounds of max() over the vocab is ~2k tiny kernels instead.
+    top_p is the nucleus over those candidates (a descending prefix, so its threshold is the smallest
+    kept value). With top_p but no top_k the candidate set is capped at _TOP_P_ONLY_CANDIDATES --
+    an approximation for flat distributions; Qwen's recommended profile always pairs the two."""
+    use_k, use_p = bool(top_k and top_k > 0), bool(top_p and top_p < 1.0)
+    if not (use_k or use_p): return logits
+    k = min(top_k if use_k else Transformer._TOP_P_ONLY_CANDIDATES, int(logits.shape[-1]))
+    vals, cur = [], logits
+    for _ in range(k):
+      m = cur.max(axis=-1, keepdim=True)
+      vals.append(m)
+      cur = (cur >= m).where(-float("inf"), cur)
+    cand = Tensor.cat(*vals, dim=-1)  # (..., k), descending
+    if use_p:
+      probs = cand.softmax(-1)
+      excl_cum = probs.cumsum(-1) - probs  # probability mass strictly before each candidate
+      # keep candidates until the mass before them reaches top_p; position 0 (excl_cum=0) always qualifies
+      thresh = (excl_cum < top_p).where(cand, float("inf")).min(axis=-1, keepdim=True)
+    else:
+      thresh = cand[..., -1:]
+    return (logits < thresh).where(-float("inf"), logits)
+
+  _TOP_P_ONLY_CANDIDATES = 64
+
+  @staticmethod
+  def _sample_rows(logits:Tensor, temperature:Tensor, top_p:float=1.0, top_k:int=0) -> Tensor:
     # per-row Gumbel-max sampling (same as _sample): the draft is verified by sample-then-compare so temperature>0 stays lossless
+    logits = Transformer._apply_top_pk(logits, top_p, top_k)
     return (logits / temperature.maximum(1e-12) - (Tensor.rand_like(logits).maximum(1e-12).log().neg()).log()).argmax(-1)
 
   def forward_spec(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp, n_keep:int|UOp,
@@ -545,9 +587,9 @@ class Transformer:
     if prefill:  # only the last valid row is sampled (the output projection of a long chunk would be the biggest GEMM of the step)
       lastx = x.shrink((None, (n_tok - 1, n_tok), None)).contiguous() if isinstance(n_tok, int) else \
         ((idx == (n_tok - 1)).reshape(1, T, 1).where(x, 0)).sum(axis=1, keepdim=True)
-      out_last = Transformer._sample_rows(self.output(self.output_norm(lastx)), temperature).reshape(1).cast(dtypes.int32)
+      out_last = Transformer._sample_rows(self.output(self.output_norm(lastx)), temperature, self.top_p, self.top_k).reshape(1).cast(dtypes.int32)
       out = out_last.expand(T).contiguous()
-    else: out = Transformer._sample_rows(self.output(self.output_norm(x)), temperature).reshape(T).cast(dtypes.int32)
+    else: out = Transformer._sample_rows(self.output(self.output_norm(x)), temperature, self.top_p, self.top_k).reshape(T).cast(dtypes.int32)
     # rows < n_keep-1 see the next chunk token, the others the token sampled from them
     next_toks = (idx < (n_keep - 1)).where(chunk[1:].cat(chunk[-1:]), out).reshape(1, T)
     if prefill:  # nothing to verify
@@ -565,11 +607,11 @@ class Transformer:
     amd_gemv.new_forward(n_keep if prefill else n_keep + n_acc)
     mx = self.mtp(x, self.token_embd(next_toks).float(), start_pos, n_tok)
     h = pick(mx, j_last)
-    drafts = [Transformer._sample_rows(self.output(self.mtp.shared_head_norm(h)), temperature).reshape(1).cast(dtypes.int32)]
+    drafts = [Transformer._sample_rows(self.output(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k).reshape(1).cast(dtypes.int32)]
     for k in range(1, K):
       amd_gemv.new_forward(1)
       h = self.mtp(h, self.token_embd(drafts[-1].reshape(1, 1)).float(), (j_last + start_pos) + k, 1)  # Tensor + UOp works, not UOp + Tensor
-      drafts.append(Transformer._sample_rows(self.output(self.mtp.shared_head_norm(h)), temperature).reshape(1).cast(dtypes.int32))
+      drafts.append(Transformer._sample_rows(self.output(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k).reshape(1).cast(dtypes.int32))
     draft = drafts[0].cat(*drafts[1:]) if K > 1 else drafts[0]
     # candidate next chunks: L accepted -> U = drafts[:L] + [out[n_keep-1+L]], chunk = U + new drafts
     last = pick(out, j_last)
@@ -587,13 +629,15 @@ class Transformer:
 
   @staticmethod
   def from_gguf(gguf:Tensor|str|pathlib.Path, max_context:int|None=None,
-                realize=bool(getenv("REALIZE", 0)), vision:bool=False) -> tuple[Transformer, dict]:
+                realize=bool(getenv("REALIZE", 0)), vision:bool=False, top_p:float=1.0, top_k:int=0) -> tuple[Transformer, dict]:
     # vision: the prefill jits take the image-embedding input (the pad token id is set by the caller before warmup)
+    # top_p/top_k: sampling filters baked into the captured jits (see _apply_top_pk), so they are part of the cache key below
     # a warmed-up model may be cached whole (weights re-uploaded, jits unpickled): ~seconds instead of a full load + warmup
+    extra = " ".join(s for s in ["vision" if vision else "", f"top_p={top_p}" if top_p < 1.0 else "", f"top_k={top_k}" if top_k > 0 else ""] if s)
     if not isinstance(gguf, Tensor):
       from tinygrad.llm.cache import load_llm_cache
-      if (cached:=load_llm_cache(str(gguf), max_context, "vision" if vision else "")) is not None:
-        cached[0]._from_cache = True
+      if (cached:=load_llm_cache(str(gguf), max_context, extra)) is not None:
+        cached[0]._from_cache, cached[0]._cache_extra = True, extra
         return cached
 
     # TODO: remove the need for copy to default device
@@ -682,6 +726,7 @@ class Transformer:
       state_dict = {_mtp_key(k): v for k, v in state_dict.items()}
       for k in [k for k in raw if k.startswith(mtp_prefix)]: raw[_mtp_key(k)] = raw.pop(k)
     model = Transformer(config)
+    model.top_p, model.top_k, model._cache_extra = top_p, top_k, extra  # see _apply_top_pk; the cache save in cli.py reuses extra
     if any(k.startswith('mtp.') for k in state_dict):
       model.mtp = MTPModule(replace(config, qk_norm=config.head_dim) if config.ssm else config)
       from tinygrad.llm.amd_gemv import MAX_T
