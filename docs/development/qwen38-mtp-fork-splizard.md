@@ -822,3 +822,7 @@ checkpoints during prefill so a mid-conversation divergence resumes from the nea
 Known: a continuation resumed after generated tokens can differ at near-ties from a cold prefill of the same tokens
 (decode vs prefill kernels), like llama.cpp's MTP vs no-spec. Startup after a SIGKILLed server can fail with KFD EAGAIN
 for a while; the harness retries (`test8.sh`).
+Tail via the <= MAX_T path: tried routing prefill tails of <= 8 tokens (always the held-back last token) through an
+8-wide prefill-mode jit to skip the 256-wide pass (~0.26 s GPU, the pass dequantizes every weight regardless of
+width). Wrong output (`test7e_new.out`): the fused gemv path does not honor the valid-token mask for a partial chunk,
+padding gets committed into the recurrent state. Needs kernel support for `n_tok < T` on that path; reverted.
