@@ -795,3 +795,30 @@ but 32-34 tok/s vs MTP's 39. Final: DFlash2 (PR #27342) on this Vulkan build is 
 K=7; MTP remains the llama.cpp drafter. `build_dflash2/` kept for re-testing when the PR lands upstream.
 Bus test (llama, 33K prefill at 489 tok/s): GPU busy mean 81%, 84% of samples >= 76%, GTT 104 MB -> llama's long prefill
 is compute-bound; an x16 slot buys <= ~20% there. The fork's chunked prefill is measured separately (`forkbus.sh`).
+
+### Per-request tokenization and snapshot cooldown (2026-08-26, late)
+
+`serve.py` re-tokenized the whole rendered prompt every request: `prep` 3 ms at 72 tokens, 283 ms at 11K, 850 ms at 33K,
+1.7 s at 65K. `SimpleTokenizer.encode` tokenizes the text between special tokens independently, so pieces are now memoized
+(`_encode_piece`, 8 M chars bound, pieces < 32 chars not cached). CPU test (`sweeps/tokcache_test.py`, 120-turn synthetic
+chat, ids asserted equal to the uncached encoder): 31.6K tokens 44 ms vs 873 ms, 61K 55 ms vs 1,682 ms, 120K 87 ms vs
+3,206 ms. Snapshots: a `MemoryError` in `_pick_prefix_state` used to set `max_snapshots = 0` for the life of the process;
+it now drops the saved slots and pauses snapshots for `PREFIX_SNAPSHOT_PAUSE_S` (600 s), then retries.
+
+### Host-side request overhead removed; snapshot tiers; periodic checkpoints (2026-08-26, afternoon)
+
+cProfile of a 2202-token prefill (`sweeps/dflash2-20260826/profile7c.out`): 6.4 of 11.4 s in `_apply_map_to_tensors`.
+Every `Tensor.realize` walks all live Tensors (~250K in this process), so any fresh Tensor on the request path costs
+~0.2 s of Python. Three commits remove them: prefill chunks are slices of one prompt buffer written by a direct copy
+(`582d28b42`, `741f61e90`), checkpoints move by device-to-device `Buffer.copy_from` (`741f61e90`), one realized
+temperature tensor per value (`345fb79d4`). Per 256-token chunk host time 195 -> 6 ms; 2202-token request + 20 tokens
+5.68 -> 3.67 s; 63-token request 1.82 -> 0.95 s; greedy tokens identical throughout. GPU time per chunk is ~0.26 s
+(six graphs, ~50 TFLOPS sustained), so prefill is now ~900 tok/s here vs ~400 in the morning.
+
+`1cda11be6`: snapshots are raw Buffers moved by SDMA copies; `--host-snapshots N --host-snapshot-gb G` (default off,
+~2.2 GB per snapshot at 98304) keeps evicted states in pinned host buffers and restores them on a prefix match
+(host restore == VRAM restore, `test8v2.log`); `--checkpoints 3 --checkpoint-every 4096` takes recurrent-state
+checkpoints during prefill so a mid-conversation divergence resumes from the nearest one (`test9.log`: 10.55 -> 6.84 s).
+Known: a continuation resumed after generated tokens can differ at near-ties from a cold prefill of the same tokens
+(decode vs prefill kernels), like llama.cpp's MTP vs no-spec. Startup after a SIGKILLed server can fail with KFD EAGAIN
+for a while; the harness retries (`test8.sh`).

@@ -41,6 +41,9 @@ Environment=PYTHONUNBUFFERED=1
 # default; Hermes sends temperature 0.6 itself (custom_providers.extra_body in ~/.hermes/config.yaml,
 # +7% decode, no quality loss in the 48-problem probe). top-p/top-k stay off (-17%, no gain).
 # Context 98304 (2026-08-26): Hermes is capped at 98304 anyway (context_length_cache.yaml); at 131072 the fork hit the VRAM ceiling at a 33K prompt (Allocation of 150 MB failed, 23.30 GB used) and disabled prefix snapshots for the rest of the run, so real Hermes sessions were losing the prefix cache mid-session. 98304 frees ~2.5 GB of KV.
+# Prefix cache (2026-08-26): --checkpoints 3 --checkpoint-every 4096 are the defaults (periodic recurrent-state checkpoints,
+# ~100 MB each, so a mid-conversation divergence resumes from the nearest one). --host-snapshots N keeps evicted snapshots in
+# pinned host RAM (~2.2 GB each at this context): off until the box has the RAM for it.
 ExecStart=/home/j/tinygrad-qwen38-fork/.venv/bin/python3 -m tinygrad.llm.cli \
   --model /home/j/models/Qwen3.8-27B-UD-Q4_K_XL.gguf \
   --mmproj none \
