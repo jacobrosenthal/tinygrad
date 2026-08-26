@@ -770,3 +770,28 @@ is +7-27% faster than f16 on Vulkan, `-b/-ub` make no difference, temperature 0.
 (MTP acceptance). Same binary and flags measure 31-52 tok/s here vs 24-27 in the 2026-08-25 sweep harness
 (700-token answers) - unexplained, flagged. Sampling decision: servers keep their defaults (fork 1.0, llama 0.8
 + its top-k 40/top-p 0.95/min-p 0.05); Hermes sends `temperature: 0.6` via `custom_providers[].extra_body`.
+
+### Tail-width prefill chunks: tried and reverted (2026-08-26)
+
+Hypothesis: a short turn's new tokens pay for a full 256-wide padded chunk (72 tokens -> 1.5 s). Implemented 64/128-wide
+tail chunks in `_generate_spec` (own captured jits, warmed up, cached); outputs byte-identical to the 256-only path. Result:
+no change - 57 tokens 2.35 s vs 2.31 s TTFT, 72 tokens 47 vs 52 tok/s. The cost per chunk pass is ~0.55-0.65 s regardless
+of width (2212 tok = 10 passes / 5.4 s, 728 = 4 / 2.5 s, 57 = 2 / 2.3 s with ~1 s first-pass setup). A 256-token chunk is
+~18 ms of weight streaming, so the pass is launch-latency-bound: the captured prefill graph is 1437 kernels (~0.4 ms each).
+Levers are kernel count per chunk (fusion) or per-launch latency (this box drives the GPU over PCIe 4.0 x4 through a
+switch: NucBox M8 OCuLink -> DEG1), not chunk width. Also seen: the ~3 s prefix-snapshot clone lands on the request
+*after* a >=1024-token conversation, which is most of the TTFT noise in short benchmarks.
+
+### DFlash2 K=7 retraction (2026-08-26, later)
+
+The K=7 "warm-up" (0.32 -> 0.9 acceptance, 66-70 tok/s on new prompts) was state corruption: on our Vulkan build of
+PR #27342, the first request after server start matches MTP's greedy output exactly, and every later request is
+degenerate ("I\n\nI\n\nI...", "Include a brief docstring. Include a brief docstring...") and non-deterministic across two
+identical greedy runs (`sweeps/dflash2-20260826/lossless_k7*_*.txt`). Repetition drafts trivially, hence the acceptance.
+Speed numbers from any DFlash2 K=7 server after its first request are invalid. MTP vs no-spec diverge only at near-tie
+tokens (numeric noise of batched verify), which is the normal llama.cpp behaviour. DFlash2 stays off; K=5 text check pending.
+K=5 text check: coherent output, diverges from no-spec only at near-tie tokens like MTP (proseA at the same character, 378),
+but 32-34 tok/s vs MTP's 39. Final: DFlash2 (PR #27342) on this Vulkan build is correct-but-slower at K<=5 and broken at
+K=7; MTP remains the llama.cpp drafter. `build_dflash2/` kept for re-testing when the PR lands upstream.
+Bus test (llama, 33K prefill at 489 tok/s): GPU busy mean 81%, 84% of samples >= 76%, GTT 104 MB -> llama's long prefill
+is compute-bound; an x16 slot buys <= ~20% there. The fork's chunked prefill is measured separately (`forkbus.sh`).
