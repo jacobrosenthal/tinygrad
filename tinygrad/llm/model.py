@@ -200,7 +200,7 @@ class TransformerBlock(FFNBlock):
       self._attn_params = (self.attn_q_norm.weight.float().contiguous().realize(), self.attn_k_norm.weight.float().contiguous().realize()) if qk else (None, None)
     qnw, knw = self._attn_params
     attn = amd_gemv.attn_decode(self.cache_kv, q, k, v, qnw, knw, self.freqs_cis, start_pos, c.n_heads, c.n_kv_heads, c.head_dim, c.rope_dim,
-                                c.max_context, c.norm_eps, c.attn_output_gate, T, n_tok, self.kv_quant)
+                                self.kv_maxc, c.norm_eps, c.attn_output_gate, T, n_tok, self.kv_quant)
     return amd_gemv.linear_decode(self.attn_output, attn.reshape(1, T, -1), residual=residual)
 
   def _fused_ok(self) -> bool:
@@ -267,12 +267,17 @@ class TransformerBlock(FFNBlock):
          c.head_dim == 256 and c.n_heads % c.n_kv_heads == 0 and c.n_heads // c.n_kv_heads <= 8 and c.qk_norm in (0, c.head_dim) and c.rope_dim <= 64:
         from tinygrad.llm import amd_gemv
         self.kv_quant = amd_gemv.kv_quant_spec()
+      # the kv cache and the kernel's MAXC (self.kv_maxc) are max_context + MAX_T: a spec-decode chunk near the ceiling writes
+      # start_pos..start_pos+T-1 (start_pos <= max_context-1, T <= 2*mtp_k+1 <= MAX_T), which would run off a max_context-sized
+      # buffer and fault the GPU (MMU fault seen 2026-08-26 at start_pos 98301). the slack rows are never read (the flash scan is
+      # bounded by the real position, not MAXC).
+      self.kv_maxc = c.max_context + getenv("MAX_T", 8)
       if self.kv_quant is not None:
-        self.cache_kv = Tensor.empty(self.kv_quant.cache_bytes(c.n_kv_heads, c.max_context), dtype=dtypes.uint8, device=x.device)
+        self.cache_kv = Tensor.empty(self.kv_quant.cache_bytes(c.n_kv_heads, self.kv_maxc), dtype=dtypes.uint8, device=x.device)
       else:
         # zeroed so the flash kernels can safely read whole tiles past the valid region (masked lanes multiply by 0)
-        self.cache_kv = Tensor.zeros(2, x.shape[0], c.n_kv_heads, c.max_context, c.head_dim, dtype=dtypes.default_float, device=x.device)
-      self.freqs_cis = precompute_freqs_cis(self.config.rope_dim, self.config.max_context, self.config.rope_theta, device=x.device)
+        self.cache_kv = Tensor.zeros(2, x.shape[0], c.n_kv_heads, self.kv_maxc, c.head_dim, dtype=dtypes.default_float, device=x.device)
+      self.freqs_cis = precompute_freqs_cis(self.config.rope_dim, self.kv_maxc, self.config.rope_theta, device=x.device)
 
 class MLATransformerBlock(FFNBlock):
   def __init__(self, config:TransformerConfig):
@@ -319,8 +324,9 @@ class MLATransformerBlock(FFNBlock):
 
   def _init_state(self, x:Tensor):
     if not hasattr(self, "cache_k"):
-      self.cache_k = Tensor.empty(x.shape[0], 1, self.config.max_context, self.config.kv_lora_rank + self.config.rope_dim, device=x.device)
-      self.freqs_cis = precompute_freqs_cis(self.config.rope_dim, self.config.max_context, self.config.rope_theta, device=x.device)
+      self.kv_maxc = self.config.max_context + getenv("MAX_T", 8)  # slack so a chunk straddling the ceiling fits (see FFNBlock._init_state)
+      self.cache_k = Tensor.empty(x.shape[0], 1, self.kv_maxc, self.config.kv_lora_rank + self.config.rope_dim, device=x.device)
+      self.freqs_cis = precompute_freqs_cis(self.config.rope_dim, self.kv_maxc, self.config.rope_theta, device=x.device)
 
 class GatedDeltaNetBlock(FFNBlock):
   def __init__(self, config:TransformerConfig, ssm:SSMConfig):
