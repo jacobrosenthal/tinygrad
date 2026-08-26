@@ -923,7 +923,11 @@ class Transformer:
     K = self.mtp_k
     v_start_pos = UOp.variable("start_pos", 0, self.max_context-1)
     v_toks = UOp.variable("toks", 1, chunk_T)
-    temp = Tensor([temperature])
+    # one realized tensor per distinct temperature: a fresh Tensor([temperature]) per request is realized by the first jit call,
+    # and every realize walks all live Tensors (~0.2 s here)
+    if not hasattr(self, "_temp_tensors"): self._temp_tensors: dict[float, Tensor] = {}
+    if (temp := self._temp_tensors.get(float(temperature))) is None:
+      temp = self._temp_tensors[float(temperature)] = Tensor([float(temperature)]).realize()
     p, prompt_len = self.get_start_pos(tokens) if start_pos is None else start_pos, len(tokens)
     n_acc = n_step = 0
     def run(chunk:Tensor, start_pos:int, n_tok:int|UOp, n_keep:int|UOp, emb:Tensor|None=None) -> tuple[list[int], tuple[Tensor, ...]]:
