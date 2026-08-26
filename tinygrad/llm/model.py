@@ -916,14 +916,18 @@ class Transformer:
       kw = {} if emb is None else {"emb": emb}
       res, *cands = self._spec_jit(int(chunk.shape[1]))(chunk, v_start_pos.bind(start_pos), temp, n_tok, n_keep, **kw)
       return res.tolist(), tuple(cands)
-    # prefill: commit every valid token (n_keep = n_tok), fill the MTP KV cache, last chunk yields the first decode chunk
+    # prefill: commit every valid token (n_keep = n_tok), fill the MTP KV cache, last chunk yields the first decode chunk.
+    # the whole prompt goes to the device once and each chunk is a symbolic slice of it (like generate()): a fresh Tensor per
+    # chunk has to be realized by the jit, and a realize walks every live Tensor in the process (~250K here, ~0.2 s per chunk
+    # of pure Python, 2026-08-26 cProfile: 6.4 of 11.4 s of a 2202-token prefill in _apply_map_to_tensors)
+    t = Tensor(tokens + [0] * (self.max_context + chunk_T - len(tokens)), dtype="int32").reshape(1, -1).realize() if p < prompt_len else None
     while p < prompt_len:
       n_toks = min(chunk_T, prompt_len - p)
       # hold the prompt's last token back for a chunk of its own: the checkpoint is taken just before it (see _save_checkpoint)
       if p < prompt_len - 1 and p + n_toks == prompt_len: n_toks -= 1
-      nt = v_toks.bind(n_toks)
+      sp, nt = v_start_pos.bind(p), v_toks.bind(n_toks)
       emb = self._emb_chunk(spans or [], p, chunk_T) if self.image_pad_id is not None else None
-      res, cands = run(Tensor([tokens[p:p + n_toks] + [0] * (chunk_T - n_toks)], dtype="int32"), p, nt, nt, emb)
+      res, cands = run(t[:, sp:sp + chunk_T], p, nt, nt, emb)
       p += n_toks
       self._cached_tokens = tokens[:p]
       if p == prompt_len - 1: self._save_checkpoint(tokens[:p])
