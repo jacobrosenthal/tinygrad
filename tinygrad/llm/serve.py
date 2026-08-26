@@ -130,7 +130,8 @@ class Handler(HTTPRequestHandler):
       stderr_log(f"prefix-cache recompute failed (non-fatal, next turn just won't reuse this one): {e}\n")
 
   def _pick_prefix_state(self, ids:list[int], media:list) -> None:
-    """prefix-state snapshots (PREFIX_SNAPSHOTS=N saved slots, default 1; PREFIX_SNAPSHOT_MIN tokens, default 1024).
+    """prefix-state snapshots (PREFIX_SNAPSHOTS=N saved slots, default 1; PREFIX_SNAPSHOT_MIN tokens, default 1024;
+    --host-snapshots N / --host-snapshot-gb for the host-memory tier, default off).
     the model holds ONE decode state, so any request that doesn't extend the cached conversation evicts it -- another session,
     a sub-agent, a housekeeping call -- and the next turn of the long conversation then reprocesses its whole 20K+ token
     prefix from scratch (the recurrent blocks need an exact full-prefix match, so there is no partial reuse to fall back on).
@@ -141,21 +142,35 @@ class Handler(HTTPRequestHandler):
     srv, model = self.server, self.server.model
     if srv.max_snapshots <= 0 or media: return
     live = model.get_start_pos(ids)
-    best_i, best = -1, live
-    for i, s in enumerate(srv.snapshots):
-      # a snapshot serves a request that extends either its generated sequence or (far more often) its prefill checkpoint
-      if (m := max(model.prefix_match(ids, s.tokens), model.prefix_match(ids, s.ckpt_tokens or []))) > best: best_i, best = i, m
+    # candidates: the VRAM slots, then the host tier (PREFIX_HOST_SNAPSHOTS slots / PREFIX_HOST_GB): a state evicted from VRAM is
+    # copied to host memory instead of being dropped -- re-prefilling a 30K-token conversation takes over a minute here, restoring
+    # a 2 GB snapshot from host memory a fraction of a second even over PCIe x4
+    best_i, best, best_host = -1, live, False
+    for tier, lst in ((False, srv.snapshots), (True, srv.host_snapshots)):
+      for i, s in enumerate(lst):
+        # a snapshot serves a request that extends either its generated sequence or (far more often) its prefill checkpoint
+        m = max([model.prefix_match(ids, s.tokens), model.prefix_match(ids, s.ckpt_tokens or [])] + [model.prefix_match(ids, t) for t, _ in s.ckpts])
+        if m > best: best_i, best, best_host = i, m, tier
     live_worth_keeping = live == 0 and len(model._cached_tokens) >= srv.snapshot_min_tokens
     try:
+      t0 = time.perf_counter()
       if best_i >= 0:
-        snap = srv.snapshots.pop(best_i)
+        snap = (srv.host_snapshots if best_host else srv.snapshots).pop(best_i)
         if live_worth_keeping: srv.snapshots.append(model.snapshot_state())
         model.restore_state(snap)
-        stderr_log(f"{colored(f'restored snapshot ({best} tok)', 'cyan')}  {colored('--', 'BLACK')}  ")
+        if best_host: srv.snapshots.append(model.snapshot_state())  # it is live again; keep a device copy so the next switch is cheap
+        stderr_log(f"{colored(f'restored snapshot ({best} tok, {'host' if best_host else 'vram'}, {(time.perf_counter()-t0)*1e3:.0f} ms)', 'cyan')}  {colored('--', 'BLACK')}  ")
       elif live_worth_keeping:
         srv.snapshots.append(snap := model.snapshot_state())
-        stderr_log(f"{colored(f'saved snapshot ({len(snap.tokens)} tok, {snap.nbytes()/1e9:.2f} GB)', 'cyan')}  {colored('--', 'BLACK')}  ")
-      while len(srv.snapshots) > srv.max_snapshots: srv.snapshots.pop(0)
+        stderr_log(f"{colored(f'saved snapshot ({len(snap.tokens)} tok, {snap.nbytes()/1e9:.2f} GB, {(time.perf_counter()-t0)*1e3:.0f} ms)', 'cyan')}  {colored('--', 'BLACK')}  ")
+      while len(srv.snapshots) > srv.max_snapshots:
+        old = srv.snapshots.pop(0)
+        if srv.max_host_snapshots > 0 and old.nbytes() <= srv.max_host_bytes:
+          t1 = time.perf_counter(); srv.host_snapshots.append(old.to_host())
+          stderr_log(f"{colored(f'snapshot -> host ({len(old.tokens)} tok, {(time.perf_counter()-t1)*1e3:.0f} ms)', 'cyan')}  {colored('--', 'BLACK')}  ")
+        del old
+      while len(srv.host_snapshots) > srv.max_host_snapshots or sum(s.nbytes() for s in srv.host_snapshots) > srv.max_host_bytes:
+        srv.host_snapshots.pop(0)
     except MemoryError as e:
       srv.max_snapshots, srv.snapshots = 0, []
       stderr_log(f"{colored(f'prefix snapshots disabled: {e}', 'red')}  {colored('--', 'BLACK')}  ")
@@ -326,9 +341,14 @@ class Handler(HTTPRequestHandler):
 
 class LLMServer(TCPServerWithReuse):
   def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any,
-               reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None, temperature:float=1.0):
+               reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None, temperature:float=1.0,
+               host_snapshots:int=0, host_snapshot_gb:float=16.0):
     self.model, self.model_name, self.tok, self.template, self.vision = model, model_name, tok, template, vision
     self.reasoning_effort, self.enable_thinking, self.temperature = reasoning_effort, enable_thinking, temperature
     self.snapshots: list = []  # StateSnapshot, oldest first; see Handler._pick_prefix_state
+    # host-memory snapshot tier (--host-snapshots N / --host-snapshot-gb, default off): states evicted from the VRAM slots are
+    # copied to host memory instead of dropped. A snapshot is ~2.2 GB at max_context 98304, so this needs real RAM headroom
+    self.host_snapshots: list = []
+    self.max_host_snapshots, self.max_host_bytes = host_snapshots, int(host_snapshot_gb * 1e9)
     self.max_snapshots, self.snapshot_min_tokens = getenv("PREFIX_SNAPSHOTS", 1), getenv("PREFIX_SNAPSHOT_MIN", 1024)
     super().__init__(server_address, Handler)

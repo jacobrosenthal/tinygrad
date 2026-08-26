@@ -161,6 +161,10 @@ def main():
   parser.add_argument("--reasoning-effort", default="medium", choices=["low","medium","xhigh","none"],
                       help="Qwen thinking depth (chat template). none disables thinking.")
   parser.add_argument("--temperature", type=float, default=1.0, help="sampling temperature used when a request sends none (default 1.0, Qwen's thinking-mode recommendation)")
+  parser.add_argument("--checkpoints", type=int, default=3, help="periodic recurrent-state checkpoints per conversation, so a request that diverges mid-conversation resumes from the nearest one (default 3, 0 = off; ~100 MB each)")
+  parser.add_argument("--checkpoint-every", type=int, default=4096, help="spacing of the periodic checkpoints in tokens (default 4096)")
+  parser.add_argument("--host-snapshots", type=int, default=0, help="prefix-state snapshots evicted from VRAM are kept in host memory, up to N (default 0 = off; ~2.2 GB each at max_context 98304)")
+  parser.add_argument("--host-snapshot-gb", type=float, default=16.0, help="cap on host memory used by --host-snapshots (default 16)")
   parser.add_argument("--top-p", type=float, default=1.0, help="nucleus sampling threshold, fixed for the server's lifetime (1.0 = off; Qwen recommends 0.95)")
   parser.add_argument("--top-k", type=int, default=0, help="top-k sampling, fixed for the server's lifetime (0 = off; Qwen recommends 20)")
   parser.add_argument("--mmproj", default="auto", metavar="PATH",
@@ -183,6 +187,7 @@ def main():
     model_path = fetch(models.get(args.model, args.model))
     mmproj = find_mmproj(model_path, args.mmproj)
     model, kv = Transformer.from_gguf(model_path, args.max_context, vision=mmproj is not None, top_p=args.top_p, top_k=args.top_k)
+    model._ckpt_max, model._ckpt_every = args.checkpoints, max(1, args.checkpoint_every)
   model_name = os.environ.get("QWEN_MODEL_ID") or kv.get('general.name') or kv.get('general.basename') or args.model
   file_sizes = [y.nbytes() for y in UOp.sink(*[x.uop for x in nn.state.get_parameters(model)]).toposort() if y.op is Ops.BUFFER]
   print(f"using model \"{model_name}\" with {sum(file_sizes):,} bytes and {sum(x.numel() for x in nn.state.get_parameters(model)):,} params, "
@@ -230,7 +235,8 @@ def main():
     enable_thinking = args.reasoning_effort != "none"
     effort = "medium" if args.reasoning_effort == "none" else args.reasoning_effort
     LLMServer((args.host, args.serve), model, model_name, tok, template,
-              reasoning_effort=effort, enable_thinking=enable_thinking, vision=vision, temperature=args.temperature).serve_forever()
+              reasoning_effort=effort, enable_thinking=enable_thinking, vision=vision, temperature=args.temperature,
+              host_snapshots=args.host_snapshots, host_snapshot_gb=args.host_snapshot_gb).serve_forever()
 
   # do benchmark
   if args.benchmark is not None:

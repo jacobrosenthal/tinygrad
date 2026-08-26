@@ -129,7 +129,7 @@ def load_llm_cache(path:str, max_context:int|None, extra:str=""):
       with Timing("llm cache: unpickled model in ", enabled=DEBUG >= 1):
         model, kv = _Unpickler(f, bases).load()
     model._cached_tokens = []  # the state buffers were restored empty, the saved prefix is not resident
-    model._ckpt, model._ckpt_tokens = {}, None  # the checkpoint held garbage from warmup; take a fresh one on the next prefill
+    model._ckpt, model._ckpt_tokens, model._ckpts = {}, None, []  # the checkpoint held garbage from warmup; take a fresh one on the next prefill
     from tinygrad import nn
     # the recurrent/conv state must start at zero (kv caches are written before read, so they can stay lazy). the cached buffers come
     # back unallocated, so zero + realize them here rather than filtering on is_realized (which would leave them uninitialized)
