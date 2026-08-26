@@ -1,0 +1,1 @@
+{"wall_s": 9.602, "prompt_tokens": 72, "completion_tokens": 700, "content_preview": "\n\n```python\n\"\"\"\nLRU Cache with O(1) get and put.\n\nStrategy:\n  - A dict maps key "}

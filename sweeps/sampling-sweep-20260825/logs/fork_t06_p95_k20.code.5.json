@@ -1,0 +1,1 @@
+{"wall_s": 12.333, "prompt_tokens": 72, "completion_tokens": 700, "content_preview": "\n\n```python\n\"\"\"\nLRU (Least Recently Used) Cache with O(1) get and put.\n\nDesign:\n"}

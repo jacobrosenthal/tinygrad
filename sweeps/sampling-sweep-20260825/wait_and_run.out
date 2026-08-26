@@ -1,0 +1,3 @@
+2026-08-25 09:59:41 waiting for >=10GB free VRAM before starting sampling sweep (not touching the live splizard service)
+2026-08-25 16:32:02 GPU free: 23.96GB available, starting sweep
+2026-08-25 16:56:41 sweep finished OK

@@ -1,0 +1,56 @@
+[Unit]
+Description=tinygrad server - Qwen3.8-27B (Splizard fork: custom AMD kernels + MTP spec decode)
+After=network-online.target gpu-power-tuning.service
+Wants=network-online.target
+Requires=gpu-power-tuning.service
+Conflicts=llama-server.service llama-server-abliterated.service tinygrad-server.service tinygrad-server-abliterated.service
+
+[Service]
+Type=simple
+User=j
+WorkingDirectory=/home/j/tinygrad-qwen38-fork
+# DEV=AMD:LLVM: this fork's custom AMD kernels (amd_gemv.py) emit raw LLVM IR
+# meant for tinygrad's own LLVM compiler, not comgr's HIP-C++ path -- plain
+# DEV=AMD auto-selects comgr (present on this box for the official-PR track)
+# and the fork's kernels fail to compile. See docs/development/
+# qwen38-mtp-fork-splizard.md trap notes for the full story.
+#
+# LLM_CACHE=1: the fork's warm-start cache pickles the fully warmed-up model
+# (captured JITs included) to ~/.cache/tinygrad/llm after the first start, so
+# later starts skip the ~9 min of JIT tracing + kernel compile at this context
+# size. Was disabled 2026-08-24 because a load crashed with "TypeError:
+# Tensor.realize() missing 1 required positional argument: 'self'" (an empty
+# Tensor.realize() call in cache.py, fixed 2026-08-25). The cache key covers
+# the model file, max_context and the llm/ sources: the first start after any
+# of those change is a full warmup again, and re-saves.
+#
+# MTP=1 is the default when the GGUF has nextn/MTP weights (UD-Q4_K_XL does)
+# and KV_QUANT defaults to 4-bit -- no need to set either explicitly.
+Environment=DEV=AMD:LLVM
+Environment=LLM_CACHE=1
+# stdout is block-buffered when it is not a terminal, so under systemd the
+# "*** started server on ..." and "llm cache: ..." lines never reach the journal
+# until the buffer fills or the process exits. Flush every print immediately.
+Environment=PYTHONUNBUFFERED=1
+# Sampling (2026-08-25): --temperature is the default when a request sends none (Hermes sends
+# none), 1.0 = Qwen's thinking-mode recommendation; 0.6 measured ~7% faster decode on this fork
+# (better MTP draft acceptance). --top-p/--top-k are fixed for the server's lifetime (baked into
+# the JITs and the warm-start cache key); Qwen's full profile is `--top-p 0.95 --top-k 20` at a
+# measured ~17% decode cost vs no filter. See docs/development/qwen38-mtp-fork-splizard.md,
+# "Sampling: matching Qwen's recommended profile". Decision 2026-08-26: server stays at the 1.0
+# default; Hermes sends temperature 0.6 itself (custom_providers.extra_body in ~/.hermes/config.yaml,
+# +7% decode, no quality loss in the 48-problem probe). top-p/top-k stay off (-17%, no gain).
+ExecStart=/home/j/tinygrad-qwen38-fork/.venv/bin/python3 -m tinygrad.llm.cli \
+  --model /home/j/models/Qwen3.8-27B-UD-Q4_K_XL.gguf \
+  --mmproj none \
+  --max_context 131072 \
+  --host 0.0.0.0 \
+  --serve 8080
+Restart=on-failure
+RestartSec=5
+# cli.py drains the GPU queues on SIGTERM and exits 128+15=143 (upstream e1eca014f);
+# without this every stop/restart is logged as "Failed with result 'exit-code'"
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
