@@ -756,10 +756,11 @@ class Transformer:
     return [(t, self._ckpt[k][k.split(".")[-1]]) for k, t in st]
   def _save_checkpoint(self, tokens:list[int]):
     if not self.has_recurrent_block or self._warming: return
-    Tensor.realize(*[c.assign(t) for t, c in self._ckpt_pairs()])
+    # direct device-to-device copies: an assign + realize walks every live Tensor in the process (~0.2 s per request here)
+    for t, c in self._ckpt_pairs(): c.uop.buffer.ensure_allocated().copy_from(t.uop.buffer.ensure_allocated())
     self._ckpt_tokens = list(tokens)
   def _restore_checkpoint(self):
-    Tensor.realize(*[t.assign(c) for t, c in self._ckpt_pairs()])
+    for t, c in self._ckpt_pairs(): t.uop.buffer.ensure_allocated().copy_from(c.uop.buffer.ensure_allocated())
 
   def get_start_pos(self, tokens:list[int], media_key:tuple=()) -> int:
     # image tokens are all the same pad id: the cached prefix only counts up to the first image that differs from the cached request
@@ -905,6 +906,19 @@ class Transformer:
       self._cached_tokens = tokens[:-1]
       yield tokens[-1]
 
+  def _prompt_tensor(self, tokens:list[int], chunk_T:int) -> Tensor:
+    """the prompt in one persistent device buffer (padded to max_context + chunk_T), written with a direct copy: Buffer.copy_from runs
+    a single copy op without going through Tensor.realize, which would walk every live Tensor in the process (~0.2 s here)"""
+    import array
+    from tinygrad.device import Buffer
+    n = self.max_context + chunk_T
+    if getattr(self, "_prompt_buf", None) is None or self._prompt_buf.shape[1] != n:
+      self._prompt_buf = Tensor.empty(1, n, dtype=dtypes.int32).contiguous().realize()
+    src = memoryview(array.array("i", tokens + [0] * (n - len(tokens))))
+    # Tensor.empty().realize() does not allocate (the tensor already has buffer identity): allocate before the direct copy
+    self._prompt_buf.uop.buffer.ensure_allocated().copy_from(Buffer("PYTHON", n, dtypes.int32, opaque=src).ensure_allocated())
+    return self._prompt_buf
+
   def _generate_spec(self, tokens:list[int], chunk_T:int, temperature:float=0.0, spans:list|None=None, start_pos:int|None=None):
     K = self.mtp_k
     v_start_pos = UOp.variable("start_pos", 0, self.max_context-1)
@@ -920,7 +934,7 @@ class Transformer:
     # the whole prompt goes to the device once and each chunk is a symbolic slice of it (like generate()): a fresh Tensor per
     # chunk has to be realized by the jit, and a realize walks every live Tensor in the process (~250K here, ~0.2 s per chunk
     # of pure Python, 2026-08-26 cProfile: 6.4 of 11.4 s of a 2202-token prefill in _apply_map_to_tensors)
-    t = Tensor(tokens + [0] * (self.max_context + chunk_T - len(tokens)), dtype="int32").reshape(1, -1).realize() if p < prompt_len else None
+    t = self._prompt_tensor(tokens, chunk_T) if p < prompt_len else None
     while p < prompt_len:
       n_toks = min(chunk_T, prompt_len - p)
       # hold the prompt's last token back for a chunk of its own: the checkpoint is taken just before it (see _save_checkpoint)
