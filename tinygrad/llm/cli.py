@@ -179,6 +179,7 @@ def main():
   parser.add_argument("--checkpoints", type=int, default=3, help="periodic recurrent-state checkpoints per conversation, so a request that diverges mid-conversation resumes from the nearest one (default 3, 0 = off; ~100 MB each)")
   parser.add_argument("--checkpoint-every", type=int, default=4096, help="spacing of the periodic checkpoints in tokens (default 4096)")
   parser.add_argument("--host-snapshots", type=int, default=0, help="prefix-state snapshots evicted from VRAM are kept in host memory, up to N (default 0 = off; ~2.2 GB each at max_context 98304)")
+  parser.add_argument("--record-requests", type=str, default="", help="append every request body to DIR/requests-YYYYMMDD.jsonl (exact traces for replay benchmarks; default off)")
   parser.add_argument("--host-snapshot-gb", type=float, default=16.0, help="cap on host memory used by --host-snapshots (default 16)")
   parser.add_argument("--top-p", type=float, default=1.0, help="nucleus sampling threshold, fixed for the server's lifetime (1.0 = off; Qwen recommends 0.95)")
   parser.add_argument("--top-k", type=int, default=0, help="top-k sampling, fixed for the server's lifetime (0 = off; Qwen recommends 20)")
@@ -251,7 +252,7 @@ def main():
     effort = "medium" if args.reasoning_effort == "none" else args.reasoning_effort
     LLMServer((args.host, args.serve), model, model_name, tok, template,
               reasoning_effort=effort, enable_thinking=enable_thinking, vision=vision, temperature=args.temperature,
-              host_snapshots=args.host_snapshots, host_snapshot_gb=args.host_snapshot_gb).serve_forever()
+              host_snapshots=args.host_snapshots, host_snapshot_gb=args.host_snapshot_gb, record_dir=args.record_requests).serve_forever()
 
   # do benchmark
   if args.benchmark is not None:
