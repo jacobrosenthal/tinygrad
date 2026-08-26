@@ -826,3 +826,14 @@ Tail via the <= MAX_T path: tried routing prefill tails of <= 8 tokens (always t
 8-wide prefill-mode jit to skip the 256-wide pass (~0.26 s GPU, the pass dequantizes every weight regardless of
 width). Wrong output (`test7e_new.out`): the fused gemv path does not honor the valid-token mask for a partial chunk,
 padding gets committed into the recurrent state. Needs kernel support for `n_tok < T` on that path; reverted.
+
+### KV context-ceiling MMU fault (2026-08-26)
+
+Production splizard (max_context 98304) crashed with an AMD MMU fault (`NotPresent=1 ReadOnly=1`) at
+`start_pos 98301`: a spec-decode chunk near the ceiling writes start_pos..start_pos+T-1 into the KV cache,
+and with the cache sized exactly max_context the last few positions ran off the buffer. `Restart=on-failure`
+recovered it (one ~8.5-min cold warmup). Fix: the full-attention block's cache_kv, rope table, and the
+kernel's MAXC are max_context + MAX_T (`self.kv_maxc`); MAX_T >= 2*mtp_k+1 so any chunk fits, and the slack
+rows are never read (the flash scan is bounded by position). GatedDeltaNet is linear-attention with fixed
+recurrent state -- no per-position cache, unchanged. Verified at max_context 512 driving generation to
+512/512 with boundary-crossing chunks: no fault (`sweeps/dflash2-20260826/ceiling*`).
