@@ -140,7 +140,7 @@ class Handler(HTTPRequestHandler):
     e.g. an agent and its sub-agent, keep swapping through one slot). A snapshot is a full copy of every state buffer
     (~1.5 GB at max_context 65536 for Qwen3.8-27B with the quantized kv cache), so the slot count is kept small."""
     srv, model = self.server, self.server.model
-    if srv.max_snapshots <= 0 or media: return
+    if srv.max_snapshots <= 0 or media or time.perf_counter() < getattr(srv, "snapshots_paused_until", 0.0): return
     live = model.get_start_pos(ids)
     # candidates: the VRAM slots, then the host tier (PREFIX_HOST_SNAPSHOTS slots / PREFIX_HOST_GB): a state evicted from VRAM is
     # copied to host memory instead of being dropped -- re-prefilling a 30K-token conversation takes over a minute here, restoring
@@ -172,8 +172,12 @@ class Handler(HTTPRequestHandler):
       while len(srv.host_snapshots) > srv.max_host_snapshots or sum(s.nbytes() for s in srv.host_snapshots) > srv.max_host_bytes:
         srv.host_snapshots.pop(0)
     except MemoryError as e:
-      srv.max_snapshots, srv.snapshots = 0, []
-      stderr_log(f"{colored(f'prefix snapshots disabled: {e}', 'red')}  {colored('--', 'BLACK')}  ")
+      # out of VRAM for a clone (a 131072-context run hit this at a 33K prompt, 2026-08-26): drop the saved slots to free
+      # their memory and pause snapshots for a while instead of disabling them for the life of the process -- the next
+      # conversation may be short again, and the live prefix cache keeps working either way
+      srv.snapshots = []
+      srv.snapshots_paused_until = time.perf_counter() + getenv("PREFIX_SNAPSHOT_PAUSE_S", 600)
+      stderr_log(f"{colored(f'prefix snapshots paused {getenv("PREFIX_SNAPSHOT_PAUSE_S", 600)}s: {e}', 'red')}  {colored('--', 'BLACK')}  ")
 
   def run_model(self, ids:list[int], model_name:str, include_usage=False, max_tokens:int|None=None, temperature:float=0.0,
                 reasoning:bool=False, media:list|None=None):
