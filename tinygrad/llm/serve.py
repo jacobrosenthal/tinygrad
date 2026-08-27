@@ -230,9 +230,17 @@ class Handler(HTTPRequestHandler):
       completed = True
       yield {"choices": [{"index":0, "delta":{},"finish_reason":finish_reason}], **tmpl}
       if include_usage:
+        # decode_seconds: pure generation time (excludes prep + prefill), the same et-pt this
+        # process already computes for its own "gen: N tok/s" log line (see log_stats below).
+        # A client deriving tok/s from wall-clock request duration (prep+prefill+decode) reads
+        # low whenever prefill dominates -- a cold/partially-cached prompt makes generation look
+        # slow even though decode speed never changed. Exposing the server's own already-computed
+        # decode-only duration lets a client compute a tok/s figure that means the same thing
+        # "gen:" does, instead of reinventing a worse version of it from timestamps.
         yield {"choices": [], "usage": {"prompt_tokens": prompt_tokens, "completion_tokens": len(out),
                                         "total_tokens": prompt_tokens + len(out),
-                                        "prompt_tokens_details": {"cached_tokens": cache_start_pos}}, **tmpl}
+                                        "prompt_tokens_details": {"cached_tokens": cache_start_pos},
+                                        "decode_seconds": time.perf_counter() - pt}, **tmpl}
       log_stats()
     except GeneratorExit:
       if not completed: log_stats(interrupted=True)
