@@ -200,8 +200,13 @@ class Handler(HTTPRequestHandler):
     def log_stats(interrupted:bool=False):
       et = time.perf_counter()
       total = f"total:{et-st:6.2f}s"
+      # MTP acceptance: _mtp_accept=(n_acc, n_step) accumulates in the spec-decode loop; the JIT-captured
+      # serve path bypasses model.py's periodic DEBUG print, so surface it here (harmless when MTP is off).
+      acc, astr = getattr(model, '_mtp_accept', None), ""
+      if acc and acc[0] is not None and acc[1] and (K:=getattr(model, 'mtp_k', 0)):
+        astr = f"accept:{acc[0]/(acc[1]*K):5.2f} ({acc[0]/acc[1]+1:.2f} tok/step)  {colored('--', 'BLACK')}  "
       stderr_log(f"gen:{len(out)/(et-pt) if len(out) > 1 else 0:4.0f} tok/s  {colored('--', 'BLACK')}  "
-                 f"out:{len(out):5d}  {colored('--', 'BLACK')}  {colored(total, 'red') if interrupted else total}\n")
+                 f"{astr}out:{len(out):5d}  {colored('--', 'BLACK')}  {colored(total, 'red') if interrupted else total}\n")
     completed = False
     try:
       yield chunk({"role":"assistant", "content":""})

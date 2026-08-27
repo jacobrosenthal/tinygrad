@@ -30,7 +30,8 @@ PROSE='Explain, in three short paragraphs, the practical tradeoffs between optim
 
 # each: "MTP MTP_K MAX_T label"   (MTP=0 disables spec decode = bare baseline)
 CONFIGS=(
-  "0 1 8  bare-no-spec"
+  # bare-no-spec (MTP=0) dropped: it OOM'd at 98304 (full-precision KV) and was only needed as the
+  # tok/step denominator, which the serve.py acceptance patch now reports directly per config.
   "1 1 8  K1"
   "1 2 8  K2"
   "1 3 8  K3-default"
@@ -55,7 +56,9 @@ free_gpu() {  # DEV=AMD:LLVM grabs the PCI device directly; release is async aft
     ss -ltn 2>/dev/null | grep -qE ":$PORT " && busy=1
     pgrep -f 'tinygrad\.llm\.cli' >/dev/null 2>&1 && busy=1
     vram=$(cat /sys/class/drm/card*/device/mem_info_vram_used 2>/dev/null | head -1); [ -z "$vram" ] && vram=0
-    if [ "$busy" = 0 ] && [ "$vram" -lt 1000000000 ]; then return 0; fi
+    # +5s settle: the process is gone but the LLM_CACHE flock on cache.db releases a beat later;
+    # launching immediately raced it (BlockingIOError Errno 11) and killed K3/K5/K7 last run.
+    if [ "$busy" = 0 ] && [ "$vram" -lt 1000000000 ]; then sleep 5; return 0; fi
     sleep 1
   done
   echo "  (warn: gpu still busy after 45s: vram=$vram busy=$busy)" >&2
@@ -86,8 +89,8 @@ for cfg in "${CONFIGS[@]}"; do
   fi
   ct=$(bench_tps "http://127.0.0.1:$PORT" "$CODE")
   pt=$(bench_tps "http://127.0.0.1:$PORT" "$PROSE")
-  # DEBUG=1 prints:  mtp accept N/M = 0.NN (X.XX tok/step)   every 32 steps
-  acc=$(grep -oE 'mtp accept [0-9]+/[0-9]+ = [0-9.]+' "$slog" | tail -1 | grep -oE '[0-9.]+$')
+  # serve.py log_stats (patched) prints per request:  accept: 0.NN (X.XX tok/step)
+  acc=$(grep -oE 'accept:[ ]*[0-9.]+' "$slog" | tail -1 | grep -oE '[0-9.]+$')
   tps=$(grep -oE '\([0-9.]+ tok/step\)' "$slog" | tail -1 | grep -oE '[0-9.]+')
   kill_server $pid
   printf "%-14s %10s %10s %10s %12s\n" "$label" "${ct:-FAIL}" "${pt:-FAIL}" "${acc:-n/a}" "${tps:-n/a}"
