@@ -43,34 +43,55 @@ bench_tps() {  # $1 base_url  $2 prompt  -> per-stream tok/s (blank on fail)
       --temperature 0 --prompt "$2" 2>/dev/null | awk '$1==1 && $2==1 {print $5}'
 }
 
+kill_server() {  # $1 pid -- SIGTERM, then SIGKILL after a 5s grace, then reap
+  kill "$1" 2>/dev/null; for _ in 1 2 3 4 5; do kill -0 "$1" 2>/dev/null || break; sleep 1; done
+  kill -9 "$1" 2>/dev/null; wait "$1" 2>/dev/null
+}
+free_gpu() {  # DEV=AMD:LLVM grabs the PCI device directly; release is async after kill, so a fixed
+              # sleep races ("Device or resource busy" / "AMD:0 does not exist"). Poll until actually free.
+  local i vram busy
+  for i in $(seq 1 45); do
+    busy=0
+    ss -ltn 2>/dev/null | grep -qE ":$PORT " && busy=1
+    pgrep -f 'tinygrad\.llm\.cli' >/dev/null 2>&1 && busy=1
+    vram=$(cat /sys/class/drm/card*/device/mem_info_vram_used 2>/dev/null | head -1); [ -z "$vram" ] && vram=0
+    if [ "$busy" = 0 ] && [ "$vram" -lt 1000000000 ]; then return 0; fi
+    sleep 1
+  done
+  echo "  (warn: gpu still busy after 45s: vram=$vram busy=$busy)" >&2
+}
+
 printf "%-14s %10s %10s %10s %12s\n" "config" "code_tps" "prose_tps" "accept" "tok/step"
 printf '%.0s-' {1..62}; echo
+free_gpu  # clear any stray server before starting
 for cfg in "${CONFIGS[@]}"; do
   read -r mtp k mt label <<<"$cfg"
   slog="$LOG/$label.log"
-  MTP=$mtp MTP_K=$k MAX_T=$mt DEBUG=1 "$PY" -m tinygrad.llm.cli \
-      --model "$MODEL" --mmproj none --max_context 8192 \
+  # DEV=AMD:LLVM (working LLVM backend; bare AMD backend fails to compile) + LLM_CACHE=1, and
+  # max_context 98304 to match production's cached kernel shapes (8192 forces a full fresh recompile).
+  MTP=$mtp MTP_K=$k MAX_T=$mt DEBUG=1 DEV=AMD:LLVM LLM_CACHE=1 "$PY" -m tinygrad.llm.cli \
+      --model "$MODEL" --mmproj none --max_context 98304 \
       --host 127.0.0.1 --serve $PORT >"$slog" 2>&1 &
   pid=$!
-  # wait until the model has loaded and the API answers (up to ~3 min)
+  # wait until loaded + API answers. 720s: configs with MAX_T!=8 / MTP_K!=production compile fresh spec kernels.
   ready=""
-  for _ in $(seq 1 60); do
+  for _ in $(seq 1 240); do
     curl -s "http://127.0.0.1:$PORT/v1/models" >/dev/null 2>&1 && { ready=1; break; }
     kill -0 $pid 2>/dev/null || break   # server died during load
     sleep 3
   done
   if [ -z "$ready" ]; then
     printf "%-14s %10s %10s %10s %12s\n" "$label" "LOADFAIL" "-" "-" "-"
-    kill $pid 2>/dev/null; wait $pid 2>/dev/null; sleep 2; continue
+    kill_server $pid; free_gpu; continue
   fi
   ct=$(bench_tps "http://127.0.0.1:$PORT" "$CODE")
   pt=$(bench_tps "http://127.0.0.1:$PORT" "$PROSE")
   # DEBUG=1 prints:  mtp accept N/M = 0.NN (X.XX tok/step)   every 32 steps
   acc=$(grep -oE 'mtp accept [0-9]+/[0-9]+ = [0-9.]+' "$slog" | tail -1 | grep -oE '[0-9.]+$')
   tps=$(grep -oE '\([0-9.]+ tok/step\)' "$slog" | tail -1 | grep -oE '[0-9.]+')
-  kill $pid 2>/dev/null; wait $pid 2>/dev/null
+  kill_server $pid
   printf "%-14s %10s %10s %10s %12s\n" "$label" "${ct:-FAIL}" "${pt:-FAIL}" "${acc:-n/a}" "${tps:-n/a}"
-  sleep 2
+  free_gpu
 done
 echo
 echo "logs per config: $LOG/<label>.log   (grep 'mtp accept' for the full acceptance trace)"
