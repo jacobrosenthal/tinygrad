@@ -514,6 +514,11 @@ class Transformer:
     # top_p/top_k: server-fixed (see _apply_top_pk), set by from_gguf from the --top-p/--top-k CLI flags.
     # disabled (1.0 / 0) unless set -- matches the old temperature-only sampling behavior.
     self.top_p, self.top_k = 1.0, 0
+    # repeat/frequency/presence penalty: server-fixed like top_p/top_k (see _apply_repeat_penalty), set by
+    # from_gguf from --repeat-penalty/--frequency-penalty/--presence-penalty/--repeat-last-n. Disabled by
+    # default (1.0 / 0.0 / 0.0) -- matches old behavior. repeat_last_n only matters once a penalty is enabled.
+    self.repeat_penalty, self.frequency_penalty, self.presence_penalty, self.repeat_last_n = 1.0, 0.0, 0.0, 64
+    self._repeat_buf: Tensor|None = None
     self._spec_jits: dict = {}
     # we specialize the JIT for prefill and rollout
     self.prefill_jit = TinyJit(self.forward)
@@ -524,7 +529,8 @@ class Transformer:
     # image tokens take the rows of `emb` (vision encoder output placed at their positions, zeros elsewhere)
     return x if emb is None else (tokens == self.image_pad_id).unsqueeze(-1).where(emb, x)
 
-  def forward(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp|None=None, emb:Tensor|None=None) -> Tensor:
+  def forward(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp|None=None, emb:Tensor|None=None,
+              window:Tensor|None=None) -> Tensor:
     # n_tok: number of valid tokens when `tokens` is a padded fixed-size chunk (fused AMD path), the rest are ignored
     if hasattr(self, "_ggml_raw"):
       from tinygrad.llm import amd_gemv
@@ -534,6 +540,7 @@ class Transformer:
     # only run the output projection on the last (valid) token
     last = x[:, -1:] if n_tok is None else x.shrink((None, (n_tok - 1, n_tok), None)).contiguous()
     logits = self.output(self.output_norm(last))[:, -1, :]
+    logits = Transformer._apply_repeat_penalty(logits, window, self.repeat_penalty, self.frequency_penalty, self.presence_penalty)
     logits = Transformer._apply_top_pk(logits, self.top_p, self.top_k)
     # Gumbel-max trick: argmax(logits/temp - log(-log(uniform))) is equivalent to sampling from softmax(logits/temp)
     return (logits / temperature.maximum(1e-12) - (Tensor.rand_like(logits).maximum(1e-12).log().neg()).log()).argmax(-1, keepdim=True)
@@ -573,20 +580,57 @@ class Transformer:
       thresh = cand[..., -1:]
     return (logits < thresh).where(-float("inf"), logits)
 
+  @staticmethod
+  def _apply_repeat_penalty(logits:Tensor, window:Tensor|None, repeat_penalty:float, frequency_penalty:float,
+                             presence_penalty:float) -> Tensor:
+    """Penalize vocab ids seen in the last `repeat_last_n` committed tokens (see _repeat_window_tensor), using
+    the same broadcast-compare trick _apply_top_pk uses instead of sort/scatter: a (repeat_last_n, vocab)
+    equality compare summed over the window axis, cheap next to the k-round top-k scan above.
+    `window` is a (1, N) int32 tensor of recent token ids, padded (on the left, if fewer than N tokens have
+    been committed yet) with -1 -- an id outside the real vocab range, so that padding never matches a real
+    token. `window=None` means penalties are disabled for this server (see __init__); the three penalty
+    floats are otherwise no-ops at their defaults (repeat_penalty=1.0, frequency_penalty=presence_penalty=0.0),
+    matching top_p/top_k's off-by-default convention. Like top_p/top_k these are server-fixed for the
+    process's lifetime (--repeat-penalty/--frequency-penalty/--presence-penalty/--repeat-last-n), not a
+    per-request parameter -- for the same JIT-capture-cost reason (see _apply_top_pk's docstring).
+    repeat_penalty (>=1.0, HF/llama.cpp style): divide a positive logit / multiply a negative logit by the
+    penalty for any vocab id that appeared at least once in the window -- flat, not scaled by how many times
+    it repeated. frequency_penalty / presence_penalty (OpenAI style, additive): subtract
+    frequency_penalty*count and/or presence_penalty*(count>0) from the logit, where count is how many of the
+    window's tokens equal that vocab id. All three can be combined; each is an independent knob."""
+    if window is None: return logits
+    use_rp, use_fp, use_pp = repeat_penalty != 1.0, frequency_penalty != 0.0, presence_penalty != 0.0
+    if not (use_rp or use_fp or use_pp): return logits
+    vocab = Tensor.arange(logits.shape[-1], dtype=dtypes.int32)
+    counts = (window.reshape(-1, 1) == vocab.reshape(1, -1)).sum(axis=0)  # (vocab,): occurrences in the window
+    present = counts > 0
+    if use_rp: logits = present.where((logits > 0).where(logits / repeat_penalty, logits * repeat_penalty), logits)
+    if use_fp: logits = logits - frequency_penalty * counts.float()
+    if use_pp: logits = logits - presence_penalty * present.float()
+    return logits
+
   _TOP_P_ONLY_CANDIDATES = 64
 
   @staticmethod
-  def _sample_rows(logits:Tensor, temperature:Tensor, top_p:float=1.0, top_k:int=0) -> Tensor:
+  def _sample_rows(logits:Tensor, temperature:Tensor, top_p:float=1.0, top_k:int=0, window:Tensor|None=None,
+                    repeat_penalty:float=1.0, frequency_penalty:float=0.0, presence_penalty:float=0.0) -> Tensor:
     # per-row Gumbel-max sampling (same as _sample): the draft is verified by sample-then-compare so temperature>0 stays lossless
+    logits = Transformer._apply_repeat_penalty(logits, window, repeat_penalty, frequency_penalty, presence_penalty)
     logits = Transformer._apply_top_pk(logits, top_p, top_k)
     return (logits / temperature.maximum(1e-12) - (Tensor.rand_like(logits).maximum(1e-12).log().neg()).log()).argmax(-1)
 
   def forward_spec(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp, n_keep:int|UOp,
-                   emb:Tensor|None=None) -> tuple[Tensor, ...]:
+                   emb:Tensor|None=None, window:Tensor|None=None) -> tuple[Tensor, ...]:
     """main model on a T-token chunk (n_keep tokens commit GDN/conv state; the rest are the K drafts being verified), then K chained
     passes of the MTP draft layer. returns (res[T+K] = sampled tokens of the T rows + the K new drafts, next chunk if L drafts were
     accepted for L = 0..K). the next chunks are realized here so the next step feeds a JIT output straight back in (realizing a fresh
-    Tensor each step walks the whole live graph); accept count / draft rows stay on GPU so the JIT has no Python branch."""
+    Tensor each step walks the whole live graph); accept count / draft rows stay on GPU so the JIT has no Python branch.
+    `window` (see _apply_repeat_penalty) is the repeat/frequency/presence-penalty window as of the *start* of
+    this chunk -- the same window is reused for the chunk's verify-row sample and all K draft samples below,
+    rather than growing it draft-by-draft as each one is emitted. Exact per-draft windows would mean a host
+    round trip between each of the K chained MTP passes, defeating the point of fusing them; lagging by at
+    most one chunk (K+1 tokens) is a non-issue for the multi-hundred-token degenerate loops this exists to
+    break, so this approximation is deliberate, not an oversight."""
     from tinygrad.llm import amd_gemv
     from tinygrad.engine.realize import capturing
     import gc
@@ -608,9 +652,11 @@ class Transformer:
     if prefill:  # only the last valid row is sampled (the output projection of a long chunk would be the biggest GEMM of the step)
       lastx = x.shrink((None, (n_tok - 1, n_tok), None)).contiguous() if isinstance(n_tok, int) else \
         ((idx == (n_tok - 1)).reshape(1, T, 1).where(x, 0)).sum(axis=1, keepdim=True)
-      out_last = Transformer._sample_rows(self.output(self.output_norm(lastx)), temperature, self.top_p, self.top_k).reshape(1).cast(dtypes.int32)
+      out_last = Transformer._sample_rows(self.output(self.output_norm(lastx)), temperature, self.top_p, self.top_k, window,
+                                           self.repeat_penalty, self.frequency_penalty, self.presence_penalty).reshape(1).cast(dtypes.int32)
       out = out_last.expand(T).contiguous()
-    else: out = Transformer._sample_rows(self.output(self.output_norm(x)), temperature, self.top_p, self.top_k).reshape(T).cast(dtypes.int32)
+    else: out = Transformer._sample_rows(self.output(self.output_norm(x)), temperature, self.top_p, self.top_k, window,
+                                          self.repeat_penalty, self.frequency_penalty, self.presence_penalty).reshape(T).cast(dtypes.int32)
     # rows < n_keep-1 see the next chunk token, the others the token sampled from them
     next_toks = (idx < (n_keep - 1)).where(chunk[1:].cat(chunk[-1:]), out).reshape(1, T)
     if prefill:  # nothing to verify
@@ -628,11 +674,13 @@ class Transformer:
     amd_gemv.new_forward(n_keep if prefill else n_keep + n_acc)
     mx = self.mtp(x, self.token_embd(next_toks).float(), start_pos, n_tok)
     h = pick(mx, j_last)
-    drafts = [Transformer._sample_rows(self.output(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k).reshape(1).cast(dtypes.int32)]
+    drafts = [Transformer._sample_rows(self.output(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k, window,
+                                        self.repeat_penalty, self.frequency_penalty, self.presence_penalty).reshape(1).cast(dtypes.int32)]
     for k in range(1, K):
       amd_gemv.new_forward(1)
       h = self.mtp(h, self.token_embd(drafts[-1].reshape(1, 1)).float(), (j_last + start_pos) + k, 1)  # Tensor + UOp works, not UOp + Tensor
-      drafts.append(Transformer._sample_rows(self.output(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k).reshape(1).cast(dtypes.int32))
+      drafts.append(Transformer._sample_rows(self.output(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k, window,
+                                              self.repeat_penalty, self.frequency_penalty, self.presence_penalty).reshape(1).cast(dtypes.int32))
     draft = drafts[0].cat(*drafts[1:]) if K > 1 else drafts[0]
     # candidate next chunks: L accepted -> U = drafts[:L] + [out[n_keep-1+L]], chunk = U + new drafts
     last = pick(out, j_last)
@@ -642,19 +690,30 @@ class Transformer:
     amd_gemv.end_forward()
     return (res, *cands)
 
-  def __call__(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp|None=None, emb:Tensor|None=None) -> Tensor:
+  def __call__(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp|None=None, emb:Tensor|None=None,
+               window:Tensor|None=None) -> Tensor:
     jit = self.prefill_jit if resolve(tokens.shape[1] != 1) else self.rollout_jit
-    kw = {} if emb is None else {"emb": emb}
+    kw = {}
+    if emb is not None: kw["emb"] = emb
+    if window is not None: kw["window"] = window
     if n_tok is not None: return jit(tokens.contiguous(), start_pos, temperature, n_tok, **kw)
     return jit(tokens.contiguous(), start_pos, temperature, **kw)
 
   @staticmethod
   def from_gguf(gguf:Tensor|str|pathlib.Path, max_context:int|None=None,
-                realize=bool(getenv("REALIZE", 0)), vision:bool=False, top_p:float=1.0, top_k:int=0) -> tuple[Transformer, dict]:
+                realize=bool(getenv("REALIZE", 0)), vision:bool=False, top_p:float=1.0, top_k:int=0,
+                repeat_penalty:float=1.0, frequency_penalty:float=0.0, presence_penalty:float=0.0,
+                repeat_last_n:int=64) -> tuple[Transformer, dict]:
     # vision: the prefill jits take the image-embedding input (the pad token id is set by the caller before warmup)
-    # top_p/top_k: sampling filters baked into the captured jits (see _apply_top_pk), so they are part of the cache key below
+    # top_p/top_k/repeat_penalty/frequency_penalty/presence_penalty: sampling filters baked into the captured
+    # jits (see _apply_top_pk, _apply_repeat_penalty), so they are part of the cache key below
     # a warmed-up model may be cached whole (weights re-uploaded, jits unpickled): ~seconds instead of a full load + warmup
-    extra = " ".join(s for s in ["vision" if vision else "", f"top_p={top_p}" if top_p < 1.0 else "", f"top_k={top_k}" if top_k > 0 else ""] if s)
+    extra = " ".join(s for s in ["vision" if vision else "", f"top_p={top_p}" if top_p < 1.0 else "", f"top_k={top_k}" if top_k > 0 else "",
+                                  f"repeat_penalty={repeat_penalty}" if repeat_penalty != 1.0 else "",
+                                  f"frequency_penalty={frequency_penalty}" if frequency_penalty != 0.0 else "",
+                                  f"presence_penalty={presence_penalty}" if presence_penalty != 0.0 else "",
+                                  f"repeat_last_n={repeat_last_n}" if repeat_penalty != 1.0 or frequency_penalty != 0.0
+                                  or presence_penalty != 0.0 else ""] if s)
     if not isinstance(gguf, Tensor):
       from tinygrad.llm.cache import load_llm_cache
       if (cached:=load_llm_cache(str(gguf), max_context, extra)) is not None:
@@ -748,6 +807,8 @@ class Transformer:
       for k in [k for k in raw if k.startswith(mtp_prefix)]: raw[_mtp_key(k)] = raw.pop(k)
     model = Transformer(config)
     model.top_p, model.top_k, model._cache_extra = top_p, top_k, extra  # see _apply_top_pk; the cache save in cli.py reuses extra
+    model.repeat_penalty, model.frequency_penalty, model.presence_penalty, model.repeat_last_n = \
+      repeat_penalty, frequency_penalty, presence_penalty, repeat_last_n  # see _apply_repeat_penalty
     if any(k.startswith('mtp.') for k in state_dict):
       model.mtp = MTPModule(replace(config, qk_norm=config.head_dim) if config.ssm else config)
       from tinygrad.llm.amd_gemv import MAX_T
@@ -799,8 +860,12 @@ class Transformer:
     # generate() hits T=chunk_T (prefill) and T=K+1 (no accept); the chunk sizes after L accepted drafts get captured here
     K, temp = self.mtp_k, Tensor([0.0])
     v_sp = UOp.variable("start_pos", 0, self.max_context-1)
+    # window must be included here on every warmup call iff it'll be included on every real request -- the JIT
+    # captures whichever Python branch this first call takes (see _apply_repeat_penalty's docstring), so a
+    # warmup call missing `window` when penalties are enabled would permanently bake in the no-penalty path.
+    wkw = {"window": self._repeat_window_tensor([0])} if self._penalties_enabled else {}
     for _ in range(2):
-      for L in range(K + 1): self._spec_jit(T:=L + 1 + K)(Tensor([[0] * T], dtype="int32"), v_sp.bind(0), temp, T, L + 1)
+      for L in range(K + 1): self._spec_jit(T:=L + 1 + K)(Tensor([[0] * T], dtype="int32"), v_sp.bind(0), temp, T, L + 1, **wkw)
     self._cached_tokens = []  # the extra calls rewrote the state at position 0
     self._warming, self._ckpt_tokens, self._ckpts = False, None, []
 
@@ -961,6 +1026,28 @@ class Transformer:
     for t in tables.values(): t.assign(Tensor(table, device=t.device)).realize()
     self._pos_dirty = bool(spans)
 
+  @property
+  def _penalties_enabled(self) -> bool:
+    return self.repeat_penalty != 1.0 or self.frequency_penalty != 0.0 or self.presence_penalty != 0.0
+
+  def _repeat_window_tensor(self, tokens:list[int]) -> Tensor:
+    """Persistent (1, repeat_last_n) device buffer holding the most recent committed token ids, refreshed via
+    a direct copy each step (same trick as _prompt_tensor) rather than a fresh Tensor -- a fresh Tensor would
+    need its own realize(), which walks every live Tensor in the process (see _generate_spec's comment on
+    _temp_tensors). Padded on the left with -1 (an id outside the real vocab range) when fewer than
+    repeat_last_n tokens have been committed yet, so early-conversation padding can never falsely look like a
+    repeat of vocab id 0. Only call this when self._penalties_enabled -- callers skip it (pass window=None)
+    otherwise, so the no-penalty (default) path never pays for this at all."""
+    import array
+    from tinygrad.device import Buffer
+    n = self.repeat_last_n
+    if self._repeat_buf is None: self._repeat_buf = Tensor.empty(1, n, dtype=dtypes.int32).contiguous().realize()
+    window = tokens[-n:]
+    padded = [-1] * (n - len(window)) + window
+    src = memoryview(array.array("i", padded))
+    self._repeat_buf.uop.buffer.ensure_allocated().copy_from(Buffer("PYTHON", n, dtypes.int32, opaque=src).ensure_allocated())
+    return self._repeat_buf
+
   def generate(self, tokens:list[int], chunk_size:int=32, temperature:float=0.0, media:list|None=None):
     # media: ImageEmbeds per image in the prompt (in order); their tokens are runs of image_pad_id in `tokens`
     spans: list[tuple[int, Any]] = self._media_spans(tokens, media or []) if self.image_pad_id is not None else []
@@ -987,10 +1074,11 @@ class Transformer:
       # hold the prompt's last token back for a chunk of its own: the checkpoint is taken just before it (see _save_checkpoint)
       if start_pos < prompt_len - 1 and start_pos + n_toks >= prompt_len: n_toks = prompt_len - 1 - start_pos
       sp, nt = v_start_pos.bind(start_pos), v_toks.bind(n_toks)
+      window = self._repeat_window_tensor(tokens) if self._penalties_enabled else None
       if chunk_T and (start_pos < prompt_len or out is None):
         emb = self._emb_chunk(spans, start_pos, chunk_size) if self.image_pad_id is not None else None
-        out = self(t[:, sp:sp+chunk_size], sp, temp, nt, emb).realize()
-      else: out = self(t[:, sp:sp+nt] if start_pos < prompt_len or out is None else out, sp, temp).realize()
+        out = self(t[:, sp:sp+chunk_size], sp, temp, nt, emb, window).realize()
+      else: out = self(t[:, sp:sp+nt] if start_pos < prompt_len or out is None else out, sp, temp, window=window).realize()
       start_pos += n_toks
       if start_pos == prompt_len - 1: self._save_checkpoint(tokens[:start_pos])
       # chunked prefill: keep processing until all prompt tokens are consumed
@@ -1023,8 +1111,11 @@ class Transformer:
       temp = self._temp_tensors[float(temperature)] = Tensor([float(temperature)]).realize()
     p, prompt_len = self.get_start_pos(tokens) if start_pos is None else start_pos, len(tokens)
     n_acc = n_step = 0
-    def run(chunk:Tensor, start_pos:int, n_tok:int|UOp, n_keep:int|UOp, emb:Tensor|None=None) -> tuple[list[int], tuple[Tensor, ...]]:
-      kw = {} if emb is None else {"emb": emb}
+    def run(chunk:Tensor, start_pos:int, n_tok:int|UOp, n_keep:int|UOp, emb:Tensor|None=None,
+            window:Tensor|None=None) -> tuple[list[int], tuple[Tensor, ...]]:
+      kw = {}
+      if emb is not None: kw["emb"] = emb
+      if window is not None: kw["window"] = window
       res, *cands = self._spec_jit(int(chunk.shape[1]))(chunk, v_start_pos.bind(start_pos), temp, n_tok, n_keep, **kw)
       return res.tolist(), tuple(cands)
     # prefill: commit every valid token (n_keep = n_tok), fill the MTP KV cache, last chunk yields the first decode chunk.
@@ -1039,7 +1130,8 @@ class Transformer:
       if p < prompt_len - 1 and p + n_toks == prompt_len: n_toks -= 1
       sp, nt = v_start_pos.bind(p), v_toks.bind(n_toks)
       emb = self._emb_chunk(spans or [], p, chunk_T) if self.image_pad_id is not None else None
-      res, cands = run(t[:, sp:sp + chunk_T], p, nt, nt, emb)
+      window = self._repeat_window_tensor(tokens[:p]) if self._penalties_enabled else None
+      res, cands = run(t[:, sp:sp + chunk_T], p, nt, nt, emb, window)
       p_prev, p = p, p + n_toks
       self._cached_tokens = tokens[:p]
       if p == prompt_len - 1: self._save_checkpoint(tokens[:p])
@@ -1050,7 +1142,8 @@ class Transformer:
     # decode: chunk = U + drafts (a JIT output of the previous step), n_keep = len(U). res = [out[0..T-1], K new drafts]
     while len(tokens) < self.max_context:
       T = int(chunk.shape[1]); n_keep = T - K
-      res, cands = run(chunk, p, T, n_keep)
+      window = self._repeat_window_tensor(tokens) if self._penalties_enabled else None
+      res, cands = run(chunk, p, T, n_keep, window=window)
       # the state now holds the n_keep committed tokens: record that before yielding, the consumer may close the generator at any yield
       p += n_keep
       self._cached_tokens = tokens[:p]

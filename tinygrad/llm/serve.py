@@ -318,6 +318,15 @@ class Handler(HTTPRequestHandler):
          (req_top_k is not None and int(req_top_k) != self.server.model.top_k):
         stderr_log(f"note: request top_p={req_top_p} top_k={req_top_k} ignored -- this server is fixed at "
                    f"top_p={self.server.model.top_p} top_k={self.server.model.top_k} (--top-p/--top-k)\n")
+      # same story for repeat/frequency/presence penalty -- server-fixed (see model.py _apply_repeat_penalty), not per-request
+      req_rp, req_fp, req_pp = body.get("repeat_penalty"), body.get("frequency_penalty"), body.get("presence_penalty")
+      if (req_rp is not None and float(req_rp) != self.server.model.repeat_penalty) or \
+         (req_fp is not None and float(req_fp) != self.server.model.frequency_penalty) or \
+         (req_pp is not None and float(req_pp) != self.server.model.presence_penalty):
+        stderr_log(f"note: request repeat_penalty={req_rp} frequency_penalty={req_fp} presence_penalty={req_pp} ignored -- this "
+                   f"server is fixed at repeat_penalty={self.server.model.repeat_penalty} "
+                   f"frequency_penalty={self.server.model.frequency_penalty} presence_penalty={self.server.model.presence_penalty} "
+                   f"(--repeat-penalty/--frequency-penalty/--presence-penalty)\n")
       chunks = self.run_model(ids, body.get("model") or self.server.model_name,
                               not body.get("stream") or body.get("stream_options",{}).get("include_usage", False),
                               max_tokens=max_tokens, temperature=float(body.get("temperature", self.server.temperature)),
