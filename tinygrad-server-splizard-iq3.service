@@ -1,0 +1,67 @@
+[Unit]
+Description=tinygrad server - Qwen3.8-27B AtomicChat AD-IQ3_S (Splizard fork: custom AMD kernels + MTP spec decode)
+After=network-online.target gpu-power-tuning.service
+Wants=network-online.target
+Requires=gpu-power-tuning.service
+Conflicts=llama-server.service llama-server-abliterated.service tinygrad-server.service tinygrad-server-abliterated.service tinygrad-server-splizard.service tinygrad-server-gguf.service
+
+[Service]
+Type=simple
+User=j
+WorkingDirectory=/home/j/tinygrad-qwen38-fork
+# Same env/sampling as tinygrad-server-splizard.service -- see that file for the full
+# rationale on each of these. This variant changes exactly one thing: the model file,
+# swapping the production UD-Q4_K_M/K_XL quant for AtomicChat's AD-IQ3_S (13.8 GB vs
+# ~16.5-17.6 GB), to isolate the quant as the only variable.
+#
+# Bench data (2026-08-28, sweeps/newquants-20260828/): this is the standout of 4 new
+# third-party quants tried. On this fork specifically it hit 52 tok/s (prose) / 74
+# tok/s (code) with clean finish_reason=stop completions and short, efficient
+# reasoning (~2000-2100 chars) -- the 74 tok/s code number matches the documented
+# fork MTP-on headline (claimed-benchmark-20260824: 73 tok/s code) almost exactly,
+# so MTP looks fully intact on this quant despite the server log never printing the
+# word "MTP" during warmup. It was also the ONLY one of the 4 new quants that
+# reliably finished real answers on llama.cpp/Vulkan at temperature=0.6 (the other
+# three either hit their token cap mid-reasoning or, for AD-Q5_K_M-Q4_K_M and
+# vmarcelo's IQ4-MIX, produced partial-but-real code; vmarcelo's IQ3-MIX never
+# produced any code at all). Not yet run for a full session in production -- this
+# is a fresh alternative to A/B against tinygrad-server-splizard.service, not a
+# proven replacement.
+#
+# Context 163840 + --checkpoints 1 (2026-08-28, real incident): first tried 196608 with
+# the --checkpoints default (3). Broke TWICE under real Hermes traffic at only 71-78K
+# tokens deep -- nowhere near the 196608 ceiling -- with "prefix snapshots paused 600s:
+# Allocation of 225 MB failed, ~23.8-23.94 GB used", each followed by a lost prefix
+# cache and a multi-minute cold re-prefill. Root cause, isolated by comparing fresh-idle
+# VRAM at c=98304 (15.32 GB) vs c=196608 (17.94 GB): raising max_context only adds a
+# modest, roughly-linear fixed buffer (~2.6 GB for doubling it) -- the real cost is
+# checkpoint accumulation. A single snapshot at 76,849 tokens deep cost 4.80 GB by
+# itself, and the default keeps up to 3 resident, so a deep real conversation can burn
+# 14+ GB on checkpoints alone, on top of the ~14 GB of weights -- regardless of what
+# max_context is set to. --host-snapshots (moves evicted snapshots to host RAM) isn't
+# viable here: the box only has ~6 GB free RAM, less than even one snapshot at this
+# depth. So the fix is --checkpoints 1 (caps worst case near ~5 GB instead of ~14+ GB),
+# not a lower max_context -- 163840 (vs the 196608 that broke) mostly just adds a little
+# margin on top of the checkpoint fix. Still genuinely a fresh experiment: only two real
+# checkpoint-size data points exist (no clean formula for how it scales with depth), so
+# watch a real long session before trusting this, same as the 196608 attempt should have
+# been watched harder before calling it good.
+Environment=DEV=AMD:LLVM
+Environment=LLM_CACHE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/j/tinygrad-qwen38-fork/.venv/bin/python3 -m tinygrad.llm.cli \
+  --model /home/j/models/Qwen3.8-27B-AD-IQ3_S.gguf \
+  --mmproj none \
+  --repeat-penalty 1.15 \
+  --max_context 196608 \
+  --checkpoints 1 \
+  --host 0.0.0.0 \
+  --serve 8080
+Restart=on-failure
+RestartSec=5
+# cli.py drains the GPU queues on SIGTERM and exits 128+15=143 (upstream e1eca014f);
+# without this every stop/restart is logged as "Failed with result 'exit-code'"
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

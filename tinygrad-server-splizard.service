@@ -3,7 +3,7 @@ Description=tinygrad server - Qwen3.8-27B (Splizard fork: custom AMD kernels + M
 After=network-online.target gpu-power-tuning.service
 Wants=network-online.target
 Requires=gpu-power-tuning.service
-Conflicts=llama-server.service llama-server-abliterated.service tinygrad-server.service tinygrad-server-abliterated.service
+Conflicts=llama-server.service llama-server-abliterated.service tinygrad-server.service tinygrad-server-abliterated.service tinygrad-server-splizard-iq3.service tinygrad-server-gguf.service
 
 [Service]
 Type=simple
