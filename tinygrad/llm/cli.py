@@ -142,7 +142,7 @@ class FallbackTemplate:
     if self.tok.preset == 'glm4': return ""
     if self.tok.preset == 'tekken': return "[/INST]"
     return self.tok.decode([self.tok.eos_id])
-  def render(self, messages:list[dict], tools=None, add_generation_prompt:bool=True, preserve_thinking:bool=False) -> str:
+  def render(self, messages:list[dict], tools=None, add_generation_prompt:bool=True, preserve_thinking:bool=False, **kwargs) -> str:
     out = self.tok.decode([] if self.tok.bos_id is None else [self.tok.bos_id]) + ("<sop>" if self.tok.preset == 'glm4' else "")
     for msg in messages:
       out += self.role(msg["role"])
@@ -271,7 +271,12 @@ def main():
 
   # do benchmark
   if args.benchmark is not None:
-    gen = model.generate(toks:=[tok.bos_id or 0])
+    # BENCH_PROMPT_FILE: seed the benchmark with a real prompt instead of a bare BOS, so the multi-chunk
+    # prefill path (and its checkpoint/hold-back-last-token logic) is exercised the way serve exercises it
+    _bp = getenv("BENCH_PROMPT_FILE", "")
+    _seed = tok.encode(open(_bp).read()) if _bp else [tok.bos_id or 0]
+    print(f"benchmark seed: {len(_seed)} tokens" + (f" from {_bp}" if _bp else " (bare BOS)"))
+    gen = model.generate(toks:=list(_seed), temperature=args.temperature)  # honor --temperature; generate()'s default is 0.0 (greedy)
     import time
     st = time.perf_counter()
     for i in range(args.benchmark):
