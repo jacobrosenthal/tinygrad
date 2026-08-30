@@ -1,0 +1,45 @@
+[Unit]
+Description=tinygrad server - Qwen3.8-27B (amd-gemv-qwen38-jacob: curated rebase onto current tinygrad master)
+After=network-online.target gpu-power-tuning.service
+Wants=network-online.target
+Requires=gpu-power-tuning.service
+Conflicts=llama-server.service llama-server-abliterated.service tinygrad-server.service tinygrad-server-abliterated.service tinygrad-server-splizard.service tinygrad-server-splizard-iq3.service tinygrad-server-gguf.service
+
+[Service]
+Type=simple
+User=j
+WorkingDirectory=/home/j/tinygrad
+# This runs the amd-gemv-qwen38-jacob branch (see /home/j/tinygrad's git log, 2026-08-29/30): the
+# Splizard fork's custom AMD gemv kernels + MTP spec decode + all of our own accumulated work
+# (prefix-state snapshots, host-snapshot tier, periodic checkpoints, sampling flags, repeat-penalty,
+# the rescued SSM prefix-cache fix), curated and rebased onto CURRENT tinygrad master instead of
+# Splizard's original, now-stale amd-gemv-qwen38 commit. Same repo as tinygrad-server-gguf.service's
+# plain-master comparison, different branch -- WorkingDirectory here is the main ~/tinygrad checkout,
+# NOT the ~/tinygrad-master worktree (that one stays pinned to master).
+#
+# Same flags/model/env as tinygrad-server-splizard.service (the ~/tinygrad-qwen38-fork production
+# service this is meant to validate parity against, not replace yet) -- see that file's own comments
+# for the full rationale on each. DEV=AMD:LLVM and LLM_CACHE=1 apply identically here since this
+# branch carries the fork's amd_gemv.py raw-LLVM-IR kernels unchanged.
+#
+# LLM_CACHE note: the cache key covers the model file, max_context, and the llm/ sources -- since
+# this is different source (rebased commits, different file hashes) from the fork checkout's cache,
+# the first start here is a full ~9 min cold compile regardless of the fork's existing warm-start cache.
+Environment=DEV=AMD:LLVM
+Environment=LLM_CACHE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/j/tinygrad/.venv/bin/python3 -m tinygrad.llm.cli \
+  --model /home/j/models/Qwen3.8-27B-UD-Q4_K_XL.gguf \
+  --mmproj none \
+  --repeat-penalty 1.15 \
+  --max_context 98304 \
+  --host 0.0.0.0 \
+  --serve 8080
+Restart=on-failure
+RestartSec=5
+# cli.py drains the GPU queues on SIGTERM and exits 128+15=143 (upstream e1eca014f);
+# without this every stop/restart is logged as "Failed with result 'exit-code'"
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
