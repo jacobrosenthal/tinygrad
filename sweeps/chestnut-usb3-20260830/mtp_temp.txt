@@ -1,0 +1,6 @@
+=== temperature=0.0 ===
+200 tokens in 81777.1 ms: 2.45 tok/s (mtp accepted 146/53 drafts)
+=== temperature=0.6 ===
+200 tokens in 87193.7 ms: 2.29 tok/s (mtp accepted 146/56 drafts)
+=== temperature=1.0 ===
+200 tokens in 97160.1 ms: 2.06 tok/s (mtp accepted 82/119 drafts)

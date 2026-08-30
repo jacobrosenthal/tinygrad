@@ -1,0 +1,6 @@
+=== seed=bare temp=0.6 ===
+benchmark seed: 1 tokens (bare BOS)
+200 tokens in 76619.3 ms: 2.61 tok/s (mtp accepted 149/52 drafts)
+=== seed=prose temp=0.6 ===
+benchmark seed: 48 tokens from /home/jacob/z/llama.cpp/sweeps/newquants-20260828/prompts/prose.txt
+200 tokens in 109680.8 ms: 1.82 tok/s (mtp accepted 114/86 drafts)

@@ -1,0 +1,8 @@
+=== LLM_CACHE=1 DEBUG=1 ===
+  client: 8.53s, 400 tok -> 46.9 tok/s
+  server: accept: 0.35 (2.04 tok/step)
+  cache:  saved llm cache in 1362.00 ms llm cache: /home/jacob/.cache/tinygrad/llm/3a1f9fbca9f31d7e.pkl 167 MB, dropped 126 big buffers (2960 MB) and referenced 1 weight bases 
+=== LLM_CACHE=0 DEBUG=0 ===
+  client: 7.85s, 400 tok -> 51.0 tok/s
+  server: accept: 0.41 (2.23 tok/step)
+  cache:  scheduled   712 kernels in    68.61 ms |  cache hit 92308a9b |   79670 uops in cache | <frozen runpy>:88 scheduled   712 kernels in    64.26 ms |  cache hit 0a316804 |   81092 uops in cache | <frozen runpy>:88 

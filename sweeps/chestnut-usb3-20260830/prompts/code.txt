@@ -1,0 +1,1 @@
+Implement an LRU (Least Recently Used) cache in Python with get and put operations in O(1) time. Include a small test suite (using plain assert statements or unittest) that exercises eviction order, capacity limits, and updating an existing key. Write the full implementation and tests in one code block.

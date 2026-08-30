@@ -1,0 +1,48 @@
+[Unit]
+Description=tinygrad server - Qwen3.8-27B on the tiny chestnut (USB3) - amd-gemv-qwen38-jacob
+After=network-online.target
+Wants=network-online.target
+# NOTE: deliberately no Requires=gpu-power-tuning.service. That unit writes
+# /sys/bus/pci/devices/0000:03:00.0/power_dpm_force_performance_level, an *amdgpu*
+# attribute on the M8's OCuLink slot. On the chestnut the GPU never appears on the host
+# PCI bus and amdgpu never binds, so that write can never succeed -- it would burn its
+# 30s retry loop, fail, and (via Requires=) stop this unit from ever starting.
+# The equivalent knob here is AM_POWER_LIMIT (watts) below; tinygrad's AM driver does its
+# own SMU init and sets the GPU's performance state itself.
+Conflicts=llama-server.service tinygrad-server.service tinygrad-server-jacob.service tinygrad-server-splizard.service tinygrad-server-splizard-iq3.service tinygrad-server-gguf.service
+
+[Service]
+Type=simple
+User=jacob
+WorkingDirectory=/home/jacob/z/tinygrad
+
+# USB+ selects USBIface explicitly. Without it, AMDDevice.ifaces is tried KFD -> PCI -> USB
+# and would still find the dock by fallback, but only after two failed probes -- be explicit.
+# :LLVM stays mandatory for this fork's raw-LLVM-IR gemv kernels (sweeps/README.md).
+Environment=DEV=USB+AMD:LLVM
+Environment=LLM_CACHE=1
+Environment=PYTHONUNBUFFERED=1
+# Optional: cap GPU power (watts). Replaces the sysfs power_dpm_* tuning, which is unavailable here.
+# Environment=AM_POWER_LIMIT=250
+
+# Device access is via libusb, not a kernel driver: /etc/udev/rules.d/99-tinygrad-usbgpu.rules
+# grants the `plugdev` group access to 3801:0001 (comma VID, chestnut custom firmware).
+# No amdgpu, no thunderbolt authorization, no BIOS changes, no connect-before-boot needed.
+ExecStart=/home/jacob/z/tinygrad/.venv/bin/python3 -m tinygrad.llm.cli \
+  --model /home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf \
+  --mmproj none \
+  --repeat-penalty 1.15 \
+  --max_context 98304 \
+  --host 0.0.0.0 \
+  --serve 8080
+
+Restart=on-failure
+RestartSec=5
+# cli.py drains the GPU queues on SIGTERM and exits 128+15=143; without this every
+# stop/restart is logged as "Failed with result 'exit-code'".
+SuccessExitStatus=143
+# First start on a cold LLM_CACHE key is a ~9 min compile; don't let systemd give up.
+TimeoutStartSec=1800
+
+[Install]
+WantedBy=multi-user.target
