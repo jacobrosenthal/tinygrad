@@ -18,6 +18,8 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
 | [llm-cache](llm-cache-20260825/) | 08-25 | Does the compiled-kernel cache save/load correctly? | UD-Q4_K_XL | Save (run1) then load (run2) verified — the `LLM_CACHE` kernel cache persists across restarts. |
 | [prefix-snapshots](prefix-snapshots-20260825/) | 08-25 | Prefix-state snapshot correctness (layered / interloper / reuse) | UD-Q4_K_XL | Test scripts for the production prefix-snapshot feature (recurrent-state checkpoints). |
 | [adaptive-spec](adaptive-spec/) | 08-27 | Is adaptive-K speculative decode worth building? | UD-Q4_K_XL | **K=3 is the kernel ceiling** (`attn_decode_mq` asserts `T≤QT=8`). Prose K2→K3 flat, code still gains → build **adaptive-down**, not up. |
+| [pre-chestnut-baseline](pre-chestnut-baseline-20260830/) | 08-30 | "Before" snapshot on the M8 + DEG1 OCuLink (PCIe 4.0 x4) | UD-Q4_K_XL | prose 52-53 / code 70-73 tok/s, accept 0.35-0.37 / 0.62-0.66. Paired with the sweep below. |
+| [chestnut-usb3](chestnut-usb3-20260830/) | 08-30 | Does moving the 7900 XTX to a tiny chestnut (USB3) cost throughput? | UD-Q4_K_XL | **No — parity.** Within ~5% of the OCuLink baseline on wall time, same accept rates, over a ~6x narrower link. Found and fixed a **silent copyin data-corruption bug**. |
 
 ## Cross-cutting lessons (carried into config/production)
 
@@ -35,6 +37,20 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
   numbers are real (`qwen38-mtp-fork` note; see the inference-metrics memory).
 - **Prefix reuse is append-only** (`agent-cache-reuse`) — edits mid-prompt drop
   the whole cached prefix.
+- **The interconnect is nearly free for decode, expensive for cold start**
+  (`chestnut-usb3`) — a 10 Gbit/s USB3 link matches PCIe 4.0 x4 on tok/s once
+  weights are resident, but costs ~50 s to upload 16.35 GiB. Judge a dock by
+  load time, not throughput.
+- **`DEV=USB+AMD` needs a udev rule**, nothing else — no amdgpu, no kernel
+  module, no thunderbolt auth, no BIOS changes. The GPU never appears in
+  `lspci`; tinygrad tunnels PCIe TLPs over USB and does its own BAR setup.
+- **Install `jinja2` before any cross-host comparison** (`chestnut-usb3`) —
+  without it `cli.py` silently falls back to a *different* chat template, so
+  the numbers look fine and are not comparable.
+- **`KV_QUANT` is missing from `cache.py:_ENV_KEYS`** — toggling it against a
+  warm `LLM_CACHE` silently reuses kernels compiled for the other setting.
+  Re-check `kv-quant`'s conclusions if any leg there reused a warm cache, and
+  use `LLM_CACHE=0` when sweeping that flag.
 
 ## Tooling (sweeps root)
 
