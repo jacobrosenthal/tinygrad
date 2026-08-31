@@ -29,8 +29,11 @@ def _cache_key(path:str, max_context:int|None, extra:str="") -> str:
   st = os.stat(path)
   h.update(f"{path} {st.st_size} {st.st_mtime_ns} {max_context} {extra}".encode())
   for k in _ENV_KEYS: h.update(f" {k}={os.environ.get(k, '')}".encode())
-  # the pickled graphs depend on the tinygrad sources; hash their mtimes so editing any of it invalidates the cache
-  for p in sorted(pathlib.Path(__file__).parents[1].rglob("*.py")): h.update(f" {p} {p.stat().st_mtime_ns}".encode())
+  # the pickled graphs depend on the tinygrad sources; hash their CONTENT so editing any of it invalidates the cache.
+  # (was mtimes -- but a branch checkout round-trip rewrites files with identical content and fresh mtimes, which
+  # forced a full ~9 min cold compile after every `git checkout master && git pull && git checkout <branch>`.)
+  for p in sorted(pathlib.Path(__file__).parents[1].rglob("*.py")):
+    h.update(f" {p} ".encode()); h.update(hashlib.sha256(p.read_bytes()).digest())
   return h.hexdigest()
 
 def _cache_file(path:str, max_context:int|None, extra:str="") -> pathlib.Path:
