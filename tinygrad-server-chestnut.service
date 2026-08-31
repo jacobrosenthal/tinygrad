@@ -16,8 +16,15 @@ Conflicts=llama-server.service tinygrad-server.service tinygrad-server-jacob.ser
 [Service]
 Type=simple
 User=jacob
-WorkingDirectory=/home/jacob/z/tinygrad
+# NOT the source checkout: cwd shadows site-packages on sys.path, so a repo cwd would silently
+# run whatever is checked out instead of the installed copy -- the exact fragility this removes.
+WorkingDirectory=/home/jacob
 
+# The venv at ~/z/tinygrad-serve is a NON-EDITABLE `pip install ~/z/tinygrad` -- a frozen copy in
+# site-packages. Branch checkouts, pulls and edits in the source repo cannot touch the running
+# server or invalidate its LLM_CACHE. To deploy new code:
+#   /home/jacob/z/tinygrad-serve/bin/pip install --force-reinstall --no-deps /home/jacob/z/tinygrad
+#   sudo systemctl restart tinygrad-server-chestnut     (one cold compile per deploy)
 # USB+ selects USBIface explicitly. Without it, AMDDevice.ifaces is tried KFD -> PCI -> USB
 # and would still find the dock by fallback, but only after two failed probes -- be explicit.
 # :LLVM stays mandatory for this fork's raw-LLVM-IR gemv kernels (sweeps/README.md).
@@ -30,7 +37,7 @@ Environment=PYTHONUNBUFFERED=1
 # Device access is via libusb, not a kernel driver: /etc/udev/rules.d/99-tinygrad-usbgpu.rules
 # grants the `plugdev` group access to 3801:0001 (comma VID, chestnut custom firmware).
 # No amdgpu, no thunderbolt authorization, no BIOS changes, no connect-before-boot needed.
-ExecStart=/home/jacob/z/tinygrad/.venv/bin/python3 -m tinygrad.llm.cli \
+ExecStart=/home/jacob/z/tinygrad-serve/bin/python3 -m tinygrad.llm.cli \
   --model /home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf \
   --mmproj none \
   --repeat-penalty 1.15 \
