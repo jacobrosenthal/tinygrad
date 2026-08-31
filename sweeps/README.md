@@ -19,7 +19,7 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
 | [prefix-snapshots](prefix-snapshots-20260825/) | 08-25 | Prefix-state snapshot correctness (layered / interloper / reuse) | UD-Q4_K_XL | Test scripts for the production prefix-snapshot feature (recurrent-state checkpoints). |
 | [adaptive-spec](adaptive-spec/) | 08-27 | Is adaptive-K speculative decode worth building? | UD-Q4_K_XL | **K=3 is the kernel ceiling** (`attn_decode_mq` asserts `T≤QT=8`). Prose K2→K3 flat, code still gains → build **adaptive-down**, not up. |
 | [pre-chestnut-baseline](pre-chestnut-baseline-20260830/) | 08-30 | "Before" snapshot on the M8 + DEG1 OCuLink (PCIe 4.0 x4) | UD-Q4_K_XL | prose 52-53 / code 70-73 tok/s, accept 0.35-0.37 / 0.62-0.66. Paired with the sweep below. |
-| [chestnut-usb3](chestnut-usb3-20260830/) | 08-30 | Does moving the 7900 XTX to a tiny chestnut (USB3) cost throughput? | UD-Q4_K_XL | **No — parity.** Within ~5% of the OCuLink baseline on wall time, same accept rates, over a ~6x narrower link. Found and fixed a **silent copyin data-corruption bug**. |
+| [chestnut-usb3](chestnut-usb3-20260830/) | 08-30 | Does moving the 7900 XTX to a tiny chestnut (USB3) cost throughput? | UD-Q4_K_XL | **No — it wins.** At matched `performance` governor: prose 54-58 vs 52-53, code 75-84 vs 70-73 tok/s, over a ~6x narrower link. Found and fixed a **silent copyin data-corruption bug**; full firmware round-trip tooling in `extra/usbgpu/`. |
 
 ## Cross-cutting lessons (carried into config/production)
 
