@@ -2,14 +2,23 @@
 #
 # usb-replug.sh -- software "re-plug" of the dock, no cable pulling.
 #
-# WHAT ACTUALLY WORKS (verified 2026-08-30 on the XPS 9315): a 15-second s2idle suspend.
+# THE RELIABLE METHOD is physical, in this order (verified repeatedly on the XPS 9315):
+#
+#     1. unplug the main USB-C from the host
+#     2. dock PSU off, wait ~10 s
+#     3. dock PSU on, wait ~5 s (board fully up, LED blue)
+#     4. plug the USB-C back in -- POWER FIRST, USB LAST
+#
+# The 480 Mb/s state comes from the chip attaching before the board is fully powered, or
+# re-attaching without a genuine unplug.
+#
+# SOFTWARE-ONLY, BEST-EFFORT: a 15-second s2idle suspend --
 #
 #     sudo rtcwake -m mem -s 15
 #
-# s2idle powers the Type-C subsystem (TCSS/IOM) down far enough that resume renegotiates the
-# connector from scratch -- electrically equivalent to re-seating the plug. After a firmware
-# swap this is the ONLY software method that restored SuperSpeed (10 Gbit/s). Everything this
-# script does below was tried first and is NOT sufficient on its own:
+# -- recovered SuperSpeed once (post-firmware-swap, warm mux state, 2026-08-30 19:15) but
+# FAILED repeatedly against the cold post-reboot 480 state (2026-08-31). Treat it as worth one
+# try, not a fix. Everything else was tried and is NOT sufficient on its own:
 #   * root-port `disable` cycling (both halves of the connector)  -> re-attaches at 480 Mb/s
 #   * FTDI chip reset while the port is held down                 -> 480 Mb/s
 #   * UCSI PPM reset (ucsi_acpi driver rebind)                    -> real detach, still 480 Mb/s

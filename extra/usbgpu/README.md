@@ -79,15 +79,22 @@ on a bare USB4 port — it simply stops enumerating.
 After any flash, the controller must reboot and the host must renegotiate the connector.
 No cables need moving: reset the chip (`debug.py -r -n` over the DEBUG port), then
 
+the reliable sequence is physical, and the order matters -- **power first, USB last**:
+unplug the main USB-C, PSU off ~10 s, PSU on ~5 s, then plug the USB-C back in. The 480 Mb/s
+state comes from the chip attaching before the board is fully powered, or re-attaching without
+a genuine unplug.
+
+`sudo rtcwake -m mem -s 15` (a 15 s s2idle nap) is the software-only fallback: it recovered
+SuperSpeed once from a warm post-flash state but failed repeatedly against the cold post-reboot
+480 state -- worth one try, not a fix. Lesser measures never work: root-port `disable` cycling,
+a UCSI/PD reset, and thunderbolt unload all leave the TB4 port's SS-lane mux stale.
+
+When checking the speed, read the DOCK's own sysfs entry -- `cat /sys/bus/usb/devices/*/speed`
+also matches the usb4 root hub, which always says 10000:
+
 ```bash
-sudo rtcwake -m mem -s 15   # 15 s s2idle nap = software re-plug, restores SuperSpeed
-```
-
-A physical re-seat does the same thing. Lesser measures do not: root-port `disable` cycling,
-a UCSI/PD reset, and thunderbolt unload all leave the TB4 port's SS-lane mux stale, and the dock
-re-attaches at 480 Mb/s (USB 2.0). If you ever see 480 Mb/s, that is the fix.
-
-Alternatively: **unplug the main USB-C cable, wait ~5 s, plug it back in.** The controller runs
+d=$(grep -l 3801 /sys/bus/usb/devices/*/idVendor | head -1); cat ${d%idVendor}speed
+``` The controller runs
 the old firmware from RAM until then, and switching the dock's ATX PSU is *not* enough — it stays
 powered over USB VBUS.
 
