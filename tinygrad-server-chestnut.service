@@ -24,7 +24,12 @@ WorkingDirectory=/home/jacob
 # site-packages. Branch checkouts, pulls and edits in the source repo cannot touch the running
 # server or invalidate its LLM_CACHE. To deploy new code:
 #   /home/jacob/z/tinygrad-serve/bin/pip install --force-reinstall --no-deps /home/jacob/z/tinygrad
+#   cd / && /home/jacob/z/tinygrad-serve/bin/python3 -c "import tinygrad.llm.cli"   # VERIFY before restarting
 #   sudo systemctl restart tinygrad-server-chestnut     (one cold compile per deploy)
+# The verify step exists because the first freeze shipped without tinygrad.llm.kernels (new
+# subpackage, absent from pyproject's explicit package list and lacking __init__.py) and the
+# service crash-looped 22 times on ModuleNotFoundError. Packaging fixed since, but any future
+# new subpackage has the same failure mode: import the entry module from a neutral cwd first.
 # USB+ selects USBIface explicitly. Without it, AMDDevice.ifaces is tried KFD -> PCI -> USB
 # and would still find the dock by fallback, but only after two failed probes -- be explicit.
 # :LLVM stays mandatory for this fork's raw-LLVM-IR gemv kernels (sweeps/README.md).
