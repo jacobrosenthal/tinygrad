@@ -1,0 +1,15 @@
+# libusb access for tinygrad's USB GPU path and for firmware flashing.
+# tinygrad ships no udev rule; without one, USB3.__init__'s libusb_open fails with
+# "Access denied (insufficient permissions)".
+#
+# 3801:0001  comma.ai VID -- tiny chestnut running tiny's custom firmware ("custom <githash>")
+# add1:0001  older tinygrad-patched stock ASM2464PD ("USB 3.2 PCIe TinyEnclosure")
+# 174c:2463  ASMedia, chestnut in BOOTLOADER mode ("AS2462") -- reached via the DEBUG port,
+#            extra/usbgpu/debug.py -b. Needed to flash back from stock USB4 firmware.
+# 174c:2464  ASMedia ASM2464PD stock
+# 2065:2463  Gopod/ADT-Link rebrand of the same silicon
+SUBSYSTEM=="usb", ATTR{idVendor}=="3801", ATTR{idProduct}=="0001", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="add1", ATTR{idProduct}=="0001", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="174c", ATTR{idProduct}=="2463", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="174c", ATTR{idProduct}=="2464", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="2065", ATTR{idProduct}=="2463", MODE="0660", GROUP="plugdev", TAG+="uaccess"

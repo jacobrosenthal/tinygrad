@@ -1,7 +1,9 @@
 [Unit]
 Description=tinygrad server - Qwen3.8-27B on the tiny chestnut (USB3) - amd-gemv-qwen38-jacob
-After=network-online.target
-Wants=network-online.target
+After=network-online.target cpu-performance-tuning.service
+# Wants=, never Requires=: if the tuning unit fails the server must still start. That cascade
+# is exactly what broke the M8 (gpu-power-tuning.service + Requires=).
+Wants=network-online.target cpu-performance-tuning.service
 # NOTE: deliberately no Requires=gpu-power-tuning.service. That unit writes
 # /sys/bus/pci/devices/0000:03:00.0/power_dpm_force_performance_level, an *amdgpu*
 # attribute on the M8's OCuLink slot. On the chestnut the GPU never appears on the host

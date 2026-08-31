@@ -215,7 +215,25 @@ largely prompt-insensitive so those numbers compare reasonably; **prefill tok/s 
 prompt-size dependent and should be treated as indicative only** until the sweep is re-run with the
 baseline's actual prompt files.
 
-## Results: parity with the OCuLink baseline
+## Final result: the Chestnut BEATS the OCuLink baseline at matched governor
+
+`results-performance.json` -- the fair comparison: `performance` CPU governor (matching the M8,
+whose production units force it via gpu-power-tuning.service), baseline's own harness and prompts,
+3 trials x {prose, code}, 800 max_tokens, temperature 0.6.
+
+| | M8 + DEG1 (OCuLink PCIe 4.0 x4) | Chestnut (USB3 10 Gbit/s, XPS 9315) |
+|---|---|---|
+| prose gen tok/s | 52-53 | **54-58** |
+| code gen tok/s | 70-73 | **75-84** |
+| prose wall, 800 tok | 15.73-16.22 s | **14.97-16.03 s** |
+| code wall, 800 tok | 11.79-12.17 s | **10.72-11.78 s** |
+| accept | 0.35-0.37 / 0.62-0.66 | 0.32-0.37 / 0.62-0.74 |
+
+Prose +4-9%, code +7-15%, over a ~6x narrower link. The governor was the whole story of the
+earlier "parity with a handicap" result below: `powersave` parks the cores between USB round
+trips on this dispatch-latency-bound path. Weight load is unchanged at ~51 s (USB3-bound).
+
+## Earlier pass: parity at powersave governor
 
 Final numbers are `results-repro.json` (3 trials x {prose, code}, 800 max_tokens, temperature 0.6),
 produced by `run_sweep_v3.sh`, which calls the **baseline's own**
@@ -262,3 +280,88 @@ Python over two `.tolist()` results, so it is not a GPU-sync artifact. Independe
 cannot yield *identically* zero agreement across 4800 tokens by chance, so something structural was
 wrong at the time. If it recurs, the tell is decode near 26 tok/s instead of ~50; keep the server log.
 
+
+## Stock ASMedia firmware: USB4/PCIe mode and llama.cpp (2026-08-30, later)
+
+The custom firmware locks the dock to tinygrad: the GPU never reaches the host PCI bus, so
+`amdgpu` never binds and llama.cpp/ROCm cannot use the card. Reflashing to **stock ASMedia**
+firmware swaps that trade.
+
+### It works, and the laptop enumerates the card fine
+
+Contrary to expectation from the 2026-07-05 ADT-Link attempt on this same host (repeated
+`pcieport 0000:00:07.1: Assigned bridge window ... cannot fit 0x100000`), the 7900 XTX came up
+cleanly over USB4:
+
+```
+57:00.0 Navi 31 [1002:744c]      amdgpu 3.61.0 bound
+BAR0 = 32G prefetchable          full resizable BAR (July's RX 7600 got only 256M)
+VRAM = 24560 MB
+Vulkan: AMD Radeon RX 7900 XTX (RADV NAVI31), fp16, warp 64, matrix cores: KHR_coopmat
+```
+
+### But the tunnelled link trains at PCIe 1.0 x1
+
+```
+"2.000 Gb/s available PCIe bandwidth, limited by 2.5 GT/s PCIe x1 link at 0000:53:00.0
+ (capable of 252.048 Gb/s with 16.0 GT/s PCIe x16 link)"
+```
+
+Same bridge, same figure as the July ADT-Link test with a *different* dock -- so this is this
+XPS's TB4 PCIe tunnelling, not a dock defect. **2 Gb/s is ~250 MB/s, five times slower than the
+custom firmware's USB3 mode (~780 MB/s measured).**
+
+### llama.cpp Vulkan, over that 2 Gb/s link
+
+`llama-bench -m Qwen3.8-27B-UD-Q4_K_XL.gguf -ngl 99 -p 512 -n 128 -r 2`, build 9da3e7a3a:
+
+| test | tok/s |
+|---|---|
+| pp512 (prefill) | **591.70 +/- 0.37** |
+| tg128 (decode) | **32.66 +/- 0.10** |
+
+`claimed-benchmark-20260824` recorded llama.cpp at 30 code / 25 prose on the M8, so this is at or
+above the M8 -- though that was an end-to-end server measurement on real prompts and `tg128` is
+llama-bench's synthetic decode, so treat it as the same ballpark, not a strict match.
+
+**This is the strongest confirmation yet that decode is not interconnect-bound.** A host link 5x
+narrower than USB3 mode and 32x narrower than the M8's OCuLink still decodes at 32.7 tok/s,
+because the weights are resident in the 24.5 GB of VRAM.
+
+### Practical gotchas
+
+- **The laptop needed `jinja2`**, `performance` governor, and an open lid; see below.
+- **The swap is not symmetric.** In USB4 mode the ASM2464PD exposes *no USB interface* (`lsusb`
+  shows nothing; it is only PCI bridges `53:00.0`/`54:00.0`). `handmade/e4_flash.py` is
+  libusb-based, so **you cannot flash back from a USB4-only host as cabled**. Recovery needs
+  either a plain USB 3.x hub between host and dock (USB4 cannot negotiate through one, so the
+  chip falls back to USB 3.2 mass-storage mode) or the board's DEBUG USB port + FT230X
+  (`extra/usbgpu/debug.py -b` for bootloader mode; `pip install pyftdi`).
+- **Power-cycling the ATX PSU does not reset the controller.** The ASM2464PD runs off USB VBUS --
+  it enumerates with the dock's PSU off. Only unplugging the USB-C cable reboots it into newly
+  flashed firmware.
+- Flash layout: `[4B little-endian length][body][0xA5][checksum][crc32]` at offset `0x100`, for
+  both the tiny firmware (9207 bytes) and the stock blob (98016 bytes). `e4_flash.py` preserves
+  the `0x000-0x0FF` config area across the write automatically.
+- Full 2 MB backup of the shipping tiny firmware is in `fw-backup/`, along with the extracted
+  9207-byte restore image and a VID/PID-parameterised copy of the flasher.
+
+## CPU governor: the measurements above were taken handicapped
+
+`gpu-power-tuning.service` on the M8 sets `scaling_governor=performance` and is pulled in by
+`Requires=` from both production units, so **the OCuLink baseline was almost certainly captured at
+`performance`** -- while every Chestnut number in this directory was taken at `powersave`
+(intel_pstate, EPP `balance_performance`, platform_profile `balanced`).
+
+That matters because the USB path is host-dispatch-latency bound: a small transfer costs ~800 us of
+USB round trip against 4.6 us for the kernel itself, and under `powersave` the cores read that wait
+as idle and park at 400-500 MHz. Measured on this host: `400/1914/496/479 MHz` at powersave versus
+~`3500 MHz` at performance.
+
+So the parity result (52.7 vs 52-53 tok/s) was achieved **with the Chestnut handicapped and the M8
+running flat out.** A `performance`-governor re-run is the fair comparison and is still outstanding.
+
+`cpu-performance-tuning.service` (repo root) is the replacement for the M8 unit: sets governor, EPP
+and platform_profile, finds the GPU by vendor+class rather than a hardcoded BDF, and makes every
+GPU write best-effort (`exit 0`) so it can never cascade into the server failing to start -- which
+is precisely what the M8's `Requires=` arrangement did on 2026-08-27.

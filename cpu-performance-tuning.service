@@ -1,0 +1,38 @@
+[Unit]
+Description=Force CPU performance governor (USB GPU dispatch latency) + best-effort GPU high power state
+After=sysinit.target
+# NOTE: no Requires= on this from the server units -- use Wants=. The M8's
+# gpu-power-tuning.service hard-failed when its GPU sysfs write didn't land, and because
+# tinygrad-server-*.service had Requires= on it, the server then never started at all
+# (see that unit's own 2026-08-27 comment). Everything GPU-related here is best-effort.
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# --- CPU: the part that actually matters on this box ---
+# The USB GPU path is host-dispatch-latency bound: every kernel launch and doorbell is a USB
+# round trip (~800us for a small transfer vs 4.6us for the kernel itself). Under `powersave`
+# the cores read the wait as idle and park at 400-500 MHz, so each round trip restarts from a
+# low clock. Measured on this host: 400/1914/496/479 MHz at powersave -> ~3500 MHz at
+# performance. The M8's equivalent unit called this the "MTP dispatch fix" for the same reason.
+ExecStart=/usr/bin/bash -c 'for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo performance > "$f" 2>/dev/null; done; exit 0'
+
+# intel_pstate also honours a per-CPU energy/performance preference independently of the
+# governor; leaving it at balance_performance throttles boost residency.
+ExecStart=/usr/bin/bash -c 'for f in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do echo performance > "$f" 2>/dev/null; done; exit 0'
+
+# Dell platform profile (cool/quiet/balanced/performance) gates the thermal/fan envelope.
+ExecStart=/usr/bin/bash -c 'echo performance > /sys/firmware/acpi/platform_profile 2>/dev/null; exit 0'
+
+# --- GPU: best-effort, never fails the unit ---
+# Only applies when the dock runs STOCK ASMedia firmware, where the GPU is a real PCIe device
+# under amdgpu. With tiny's custom firmware (DEV=USB+AMD) the GPU never appears on the PCI bus
+# at all and there is nothing to write -- tinygrad's AM driver does its own SMU init and sets
+# the performance state itself (see AM_POWER_LIMIT). Found by vendor+class, never by a
+# hardcoded BDF or cardN: the M8 unit's comment records that card indices are not stable across
+# boots, and the eGPU's address differs per host anyway (0000:03:00.0 there, 0000:57:00.0 here).
+ExecStart=/usr/bin/bash -c 'for d in /sys/bus/pci/devices/*; do [ "$(cat $d/vendor 2>/dev/null)" = "0x1002" ] || continue; case "$(cat $d/class 2>/dev/null)" in 0x0300*) echo high > "$d/power_dpm_force_performance_level" 2>/dev/null;; esac; done; exit 0'
+
+[Install]
+WantedBy=multi-user.target
