@@ -52,6 +52,45 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
   Re-check `kv-quant`'s conclusions if any leg there reused a warm cache, and
   use `LLM_CACHE=0` when sweeping that flag.
 
+## TODO / experiment backlog (from 2026-08-31 ecosystem survey)
+
+Ideas from surveying community Qwen3.8-27B work. None are blockers; ranked by payoff-per-effort.
+We don't need the released artifacts (most are CUDA-only) — the point is to port the *concepts*
+into the fork or make our own weights.
+
+- [ ] **Workload-tuned imatrix quant.** The "50 tok/s @ 256K on 24 GB" result (HN 49331607) is a
+  quant recipe, not hardware: bulk low-bit + Q5/Q6 for imatrix-sensitive tensors + Q8_0 lm_head,
+  calibrated on real user traffic. Needs zero fork changes — llama.cpp `imatrix` + `llama-quantize`
+  emit a GGUF the fork already loads. v1: generic calibration mix (agentic coding + chat +
+  multilingual, unsloth v3's recipe). v2: re-quant on real traffic from Hermes's
+  `~/.hermes/state.db` `messages` table once it has accumulated (~1 day old as of writing, ~6 KB
+  of text — need a few MB; the M8's history is gone unless a backup of its state.db turns up).
+  Target ~4.5-5 bpw (more bits than UD-Q4_K_XL where they matter, fewer where they don't) —
+  NOT the IQ3 class: `newquants-20260828` showed AD-IQ3_S decodes no faster here (52/74 tok/s),
+  and Jacob judged its output quality bad in real use. Note UD-Q4_K_XL is already an
+  imatrix-calibrated blend (unsloth Dynamic v3); the delta is our calibration data + bit budget,
+  so expect a marginal win, not a step change. (2026-09-01: Jacob doesn't need context headroom
+  — compaction is fine at 98K, and ctxprobe showed raising the cap costs ~0 tok/s anyway, it's
+  just reserved VRAM — so this item is purely quality-at-same-size now. Rank it below the
+  speed items above unless quality complaints show up.)
+- [ ] **Restricted MTP draft vocab** (syv-ai/qwen38-27b-rtx3090, +10 tok/s on a 3090): calibrate
+  ~40k tokens from our own outputs, have the MTP head score only those. Shrinks the draft
+  lm_head gemv — worth more here than on PCIe boxes since the USB path is dispatch-latency-bound.
+- [ ] **Int4 GPTQ-calibrated lm_head** (same repo): quantize the 150k-vocab lm_head harder than
+  the body; self-made weight + one dequant path in `tinygrad/llm/kernels/`.
+- [ ] **Adaptive-down speculation** — the open item from `adaptive-spec` (K=3 is the kernel
+  ceiling; drop K when accept is low, don't raise it).
+- [ ] **Stock-firmware llama.cpp MTP**: llama.cpp merged `draft-mtp` spec decode (PR #22673);
+  `--spec-type draft-mtp --spec-draft-n-max 2` measures +40-85% on 24 GB cards
+  (github.com/sudoingX/qwen38-mtp). Would close most of the llama.cpp↔fork gap (tg 32.7 → ~50?)
+  next time the dock is in stock mode. Gotchas: gains vanish under ~400-token generations;
+  temp >1.0 inverts gains (echoes our accept-0.00 anomaly — a lead if it recurs).
+- [ ] **Watch EXL3/QTIP** (turboderp/exllamav3): trellis quantization, best quality-per-bit,
+  CUDA-only with ROCm "on the to-do list". Only interesting for us as a concept port (trellis
+  decode inside gemv = serious kernel project) or if we ever want 262K context in 24 GB.
+- [ ] **Split-KV verify attention** (syv-ai repo): optimizes the batched MTP verify step. Low
+  priority — our K=3 verify is small and decode is already DRAM-bound.
+
 ## Tooling (sweeps root)
 
 - `replay.py` — replays recorded requests (`serve.py --record-requests DIR`) for
