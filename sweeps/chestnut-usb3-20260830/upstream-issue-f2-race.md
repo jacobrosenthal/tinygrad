@@ -62,23 +62,31 @@ offset, plus strict drain-before-rearm ordering. Costs 0.4% of wire
 bandwidth; ~780 MB/s sustained on the 10 Gbit link. Happy to share the diff
 (it lives in a tinygrad fork).
 
-## Proposed firmware fix (untested-upstream, works on the bench)
+## Firmware fix (bench-validated)
 
-Since there is no ready bit to poll, hold the ZLP through a hardware-timed
-settle after DMA_START — the same idiom stock firmware uses on the CE00 path
-("read CE89 ~128 times"):
+The drop is a re-arm race: re-arming the engine while the *previous* transfer
+is still draining loses the first ~2 sectors. Register 0xC450 reads 2 while a
+bulk DMA is active and 0 when idle (stock firmware never polls it). Poll it
+idle before arming the next transfer:
 
 ```c
-REG_NVME_CTRL_STATUS = NVME_CTRL_DMA_START | (bulk_in ? 0 : NVME_CTRL_WRITE_DIR);
-REG_NVME_CMD_PARAM   = slot_sel;
-{ uint8_t s; for (s = 0; s < 128; s++) (void)(*(__xdata volatile uint8_t *)0xCE89); }
-usb_send_zlp();
+      uint8_t num_slots = REG_USB_SETUP_WIDX_H;
+      if (num_slots == 0) num_slots = 1;
++     /* drain the previous bulk DMA before re-arming; re-arming mid-drain drops
++        the first ~2 sectors. C450: 2=active, 0=idle. bounded so it can't wedge. */
++     { uint16_t g = 0; while ((XDATA_REG8V(0xC450) & 0x02) && ++g) ; }
+      /* DMA_INIT sequence for SRAM DMA */
+      REG_NVME_DOORBELL = 0x0;
+      ...
 ```
 
-Note the volatile cast: plain `XDATA_REG8` reads get elided by SDCC and the
-loop collapses to an empty `djnz` spin. The right count is an empirical
-question (it trades per-arm latency against margin); 128 XDATA reads is a
-starting point, not a measurement.
+It exits immediately in the common case (engine already drained), so no
+throughput cost — copyin held ~530 MB/s, same as before, more consistent.
 
-If someone knows an actual ready/valid bit for this engine, that would beat
-the settle — the docs and PR #72 suggest there isn't one.
+Validated on a chestnut: uniform-random tinygrad Tensor roundtrip,
+`USB_COPYIN_GUARD=0`, 50x64MiB = 0 corrupt bytes (was corrupt on ~39/40 runs).
+
+NOTE: an earlier attempt — a fixed settle *after* DMA_START, before the ZLP —
+did NOT work (no effect: there is already ample USB scheduling delay before the
+bulk data arrives, so the drop is not arm-readiness, it is the previous
+transfer's drain). Only the pre-arm idle poll fixes it.

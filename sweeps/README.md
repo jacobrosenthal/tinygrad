@@ -147,6 +147,18 @@ into the fork or make our own weights.
   + tests), flash over USB in custom mode, `USB_COPYIN_GUARD=0 SIZE=64000000 GMMU=0 DEV=USB+AMD
   python3 test/external/external_test_usb_asm24.py` reproduces in one run; debug-port
   bootloader is the recovery net. Value is upstream-goodness — the guard already works locally.
+  RESOLVED 2026-09-02: fixed in firmware and validated. Root cause is a re-arm
+  RACE, not arm-readiness: the 0xF2 engine drops the first ~2 sectors when
+  re-armed while the previous transfer is still draining. Fix polls C450
+  (2=active/0=idle, which stock never checks) idle before arming — 3-line diff,
+  `asm2464pd-firmware` branch `fix-f2-arm-race` (squashed to one commit; image
+  `fw-backup/tiny-fix-f2-arm-race-*.bin`, dock now runs it). Validated
+  USB_COPYIN_GUARD=0, 50x64MiB = 0 corrupt (was ~39/40). THROUGHPUT-NEUTRAL
+  (~530 MB/s both; the old 780 was CPU-boost-dependent host dispatch, not fw).
+  An earlier post-DMA_START settle did NOT work (ample USB delay already exists).
+  Consequently the host-side USB_COPYIN_GUARD was moved off the production branch
+  to branch `usb-copyin-guard` (revert c23409c79) — firmware is now the fix.
+  Repro dir: fw-backup/iterate-fw-test.sh drives rebuild/flash/reset/test.
   STATUS 2026-09-01: fix written and built — `~/z/asm2464pd-firmware` branch `fix-f2-arm-race`
   (commit 4f5f88ac): no engine ready/status exists (upstream PR #72 confirms), so the F2 handler
   now holds the ZLP through 128 real XDATA reads of 0xCE89 (volatile — non-volatile XDATA_REG8
