@@ -46,7 +46,7 @@ ExecStart=/home/jacob/z/tinygrad-serve/bin/python3 -m tinygrad.llm.cli \
   --model /home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf \
   --mmproj none \
   --repeat-penalty 1.15 \
-  --max_context 98304 \
+  --max_context 131072 \
   --host 0.0.0.0 \
   --serve 8080
 

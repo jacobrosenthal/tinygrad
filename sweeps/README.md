@@ -80,7 +80,12 @@ into the fork or make our own weights.
   ~49-74K — sweep THAT range. Model: per cycle, summarize prefills the sampled middle turns
   (NO prefix-cache hit — see the audit below: it's a bare user-role prompt, a different
   prefix; bounded by input sampling) + rebuild prefills ~49K from scratch (~82 s at
-  600 tok/s; prefix reuse is append-only) — amortized over the ~25K-token window ≈ 3-8 ms per
+  600 tok/s; prefix reuse is append-only). 2026-09-01: in real use compaction fires ~every
+  20 min (window fills at prefill speed, not just gen speed), so the overhead is live —
+  **decision: raise `--max_context` to 131072 with the SAME Q4_K_XL** (fits: +0.55 GB KV;
+  cache-safe: max_context is in the LLM_CACHE key AND filename, so revert = warm start).
+  Window grows ~32K→~50K ≈ compaction every ~31 min. Hermes `context_length` bumped to match.
+  NOT via Q3 — permanent quality tax to relieve a recoverable cost is backwards — amortized over the ~25K-token window ≈ 3-8 ms per
   conversation token, vs ~12 ms per *generated* token at 85 tok/s. Key structural fact: with
   ratio-based trigger/floor, T_compact ∝ cap and window ∝ cap, so **amortized overhead is
   independent of the cap** — cap only moves the depth zone (bigger cap = deeper zone = slower
@@ -94,8 +99,10 @@ into the fork or make our own weights.
   75-150K working zone is measurably dumber than 50-75K; (c) LoCoBench-Agent (arXiv
   2511.13998) found 128K-window models with good compaction *beat* 1M-window models on
   multi-session retention — "compression preserving semantic relationships and reference
-  chains" beats raw capacity; (d) ~200K KV likely doesn't fit next to 16.4 GB of weights on
-  24 GB anyway. The lever with headroom is summary QUALITY at compaction (structured: task
+  chains" beats raw capacity; (d) [RETRACTED 2026-09-01: VRAM is NOT the blocker — the arch
+  is hybrid, `full_attention_interval=4`, so only ~16 of 65 layers grow KV (~17 KB/token at
+  4-bit): 98K cap ≈ 1.7 GB KV, peak 17.98/24 GB observed, even 196K adds only ~1.7 GB].
+  The lever with headroom is summary QUALITY at compaction (structured: task
   state, decisions+rationale, tool results, constraints — LoCoBench compacts at 60% keeping
   first-2/last-3 turns verbatim), not window size. 2026-09-01 code audit of Hermes's live
   compactor (`agent/context_compressor.py`; NOT `trajectory_compressor.py`, an offline batch
