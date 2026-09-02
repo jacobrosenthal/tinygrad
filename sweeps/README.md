@@ -147,6 +147,17 @@ into the fork or make our own weights.
   + tests), flash over USB in custom mode, `USB_COPYIN_GUARD=0 SIZE=64000000 GMMU=0 DEV=USB+AMD
   python3 test/external/external_test_usb_asm24.py` reproduces in one run; debug-port
   bootloader is the recovery net. Value is upstream-goodness — the guard already works locally.
+  STATUS 2026-09-01: fix written and built — `~/z/asm2464pd-firmware` branch `fix-f2-arm-race`
+  (commit 4f5f88ac): no engine ready/status exists (upstream PR #72 confirms), so the F2 handler
+  now holds the ZLP through 128 real XDATA reads of 0xCE89 (volatile — non-volatile XDATA_REG8
+  got elided to an empty djnz spin) after DMA_START, before the host's bulk data can arrive.
+  Built image staged: `chestnut-usb3-20260830/fw-backup/tiny-fix-f2-arm-race-4f5f88ac.bin`
+  (product string 'custom 4f5f88ac-CLEAN'). NOT yet flashed. Test plan (server must be stopped;
+  pair with the pending 131K restart): (1) repro corruption at guard=0 on ed4e39b7, (2) flash via
+  e4 (`chestnut-fw.sh`-style, custom mode — then chip reset: debug-port `debug.py -r -n` if FTDI
+  attached, else replug USB-C), (3) re-test guard=0 expecting 0 bad; tune F2_ARM_SETTLE_READS
+  up if dirty / down if clean (each read is an XDATA-bus cycle; 128 reads/chunk could cost a few
+  % bandwidth — MEASURE vs the guard's 0.4%), (4) only ship guard=0 if fw-fixed AND not slower.
 
 ## Tooling (sweeps root)
 
