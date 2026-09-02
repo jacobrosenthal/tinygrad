@@ -134,6 +134,19 @@ into the fork or make our own weights.
   decode inside gemv = serious kernel project) or if we ever want 262K context in 24 GB.
 - [ ] **Split-KV verify attention** (syv-ai repo): optimizes the batched MTP verify step. Low
   priority — our K=3 verify is small and decode is already DRAM-bound.
+- [ ] **Fix the copyin race in FIRMWARE, not just the host guard.** Root cause found in
+  `tinygrad/asm2464pd-firmware` `handmade/src/main.c` (~line 250): the 0xF2 handler programs
+  the bulk DMA engine (DMA_INIT + NVME_CTRL_DMA_START) and `usb_send_zlp()` acks IMMEDIATELY
+  — no engine-idle check before reprogramming, no ready check before the bulk data lands. The
+  8051 never touches data bytes (pure hw DMA), so the front-of-window drop is an unsynchronized
+  re-arm race; our USB_COPYIN_GUARD just points the race at sacrificial bytes (0.4% bandwidth).
+  Proper fix: poll engine idle/complete in the F2 handler before re-arm, ZLP only when armed —
+  upstreamable, fixes every chestnut. Alt: F2 IN status read for cheap drain checks; or
+  host-only, arm once per large region (sector count is 15-bit ≈ 16 MB, engine takes slot
+  ranges) to eliminate most re-arms. Test loop is cheap: build handmade fw (repo has emulator
+  + tests), flash over USB in custom mode, `USB_COPYIN_GUARD=0 SIZE=64000000 GMMU=0 DEV=USB+AMD
+  python3 test/external/external_test_usb_asm24.py` reproduces in one run; debug-port
+  bootloader is the recovery net. Value is upstream-goodness — the guard already works locally.
 
 ## Tooling (sweeps root)
 
