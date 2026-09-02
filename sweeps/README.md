@@ -73,6 +73,43 @@ into the fork or make our own weights.
   — compaction is fine at 98K, and ctxprobe showed raising the cap costs ~0 tok/s anyway, it's
   just reserved VRAM — so this item is purely quality-at-same-size now. Rank it below the
   speed items above unless quality complaints show up.)
+- [ ] **Decode tok/s vs KV occupancy** (never measured — `ctxprobe` varied the *cap*, which
+  costs ~0; this is the *fill*). Feed growing prompts, measure gen tok/s at ~10/30/60/90K depth
+  on the fork. Purpose: settles the optimal context size / Hermes compaction economy. Hermes
+  compacts at ~75% of declared context down to ~50%, so at cap 98K the steady-state zone is
+  ~49-74K — sweep THAT range. Model: per cycle, summarize prefills the sampled middle turns
+  (NO prefix-cache hit — see the audit below: it's a bare user-role prompt, a different
+  prefix; bounded by input sampling) + rebuild prefills ~49K from scratch (~82 s at
+  600 tok/s; prefix reuse is append-only) — amortized over the ~25K-token window ≈ 3-8 ms per
+  conversation token, vs ~12 ms per *generated* token at 85 tok/s. Key structural fact: with
+  ratio-based trigger/floor, T_compact ∝ cap and window ∝ cap, so **amortized overhead is
+  independent of the cap** — cap only moves the depth zone (bigger cap = deeper zone = slower
+  decode, strictly worse for tok/s; its only benefits are rarer interruptions and less summary
+  loss). The real knobs are the trigger/floor *fractions* (overhead ∝ (f_t+f_f)/(f_t−f_f)) if
+  Hermes exposes them, and whether the summarize leg actually gets the cache hit (verify in the
+  journal when a real compaction fires). 2026-09-01 research verdict on "run to 200K, compact
+  back to 50K" (25K fixed prompt + 25K keep): don't. (a) Context rot is universal — Chroma
+  measured all 18 frontier models (incl. Qwen3) degrading with input length, distractor
+  accumulation compounding it; (b) Qwen3-family RULER falls ~96%→77% from 4K→128K, so a
+  75-150K working zone is measurably dumber than 50-75K; (c) LoCoBench-Agent (arXiv
+  2511.13998) found 128K-window models with good compaction *beat* 1M-window models on
+  multi-session retention — "compression preserving semantic relationships and reference
+  chains" beats raw capacity; (d) ~200K KV likely doesn't fit next to 16.4 GB of weights on
+  24 GB anyway. The lever with headroom is summary QUALITY at compaction (structured: task
+  state, decisions+rationale, tool results, constraints — LoCoBench compacts at 60% keeping
+  first-2/last-3 turns verbatim), not window size. 2026-09-01 code audit of Hermes's live
+  compactor (`agent/context_compressor.py`; NOT `trajectory_compressor.py`, an offline batch
+  tool): already does all of it — 75% trigger (raise-only floor for <512K windows, cannot go
+  lower), head = system + first 3 msgs verbatim, tail = 20% of threshold (~15K) verbatim,
+  cheap tool-output prune before the LLM call, structured summary (Goal/Progress/Decisions/
+  verbatim Constraints/Resolved-with-answers/Pending-marked-STALE/latest user ask verbatim),
+  ITERATIVE summary updates across compactions, truncated summaries rejected. Caveat for the
+  economy model: the summarize call is a bare user-role prompt (no system prompt) to the aux
+  endpoint = our own server → different prefix, NO cache hit; bounded by input sampling.
+  Nothing to tune here. Real compaction
+  events, once they start firing, show up as ~90K prefills in the server journal and as
+  `compacted=1` rows + timestamps in `~/.hermes/state.db` — the empirical graph accumulates
+  on its own.
 - [ ] **Restricted MTP draft vocab** (syv-ai/qwen38-27b-rtx3090, +10 tok/s on a 3090): calibrate
   ~40k tokens from our own outputs, have the MTP head score only those. Shrinks the draft
   lm_head gemv — worth more here than on PCIe boxes since the USB path is dispatch-latency-bound.
