@@ -148,6 +148,7 @@ SIZE=64000000 GMMU=0 PYTHONPATH=. DEV=USB+AMD python3 test/external/external_tes
 
 | file | what |
 |---|---|
+| `why-chestnut-wins.md` | the two setup findings: how the USB path uses its narrow lane (no CPU mapping, everything VRAM-resident, wire carries control traffic only) and the CPU-governor vs GPU-power-knob story vs the M8 |
 | `chestnut-fw.sh` | switch firmware; `status` / `backup` / `to-stock` / `to-tiny` |
 | `99-tinygrad-usbgpu.rules` | udev rules for every id the dock presents |
 | `debug.py` | FTDI debug port: `-b` bootloader, `-r` reset, `-p` provision EEPROM, `-n` no UART read |
