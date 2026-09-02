@@ -42,11 +42,15 @@ Environment=PYTHONUNBUFFERED=1
 # Device access is via libusb, not a kernel driver: /etc/udev/rules.d/99-tinygrad-usbgpu.rules
 # grants the `plugdev` group access to 3801:0001 (comma VID, chestnut custom firmware).
 # No amdgpu, no thunderbolt authorization, no BIOS changes, no connect-before-boot needed.
+# --max_context 114688 (112K): the VRAM max that keeps 1 prefix snapshot resident on 24GB -- KV
+# costs 2x per token when a snapshot is held (see sweeps/vram-budget.md). 131072 sat at the
+# 23.77GB ceiling and caused constant snapshot-pause churn. Keep in sync with Hermes
+# config.yaml models.qwen-27b.context_length. Changing it = one ~9-min cold compile (cache key).
 ExecStart=/home/jacob/z/tinygrad-serve/bin/python3 -m tinygrad.llm.cli \
   --model /home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf \
   --mmproj none \
   --repeat-penalty 1.15 \
-  --max_context 131072 \
+  --max_context 114688 \
   --host 0.0.0.0 \
   --serve 8080
 

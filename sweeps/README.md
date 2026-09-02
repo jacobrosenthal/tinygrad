@@ -32,6 +32,11 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
   on 24 GB regardless of `--max_context`.
 - **MTP (K=3) roughly doubles decode** over dense (73 vs ~28–30 tok/s), and it's
   capped at K=3 by the fused-decode `QT=8` bound (`adaptive-spec`).
+- **A prefix snapshot doubles KV cost** (`vram-budget.md`) — KV is 19,200 bytes/token and a
+  resident snapshot is a full second copy, so on 24 GB the max context that keeps 1 snapshot is
+  **112K (`114688`)**, not the model's 262K. Per-request compute transients are small (~0.2 GB,
+  prefill chunked at T=256); the snapshot is the expensive dynamic allocation. Set in the
+  chestnut unit + Hermes config.
 - **Trust the wire, not the CLI timer** — per-step benchmark lines from the CLI
   are MTP-chunk-unaware and print bogus tok/s; only aggregate / server-log
   numbers are real (`qwen38-mtp-fork` note; see the inference-metrics memory).
@@ -82,7 +87,10 @@ into the fork or make our own weights.
   prefix; bounded by input sampling) + rebuild prefills ~49K from scratch (~82 s at
   600 tok/s; prefix reuse is append-only). 2026-09-01: in real use compaction fires ~every
   20 min (window fills at prefill speed, not just gen speed), so the overhead is live —
-  **decision: raise `--max_context` to 131072 with the SAME Q4_K_XL** (fits: +0.55 GB KV;
+  **decision: raise `--max_context` to 114688 (112K) with the SAME Q4_K_XL** (see
+  `sweeps/vram-budget.md`; 131072 was tried first but caused snapshot-pause churn at the 23.77GB
+  ceiling — a prefix snapshot doubles KV cost, so 112K is the max that keeps 1 snapshot resident)
+  (original 131072 note: fits +0.55 GB KV;
   cache-safe: max_context is in the LLM_CACHE key AND filename, so revert = warm start).
   Window grows ~32K→~50K ≈ compaction every ~31 min. Hermes `context_length` bumped to match.
   NOT via Q3 — permanent quality tax to relieve a recoverable cost is backwards — amortized over the ~25K-token window ≈ 3-8 ms per
