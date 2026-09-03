@@ -1,0 +1,8 @@
+[
+  {"trial": 1, "task": "prose", "wall_s": 20.618, "prompt_tokens": 57, "completion_tokens": 800, "finish_reason": "length", "content_len": 695, "reasoning_len": 2806, "truncated_in_reasoning": false},
+  {"trial": 1, "task": "code", "wall_s": 21.317, "prompt_tokens": 72, "completion_tokens": 800, "finish_reason": "length", "content_len": 1514, "reasoning_len": 1532, "truncated_in_reasoning": false},
+  {"trial": 2, "task": "prose", "wall_s": 25.557, "prompt_tokens": 57, "completion_tokens": 800, "finish_reason": "length", "content_len": 681, "reasoning_len": 2796, "truncated_in_reasoning": false},
+  {"trial": 2, "task": "code", "wall_s": 20.48, "prompt_tokens": 72, "completion_tokens": 800, "finish_reason": "length", "content_len": 0, "reasoning_len": 3224, "truncated_in_reasoning": true},
+  {"trial": 3, "task": "prose", "wall_s": 25.039, "prompt_tokens": 57, "completion_tokens": 800, "finish_reason": "length", "content_len": 452, "reasoning_len": 3022, "truncated_in_reasoning": false},
+  {"trial": 3, "task": "code", "wall_s": 22.156, "prompt_tokens": 72, "completion_tokens": 800, "finish_reason": "length", "content_len": 1136, "reasoning_len": 1962, "truncated_in_reasoning": false}
+]

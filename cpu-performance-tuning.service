@@ -1,6 +1,14 @@
 [Unit]
 Description=Force CPU performance governor (USB GPU dispatch latency) + best-effort GPU high power state
 After=sysinit.target
+# Run AFTER power-profiles-daemon: on the XPS 9315 (intel_pstate active/HWP mode) PPD initializes
+# the cpufreq policy ~8s into boot and leaves the governor at `powersave`, clobbering an earlier
+# write. Ordering after it makes our performance write land last. Belt-and-suspenders below:
+# min_perf_pct=100 is an intel_pstate GLOBAL floor that PPD never touches, so max clock is pinned
+# even if something flips the governor back. (2026-09-02: diagnosed the boot-order clobber -- the
+# oneshot ran 23:12:35, PPD started 23:12:43, governor ended up powersave.)
+After=power-profiles-daemon.service
+Wants=power-profiles-daemon.service
 # NOTE: no Requires= on this from the server units -- use Wants=. The M8's
 # gpu-power-tuning.service hard-failed when its GPU sysfs write didn't land, and because
 # tinygrad-server-*.service had Requires= on it, the server then never started at all
@@ -17,6 +25,12 @@ RemainAfterExit=yes
 # low clock. Measured on this host: 400/1914/496/479 MHz at powersave -> ~3500 MHz at
 # performance. The M8's equivalent unit called this the "MTP dispatch fix" for the same reason.
 ExecStart=/usr/bin/bash -c 'for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo performance > "$f" 2>/dev/null; done; exit 0'
+
+# The "no matter what" pin: intel_pstate's GLOBAL minimum-performance floor. PPD does not manage
+# this knob at all, so setting it to 100 keeps every core at max P-state even if the governor is
+# later flipped to powersave (the default floor is 10 = down to 400 MHz). This is what makes perf
+# survive PPD init, GNOME power toggles, and on-battery events on the XPS 9315.
+ExecStart=/usr/bin/bash -c 'echo 100 > /sys/devices/system/cpu/intel_pstate/min_perf_pct 2>/dev/null; exit 0'
 
 # intel_pstate also honours a per-CPU energy/performance preference independently of the
 # governor; leaving it at balance_performance throttles boost residency.
