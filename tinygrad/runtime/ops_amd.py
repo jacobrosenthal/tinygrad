@@ -684,33 +684,47 @@ class AMDAllocator(HCQAllocator['AMDDevice']):
 
     def wire_len(size): return round_up(GUARD + size + 4, 512)  # [guard..front sentinel][payload][pad][back sentinel]
 
-    # build the whole ring upfront: per chunk, poll the sentinel(s), copy SRAM->VRAM, bump the fence; then one doorbell
     POLL_EQ = sdma.SDMA_OP_POLL_REGMEM | sdma.SDMA_PKT_POLL_REGMEM_HEADER_FUNC(3) | sdma.SDMA_PKT_POLL_REGMEM_HEADER_MEM_POLL(1)
     POLL_DW5 = sdma.SDMA_PKT_POLL_REGMEM_DW5_INTERVAL(0x04) | sdma.SDMA_PKT_POLL_REGMEM_DW5_RETRY_COUNT(0xfff)
-    q = dev.hw_copy_queue_t().wait(ts, dev.timeline_value - 1)
-    for c in range(nchunks):
-      seq, size, win = self._usb_seq + c, min(CHUNK, src.nbytes - c * CHUNK), self._usb_wins[(self._usb_seq + c) & 1]
-      tag = 0x51000000 | (seq & 0xFFFFFF)
-      # the sentinel says the whole wire image arrived; the guard keeps payload clear of the dropped prefix
-      q.q(POLL_EQ, *data64_le(win.va_addr + wire_len(size) - 4), tag, 0xFFFFFFFF, POLL_DW5)
-      q.copy(dest.offset(c * CHUNK), win.offset(GUARD), size)
-      q.write(dev.iface.sys_buf.offset(0x800, 8), seq + 1, b64=True)
-    q.signal(ts, dev.next_timeline()).submit(dev)
+    # Cap the SDMA ring at GROUP chunks and fully drain each group before submitting the next. A single ring of
+    # ~7000+ chunks hangs the F2/SDMA path (SDMA_QUEUE_HANG(55), a dropped chunk under sustained load -- root cause
+    # in extra/usbgpu/asm2464pd-chip-notes.md; a raw C4xx-DMA reliability limit, not firmware-fixable) -- so a 2GB+
+    # copyin (a prefix-snapshot restore) hangs while startup weight-load (small per-tensor copyins) never does.
+    # GROUP was fuzzed on hardware: 4096 chunks (~1GB) never hangs, 8192 (~2GB) hangs around chunk ~7199. 4096 is
+    # the proven-safe value with ~40% margin below the cliff. Do NOT raise it toward 7000 for "throughput": the only
+    # cost of batching is one boundary drain per group (the pipeline is already near-drained there, sub-ms even on a
+    # ~9000-chunk snapshot restore; measured ~640 MB/s WITH batching), so a bigger GROUP buys nothing measurable
+    # while eroding the safety margin against a probabilistic hang. Lower it (2048) if a hang ever recurs.
+    # Window alternation and the seq counter carry across groups, so the pipeline only breaks at the group boundary.
+    GROUP = getenv("USB_COPYIN_GROUP", 4096)
+    for base in range(0, nchunks, GROUP):
+      g = min(GROUP, nchunks - base)
+      # build this group's ring: per chunk, poll the sentinel, copy SRAM->VRAM, bump the fence; then one doorbell
+      q = dev.hw_copy_queue_t().wait(ts, dev.timeline_value - 1)
+      for c in range(base, base + g):
+        seq, size, win = self._usb_seq + c, min(CHUNK, src.nbytes - c * CHUNK), self._usb_wins[(self._usb_seq + c) & 1]
+        # the sentinel says the whole wire image arrived; the guard keeps payload clear of the dropped prefix
+        q.q(POLL_EQ, *data64_le(win.va_addr + wire_len(size) - 4), 0x51000000 | (seq & 0xFFFFFF), 0xFFFFFFFF, POLL_DW5)
+        q.copy(dest.offset(c * CHUNK), win.offset(GUARD), size)
+        q.write(dev.iface.sys_buf.offset(0x800, 8), seq + 1, b64=True)
+      q.signal(ts, dev.next_timeline()).submit(dev)
 
-    # stream the chunks. A window is reusable once its previous occupant (seq-2) is both fully sent (tag reaped) and
-    # fully drained to VRAM (the fence) -- so drain BEFORE arming the engine for it, and keep the 0xE4 fence read out
-    # of the F2 round trip (an interleaved control IN can abandon the transfer; see asm2464pd-firmware PR #73).
-    inflight = [None, None]
-    for c in range(nchunks):
-      seq, size = self._usb_seq + c, min(CHUNK, src.nbytes - c * CHUNK)
-      if inflight[seq & 1] is not None: usb.usb.bulk_wait(inflight[seq & 1])
-      buf, wire, tag = self._usb_stage[seq & 1][1], wire_len(size), 0x51000000 | (seq & 0xFFFFFF)
-      buf[GUARD:GUARD + size] = src_mv[c * CHUNK : c * CHUNK + size]
-      struct.pack_into('<I', buf, wire - 4, tag)  # sentinel: last dword of the wire
-      if seq >= 2: wait_drain(seq - 1)
-      usb.usb.bulk_wait(usb.usb.control_write_async(0xF2, wire // 512, (seq & 1) * 16 | (ceildiv(wire, 0x4000) << 8)))
-      inflight[seq & 1] = usb.usb.bulk_write_async(buf[:wire])
-    for tag in inflight: usb.usb.bulk_wait(tag)
+      # stream this group's chunks. A window is reusable once its previous occupant (seq-2) is both fully sent (tag
+      # reaped) and fully drained to VRAM (the fence) -- so drain BEFORE arming the engine for it, and keep the 0xE4
+      # fence read out of the F2 round trip (an interleaved control IN can abandon the transfer; firmware PR #73).
+      inflight = [None, None]
+      for c in range(base, base + g):
+        seq, size = self._usb_seq + c, min(CHUNK, src.nbytes - c * CHUNK)
+        if inflight[seq & 1] is not None: usb.usb.bulk_wait(inflight[seq & 1])
+        buf, wire, tag = self._usb_stage[seq & 1][1], wire_len(size), 0x51000000 | (seq & 0xFFFFFF)
+        buf[GUARD:GUARD + size] = src_mv[c * CHUNK : c * CHUNK + size]
+        struct.pack_into('<I', buf, wire - 4, tag)  # sentinel: last dword of the wire
+        if seq >= 2: wait_drain(seq - 1)
+        usb.usb.bulk_wait(usb.usb.control_write_async(0xF2, wire // 512, (seq & 1) * 16 | (ceildiv(wire, 0x4000) << 8)))
+        inflight[seq & 1] = usb.usb.bulk_write_async(buf[:wire])
+      for tag in inflight:
+        if tag is not None: usb.usb.bulk_wait(tag)
+      wait_drain(self._usb_seq + base + g)  # group fully in VRAM before the next ring submits
     self._usb_seq += nchunks
     wait_drain(self._usb_seq)  # copyin is synchronous: everything must be in VRAM before returning
 

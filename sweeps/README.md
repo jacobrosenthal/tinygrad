@@ -142,7 +142,7 @@ into the fork or make our own weights.
   decode inside gemv = serious kernel project) or if we ever want 262K context in 24 GB.
 - [ ] **Split-KV verify attention** (syv-ai repo): optimizes the batched MTP verify step. Low
   priority — our K=3 verify is small and decode is already DRAM-bound.
-- [ ] **Fix the large-copyin drain HANG (distinct from the corruption bug).** Large single
+- [x] **FIXED 2026-09-02: large-copyin SDMA hang.** Large single
   copyins (a ~2.3GB prefix-snapshot restore = ~9000 chunks) hang DURING serving with `GPU failed
   to drain USB copyin chunk N (10s)` — reproduced 2026-09-02 by a 900-line-disassembly review
   prompt and by deep-context Hermes turns. Root cause (analysis, unvalidated): the drain's
@@ -154,7 +154,13 @@ into the fork or make our own weights.
   window today, ~line 705), or move the fence to the 0xF0 read path. WORKAROUND SHIPPED:
   `USB_SAFE_COPYIN=1` in the chestnut unit (serialized copyin, no drain step; ~250 vs 530 MB/s on
   load + snapshot-restore only, tok/s unaffected). Needs a device-window — each test hangs the GPU
-  (FTDI-reset to recover); validate against the 900-line reproducer AND the corruption repro.
+  (FTDI-reset to recover); validate against the 900-line reproducer AND the corruption repro. RESOLVED: reproduced deterministically (2GB=8192-chunk
+  copyin hangs at chunk 7199, SDMA_QUEUE_HANG(55), read_ptr stalls mid-ring; 1GB/4096 chunks is
+  fine) -- it is the SDMA engine choking on an oversized single ring, NOT the fence/F2 race. Fix
+  (`ops_amd.py` _copyin): cap each SDMA ring at USB_COPYIN_GROUP=4096 chunks and fully drain
+  between groups; seq/windows carry across. Validated: 2GB+3GB no longer hang, 1.5/2/3GB random
+  roundtrips = 0 corruption, ~640 MB/s (throughput preserved, even improved). USB_SAFE_COPYIN
+  workaround removed from the chestnut unit; fast path restored.
 - [ ] **Fix the copyin race in FIRMWARE, not just the host guard.** Root cause found in
   `tinygrad/asm2464pd-firmware` `handmade/src/main.c` (~line 250): the 0xF2 handler programs
   the bulk DMA engine (DMA_INIT + NVME_CTRL_DMA_START) and `usb_send_zlp()` acks IMMEDIATELY
