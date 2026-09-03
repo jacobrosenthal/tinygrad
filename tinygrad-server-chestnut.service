@@ -36,6 +36,12 @@ WorkingDirectory=/home/jacob
 Environment=DEV=USB+AMD:LLVM
 Environment=LLM_CACHE=1
 Environment=PYTHONUNBUFFERED=1
+# USB_SAFE_COPYIN=1: serialize copyin (no pipelined F2/drain step, so it cannot drain-stall).
+# The pipelined fast path hangs on large copyins ("GPU failed to drain USB copyin chunk N, 10s")
+# under big prefills -- reproduced by a 900-line-disassembly review prompt and by deep-context
+# Hermes turns (the 2026-09-02 hangs). Costs copyin throughput (~250 vs ~530 MB/s: slower weight
+# load + snapshot restore only; serving tok/s is unaffected, decode/prefill don't use this path).
+Environment=USB_SAFE_COPYIN=1
 # Optional: cap GPU power (watts). Replaces the sysfs power_dpm_* tuning, which is unavailable here.
 # Environment=AM_POWER_LIMIT=250
 
