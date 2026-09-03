@@ -124,6 +124,33 @@ CE00 per-sector 8051-driven path) would be strictly worse than what's shipped, s
 building. External reference: stock images at `canmi21/ASM2464PD` + station-drivers; disassemble
 with `smx-smx/ASMTool` + `cyrozap/ghidra-asmedia-8051` if the CE00 sequence is ever wanted.
 
+## Two SEPARATE copyin fixes — batching and arm ordering (do not conflate)
+
+The copyin path carries two independent reliability fixes with different root causes; keep them
+distinct when rebasing/PRing:
+
+1. **Ring batching** (cap the SDMA ring at 4096 chunks, full drain between groups) — fixes the
+   *ring-size* hang (`SDMA_QUEUE_HANG(55)`) that a single >~7000-chunk ring triggers.
+2. **Drain-before-arm ordering** — drain a window's previous occupant (`wait_drain(seq-1)`) *before*
+   re-arming the 0xF2 engine for it, and keep the 0xE4 fence read *out* of the F2 round trip. This
+   fixes a *DMA-arm-race* hang that is independent of ring size.
+
+Upstream's copyin uses the opposite ordering: it arms the window, reads the 0xE4 fence *inside* the
+same F2 round trip, and drains only *conditionally* (if that piggy-backed read shows the fence
+lagging). That arms a window before confirming its previous occupant drained — which can leave the
+C4xx engine in a bad state and hang. Validated on hardware 2026-09-02, guard removed: the upstream
+arm-ahead ordering hangs early inside a copyin (observed `GPU failed to drain chunk 286`, and a
+separate run `chunk 8194`), while drain-before-arm ran 8×2.5 GB (20 GB) clean, 0 corruption. So the
+ordering change is a genuine fix, not cosmetic — it is bundled in the original guard commit but is
+NOT the front-guard; when the front-guard was dropped (firmware C450 idle-wait now handles the
+corruption), the ordering was deliberately KEPT.
+
+Throughput note: both orderings measure the same on a given dock, so drain-before-arm costs nothing.
+The ~236 MB/s seen on 2026-09-02 (vs the ~640 MB/s documented above) was **device degradation** from
+dozens of reset/flash cycles in one session — proven because the conditional arm-ahead ordering
+measured identically slow on the same dock. A healthy dock returns to ~640 MB/s; a power-cycle
+restores it.
+
 ## Recovery / operational facts learned today
 - FTDI `debug.py -rn` (chip reset) recovers a wedged dock most of the time; sometimes needs several
   tries or the `-b` bootloader path; a hard wedge (device fully off the bus) needs a physical
