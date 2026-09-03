@@ -142,6 +142,19 @@ into the fork or make our own weights.
   decode inside gemv = serious kernel project) or if we ever want 262K context in 24 GB.
 - [ ] **Split-KV verify attention** (syv-ai repo): optimizes the batched MTP verify step. Low
   priority — our K=3 verify is small and decode is already DRAM-bound.
+- [ ] **Fix the large-copyin drain HANG (distinct from the corruption bug).** Large single
+  copyins (a ~2.3GB prefix-snapshot restore = ~9000 chunks) hang DURING serving with `GPU failed
+  to drain USB copyin chunk N (10s)` — reproduced 2026-09-02 by a 900-line-disassembly review
+  prompt and by deep-context Hermes turns. Root cause (analysis, unvalidated): the drain's
+  fence-read control-IN (0xE4) interleaves with an in-flight F2 bulk transfer and abandons it
+  (`ops_amd.py:707` warns of exactly this; firmware PR #73), so a chunk's sentinel never lands and
+  the GPU POLL_EQ spins forever. NOT ring overflow — the queue ring grows to fit (`ops_amd.py:408`).
+  Startup weight-load is immune (hundreds of SMALL per-tensor copyins, ~800 chunks each). Candidate
+  fix: wait for BOTH windows' inflight F2 before any wait_drain fence read (code only waits one
+  window today, ~line 705), or move the fence to the 0xF0 read path. WORKAROUND SHIPPED:
+  `USB_SAFE_COPYIN=1` in the chestnut unit (serialized copyin, no drain step; ~250 vs 530 MB/s on
+  load + snapshot-restore only, tok/s unaffected). Needs a device-window — each test hangs the GPU
+  (FTDI-reset to recover); validate against the 900-line reproducer AND the corruption repro.
 - [ ] **Fix the copyin race in FIRMWARE, not just the host guard.** Root cause found in
   `tinygrad/asm2464pd-firmware` `handmade/src/main.c` (~line 250): the 0xF2 handler programs
   the bulk DMA engine (DMA_INIT + NVME_CTRL_DMA_START) and `usb_send_zlp()` acks IMMEDIATELY
