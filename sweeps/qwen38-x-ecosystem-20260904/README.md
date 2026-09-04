@@ -73,12 +73,13 @@ Other quant lines seen:
   https://x.com/Chromadera/status/2095559169734561864).
 - QAT `q2_0`, NVFP4 / NVFP4-mixed, AWQ, MLX 4-bit all present.
 
-**Port implication (updates the imatrix backlog item):** our "workload-tuned imatrix" TODO should
-adopt the **GDN-aware mixed-precision idea explicitly** — keep GDN state tensors at Q8_0, spend the
-bit budget there, compress attention/FFN harder — *and* calibrate on real Hermes traffic. That's
-strictly more targeted than a flat imatrix pass, and the field shows it holds quality at 3.7bpw. We
-can bake this into our own GGUF (llama.cpp imatrix + a custom tensor-type map) since the fork already
-loads GGUF. Ranked above generic imatrix now because there's a proven architecture-specific win.
+**Port implication (updates the imatrix backlog item):** adopt the **GDN-aware mixed-precision idea
+explicitly** — keep GDN state tensors at Q8_0, spend the bit budget there, compress attention/FFN
+harder. Calibrate the imatrix on a **broad, diverse corpus, NOT Hermes traffic** (Hermes is one
+task/domain and would overfit the quant — Jacob's call, 2026-09-04). The architecture-aware
+tensor-type map is the win here, not workload-specific calibration. Bake it into our own GGUF
+(llama.cpp imatrix + custom tensor-type map); the fork already loads GGUF. Scaffolded in
+`sweeps/qwen38-gdn-quant-20260904`.
 
 ## 3. Speculative decode: MTP vs DFlash2 vs DSpark vs EAGLE-3
 
@@ -177,8 +178,8 @@ Ecosystem:
 ## 6. Ranked TODO deltas for our fork (from this sweep)
 
 1. **GDN-aware imatrix / our own quant** (was: generic workload-tuned imatrix). Adopt Ridge's recipe —
-   GDN state tensors Q8_0, mixers Q4_K, attention/FFN harder — calibrated on Hermes `state.db` traffic.
-   Proven to hold quality at 3.7bpw; strictly better-targeted than flat imatrix.
+   GDN state tensors Q8_0, mixers Q4_K, attention/FFN harder — with a **diverse** calibration corpus
+   (NOT Hermes; single-task overfits). Proven to hold quality at 3.7bpw; better-targeted than flat.
 2. **Trained drafter (DFlash2/DSpark-style) for the RDNA3 path.** Recipes open (TorchSpec + K3 draft
    collection); DSpark showed +32% over native MTP, lossless. Rank above adaptive-K.
 3. **Diff tinygrad master's copyin vs our batching/guard** — they shipped a "2.5× faster USB3 copy";
@@ -192,3 +193,84 @@ Ecosystem:
 `@lightseekorg` + `@dogacel0` (TorchSpec / K3 drafters), `@sudoingX` (AMD 7900 XTX A/B repo),
 `@piximlight0707` (ROCm concurrency benchmarks), `@xu_paco` (Qwen infra), `@subhashdasyam` (chestnut
 RE), `@LoveMHz` (ASM2464PD hardware), `@victormustar` / `@QwenDevs` (model/quant news).
+
+---
+
+# Part 2 — full sweep + "is anyone beating us?" (2026-09-04, recent-first)
+
+Second, larger pass (~10 more queries, recency-sorted through 2026-09-04) to answer Jacob's direct
+question and catch the last few days. Credits: fine, plenty left.
+
+## Are we being beaten? — honest verdict
+
+**Our number to beat:** 7900 XTX over the chestnut *USB* dock, UD-Q4_K_XL, MTP, **serving production**
+(vision + 112K ctx + prefix snapshots + concurrent Hermes) → ~57 prose / ~73 code single-stream,
+**85–99 tok/s on live Hermes traffic** at high accept.
+
+**On raw single-stream dense-27B tok/s, we are NOT the outright record — but every higher number is
+on native-PCIe desktop and/or a short vanity bench, usually without our production surface.** The
+apples-to-apples picture on **7900 XTX / gfx1100**:
+
+| who | number | why it's not really beating us |
+|---|---|---|
+| @sudoingX repo | Win/Vulkan **85.4** (from 41, +flag) | native PCIe desktop, single-stream, no vision/snapshots/USB |
+| @dheeraj1997 BridgeSpec | **120.7** single-stream agentic | custom Windows runtime, native PCIe, short bench |
+| @Apodex_AI hipfire | **226** (MQ4R, 400-tok decode) | custom kernel, **no MTP/vision**, 400-token vanity decode |
+| @ayuma_x (**OCuLink** 7900 XTX) | **46–54** (4bit+MTP) | our closest hardware analog (external GPU) — **we match/beat it** |
+| tiny corp official tinygrad | **46** (no spec decode) | stock tinygrad kernels — **we beat with MTP** |
+| @fordp3p3 / @piximlight | 34.5 / 55 (np1) | plain llama.cpp — comparable/below us |
+
+@daaximus said the quiet part out loud: most "100+ tok/s" posts are "short story input … processing
+nonsense"; on real 86k-context repo work the RTX 5000 Blackwell drops far below the headline
+(https://x.com/daaximus/status/2092095742122856721).
+
+**Verdict:** in our actual niche — *a 7900 XTX driven over USB, serving production Qwen3.8-27B with
+vision, 112K context, prefix snapshots, and real concurrency* — **nobody in the sweep is
+demonstrably beating us.** The only comparable external-GPU number (OCuLink, 46–54) we match/beat,
+and we're competitive with native-PCIe llama.cpp while doing far more. We are **not** the record for
+a bare desktop 7900 XTX doing 400-token greedy decode — nor do we care to be; that's not our workload.
+
+## The competitive landscape shifted this week (watch these)
+
+- **Qwen3.8-Flash-Next (125B MoE, 6B active) is the new darling** — but it's the wrong tool for our
+  24 GB card: on a 7900 XTX it's **18.8 tok/s** (Vault_Dweller, MTP wouldn't help — accept 0.58–0.63
+  under the 0.7 bar). It needs 96–128 GB unified memory / multi-3090 / DGX Spark to shine. Dense-27B
+  remains our sweet spot. (https://x.com/Vault_Dweller31/status/2095608724157010337)
+- **DGX Spark / Mac are where the flashy numbers live:** Mirai "uzu" 105 tok/s on M5 Max (news
+  trend); DFlash2 on SGLang/NVFP4 hitting 112 tok/s on RTX 4500 Blackwell; @MiaAI_lab EXL3 3.5bpw +
+  DFlash2 on a single 4090 = **130–150 tok/s short-ctx / 113–125 cold E2E** (pongphat verified). These
+  are the credible single-GPU leaders — all NVIDIA, none over USB, none our production surface.
+- **Cerebras serves Qwen3.8-27B at ~1500 tok/s** (cloud, not local) — irrelevant to local but sets
+  the "instant" bar users now expect.
+- **Cloud-vs-local debate is loud** (news trend "developers shift toward cloud agents") — our
+  privacy/cost story is the counter, and Hermes one-click local (Nous shipped it this week) is
+  pulling people toward exactly our setup.
+
+## New quant research (updates the GDN experiment)
+- **NVFP4 W4A4 on *all* 496 layers including GDN** (2026-09-04): claims the GDN recurrent layers can
+  drop to 4-bit without the instability that kept them 8–16bit → 17.5 GiB
+  (https://x.com/NewsTongueX/status/2095724966931013932). This **contradicts Ridge's "keep GDN Q8"**
+  — so our `qwen38-gdn-quant-20260904` experiment now has a real A/B to settle (gdn-hi vs gdn-lo).
+- KV math confirmed again: 262K KV ≈ 16 GiB fp16 / ~4 GiB q4_0 on the 16 attention layers; that's why
+  Q4 weights + q4_0 KV fit 24 GB (cozybearlog, https://x.com/cozybearlog/status/2095543053444583605).
+- llama.cpp PR #28297: AVX-VNNI wasn't enabled on MSVC Windows builds for Qwen3.8-27B Q8_0 — a free
+  CPU-side speedup for Windows users (not us, but shows the perf surface is still being mined).
+
+## #3 confirmed: we are AHEAD of tinygrad master on copyin
+`origin/master`'s `_copyin` is still the **old single-ring, arm-then-read-fence** version — **no
+`USB_COPYIN_GROUP` batching and no drain-before-arm** (the exact ordering we proved hangs on large
+transfers). tiny corp's "2.5× faster USB3 copy" (Aug 21) was a *different* optimization; the
+large-copyin **hang fix and the arm-race ordering fix are still ours alone** and are genuinely
+upstreamable as minimal, measured diffs (which fits George's "human, taste, hardware-evidence" PR
+bar). Action: the drain-before-arm ordering is the cleanest candidate to offer upstream.
+
+## Updated ranked backlog
+1. **GDN-aware imatrix quant, our own weights** — scaffolded in `sweeps/qwen38-gdn-quant-20260904`
+   (recipe written). Settles Ridge (GDN→Q8) vs W4-everywhere. Calibrate on a **diverse** corpus, NOT
+   Hermes (single-task overfits). Needs a Q8/BF16 base + diverse calib + a GPU-free window.
+   **Highest payoff, no fork code changes.**
+2. **Trained DFlash2/DSpark drafter for the RDNA3 path** — recipes open (TorchSpec/K3); DSpark +32%
+   over MTP lossless. Above adaptive-K. (There's already a `build_dflash2/` llama.cpp tree locally.)
+3. **Offer drain-before-arm copyin ordering upstream** — we're ahead of master; minimal human diff.
+4. **Confirmed, no action:** MTP-off-scales-better-under-load and high-acceptance≠faster are now
+   triply corroborated; Flash-Next is not worth chasing on 24 GB (18.8 tok/s on 7900 XTX).
