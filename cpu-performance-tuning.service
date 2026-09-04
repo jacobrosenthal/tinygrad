@@ -1,14 +1,12 @@
 [Unit]
 Description=Force CPU performance governor (USB GPU dispatch latency) + best-effort GPU high power state
 After=sysinit.target
-# Run AFTER power-profiles-daemon: on the XPS 9315 (intel_pstate active/HWP mode) PPD initializes
-# the cpufreq policy ~8s into boot and leaves the governor at `powersave`, clobbering an earlier
-# write. Ordering after it makes our performance write land last. Belt-and-suspenders below:
-# min_perf_pct=100 is an intel_pstate GLOBAL floor that PPD never touches, so max clock is pinned
-# even if something flips the governor back. (2026-09-02: diagnosed the boot-order clobber -- the
-# oneshot ran 23:12:35, PPD started 23:12:43, governor ended up powersave.)
-After=power-profiles-daemon.service
-Wants=power-profiles-daemon.service
+# XPS 9315 (intel_pstate active/HWP): PPD flips the governor to `powersave` ~8s into boot, but that
+# does NOT matter here because min_perf_pct=100 (an intel_pstate GLOBAL floor PPD never touches, set
+# below) pins max clock regardless of governor. Do NOT add `After=power-profiles-daemon.service` to
+# fight the clobber: the server unit Wants= this unit and PPD is tied to multi-user.target, so that
+# ordering closes a systemd ordering cycle and breaks start/stop of the whole graph
+# ("Transaction order is cyclic", 2026-09-03). The min_perf_pct floor needs no ordering; rely on it.
 # NOTE: no Requires= on this from the server units -- use Wants=. The M8's
 # gpu-power-tuning.service hard-failed when its GPU sysfs write didn't land, and because
 # tinygrad-server-*.service had Requires= on it, the server then never started at all
