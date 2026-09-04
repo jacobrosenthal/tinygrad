@@ -53,11 +53,14 @@ falls back to normal decode), and it composes *on top of* DFlash2/MTP.
 - **Expected:** little/no gain on prose, but **2–3× on code/agentic/tool-echo** turns — the bulk of
   Hermes traffic. Small, self-contained, no new weights.
 
-### 2. Lower-bpw text-only quant — raises the single-stream ceiling, frees VRAM
+### 2. Lower-bpw quant — raises the single-stream ceiling
 **Lever A.** We're at the Q4 ceiling (~56); dropping to a good **~3.5 bpw** takes model bytes ~17 → ~12.5
-GB, so the ceiling rises to **960/12.5 ≈ 77 tok/s** single-stream — before any spec-decode. Text-only
-also **drops the vision tensors** entirely (we run `--mmproj none`; a text-only requant reclaims that
-VRAM for KV/snapshots/deeper draft trees/more concurrency).
+GB, so the ceiling rises to **960/12.5 ≈ 77 tok/s** single-stream — before any spec-decode.
+(Correction 2026-09-04: the served UD-Q4_K_XL GGUF has **zero vision tensors** — confirmed, no
+`v.blk`/`mm.`/`merger`; vision in llama.cpp lives in a separate `mmproj-*.gguf` we never load. So
+we're *already* text-only and there is NO vision VRAM to reclaim by "text-only" quantizing — the win
+here is purely the lower bpw. Qwen3.8 image+video share one ViT+projector, so they can only be
+dropped/kept together, and only via the mmproj file, which is already out of our path.)
 - Field proof low-bpw holds quality *and* is faster: MiaAI_lab **EXL3 3.5bpw** on a 4090 = 130–150
   tok/s; Ridge **3.7bpw** GDN-aware holds quality. New research even puts NVFP4 **W4A4 on all layers
   incl. GDN** at 17.5 GiB (NewsTongueX).
