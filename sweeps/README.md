@@ -25,8 +25,9 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
   hot-unplugs (EINVAL on /dev/kfd) need a reboot or amdgpu reload (the AMD card is taken off seat0 so rmmod works). DEV string is
   `KFD+AMD:LLVM`. PROFILE: the 35 ms step is 100% GPU busy, 84% gemv, 20.65 GB/step (lm_head read 3x for the MTP drafts),
   705 GB/s average; the 5120x6144 out-proj class runs at 423 GB/s (spill/VGPRs). Plan for the remaining ms in the README.
-- `chestnut-usb3-20260830/draft-vocab-20260906/` — MTP_DRAFT_VOCAB=N: the draft passes read a row-prefix slice of the lm_head
-  (branch gemv-spillfree); sweep on KFD queued (chainK2).
+- `chestnut-usb3-20260830/draft-vocab-20260906/` — **MTP_DRAFT_VOCAB=65536: 89.6 tok/s vs 82.8 on KFD (+8%), acceptance unchanged**
+  (the K=3 draft passes read a 64k-row prefix of the lm_head instead of 248k; branch gemv-spillfree). 32k loses acceptance, 128k saves
+  less. Levers sweep: GEMV_TG and FAST_ARGMAX neutral at K=3. New production candidate: KFD + dv64k + penalty 1.0 = ~90 tok/s.
 - (superseded) `usb4-kfd-20260906` plan for the #1 comms option: flash the shipped USB4 firmware back, run the GPU as a
   native PCIe device under amdgpu/KFD (`DEV=AMD:KFD`); journal proves it worked on this host on 09-05 15:40-16:06. Needs the user
   (flash + replug). Expected 80 -> 120-145 tok/s.
