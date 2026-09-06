@@ -146,3 +146,10 @@ Q4_K_M 1.1 GB drafter (accept ~5.0 on a Q4 target; check revision/block vs ours)
 task-lossless frees ~5 GB); DimInfer Dspark-v1 Q8_0 as a second drafter; (d) build: DFlash2/DSpark head trained on OUR quant's
 hidden states (DimInfer recipe); FastMTP-style shared multi-step MTP head with compressed draft vocab; imatrix quant with RCO
 budgeted per-tensor search + short QAT/QAD pass, diverse calibration corpus (bartowski's is published).
+
+### Local cross-check (00:57)
+- Our drafter /home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf IS the z-lab release: block_size 8, target_layers [6,20,34,48,62],
+  selector_rank 256 / top_k 16, conv_kernel 2 — but every sweep so far ran DFLASH_BLOCK=6 DFLASH_NOSEL=1 (selector OFF). The
+  published accepted/pass (~4.8–5.0 at block 8 with the selector) vs our 3.33 tok/step is the biggest cheap lever on the table:
+  sweep DFLASH_BLOCK=8 with the selector ON (its host `.numpy()` round trips are the cost to measure/move on-GPU).
+- Our gemv FORMATS include iq3s: ISTA-DASLab GSQ-RCO IQ3_S (11.8 GB, 3.5 bpw, task-lossless) loads directly -> test for ceiling.
