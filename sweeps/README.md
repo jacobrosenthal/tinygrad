@@ -8,6 +8,11 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
 
 ## Index
 
+- `chestnut-usb3-20260830/dflash-restore-fault-20260905/` — the DFlash first-decode-step GCVM fault: trigger = LLM-cache RESTORE
+  (6/6 restores fault on req 1, 0/6 warmups; any source edit turns the next launch into a warmup). Full chronological test log,
+  hang reports, wave dumps, ISA, negatives (per-call writes, kernargs, hw_page, small-copyin repro all clean). See its README.
+- `chestnut-usb3-20260830/repro-f2-rearm/` — 800 back-to-back 8-16 KiB uploads: 0/800 corrupted on ed4e39b7 (regression control).
+
 | sweep | date | question | model | headline result |
 |---|---|---|---|---|
 | [qwen38-mtp-fork](qwen38-mtp-fork-20260824/) | 08-24 | Bring the fork up at all — which renderer/env? | UD-Q4_K_XL | `DEV=AMD:LLVM` (AMDLLVMRenderer) is **required**; comgr/HIP path fails. First success ~30.7 tok/s. |
