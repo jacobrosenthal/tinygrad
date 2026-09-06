@@ -27,7 +27,7 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
   705 GB/s average; the 5120x6144 out-proj class runs at 423 GB/s (spill/VGPRs). Plan for the remaining ms in the README.
 - `chestnut-usb3-20260830/draft-vocab-20260906/` — **MTP_DRAFT_VOCAB=65536: 89.6 tok/s vs 82.8 on KFD (+8%), acceptance unchanged**
   (the K=3 draft passes read a 64k-row prefix of the lm_head instead of 248k; branch gemv-spillfree). 32k loses acceptance, 128k saves
-  less. Levers sweep: GEMV_TG and FAST_ARGMAX neutral at K=3. Confirmed from the merged serving tree dfe59dd70: **90.1 tok/s** mean (8 prompts), and at the production 112K context with penalty 1.0: **102 tok/s** on the merge-sort prompt (USB3 today: 82). Deploy = user's act.
+  less. Levers sweep: GEMV_TG and FAST_ARGMAX neutral at K=3. Confirmed from the merged serving tree 701360b93 (15:54): **91.1 tok/s** mean (8 prompts), 102 on the merge-sort prompt at the production 112K context with penalty 1.0, and **49 tok/s at a 103K-token prompt** (was 39; attention LDS fix). USB3 today: 75 / 39. Deploy = user's act (drop-in + reinstall documented in usb4-kfd-20260906).
 - (superseded) `usb4-kfd-20260906` plan for the #1 comms option: flash the shipped USB4 firmware back, run the GPU as a
   native PCIe device under amdgpu/KFD (`DEV=AMD:KFD`); journal proves it worked on this host on 09-05 15:40-16:06. Needs the user
   (flash + replug). Expected 80 -> 120-145 tok/s.
