@@ -42,8 +42,9 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
   drafts 2.46-2.92). Block 8 needs MAX_T=16 (fine at 8K ctx). Without selector DFlash (62) loses to MTP K=3 (75).
 - `chestnut-usb3-20260830/dflash-selector-20260906/` — the fix: selector as two custom kernels inside the spec graph (branch
   gemv-spillfree c9a53aa96, `DFLASH_SEL=1`), codebooks read from Q4_K bytes. Correctness test + throughput sweep queued (chain6).
-- `chestnut-usb3-20260830/bitexact-20260906/` update: MTP=0 (generic decode path) OOMs at 8K ctx on 24 GB, so the reference is
-  MTP K=1; MTP K=3 vs DFlash block 6 greedy: 0/8 identical (near-tie flips after 30-200 tokens). K=1/3/5/DFlash matrix queued (chain5).
+- `chestnut-usb3-20260830/bitexact-20260906/` RESOLVED: every K / DFlash pair diverges (0/8 identical) because the fused GDN path
+  differs by 1 ulp between T=1 and T>1 at block 4 and the 64-layer stack amplifies it to ~1% of the logits (top-1 stable, near-ties
+  flip after 30-200 tokens). Not a verify/KV bug; MTP=0's generic path OOMs at 8K ctx. Gate = agreement statistics, not bitwise text.
 - `chestnut-usb3-20260830/dflash-restore-fault-20260905/` sampling sweep (09-06 01:01-01:49, README "Sampling sweep"): official
   thinking settings (temp 1.0/top_p .95/top_k 20) 61 tok/s vs greedy 75 (-18%) through acceptance; temp 0.6 + top_p/top_k 66 (-12%);
   the sampler RNG is seeded identically per process (restores are not independent samples). Rerun of the collision-lost legs
