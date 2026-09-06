@@ -194,7 +194,7 @@ into the fork or make our own weights.
   between groups; seq/windows carry across. Validated: 2GB+3GB no longer hang, 1.5/2/3GB random
   roundtrips = 0 corruption, ~640 MB/s (throughput preserved, even improved). USB_SAFE_COPYIN
   workaround removed from the chestnut unit; fast path restored.
-- [ ] **Fix the copyin race in FIRMWARE, not just the host guard.** Root cause found in
+- [x] SHELVED 2026-09-06 (not needed: the 'wild write' was the host-side scratch use-after-free; 0/800 corruptions and 0 dropped dwords on the current firmware; branches fix-f0-arm-race / fix-f0-f2-arm-race kept unflashed) — **Fix the copyin race in FIRMWARE, not just the host guard.** Root cause found in
   `tinygrad/asm2464pd-firmware` `handmade/src/main.c` (~line 250): the 0xF2 handler programs
   the bulk DMA engine (DMA_INIT + NVME_CTRL_DMA_START) and `usb_send_zlp()` acks IMMEDIATELY
   — no engine-idle check before reprogramming, no ready check before the bulk data lands. The
