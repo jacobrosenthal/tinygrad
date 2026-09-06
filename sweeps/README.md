@@ -203,6 +203,23 @@ into the fork or make our own weights.
   up if dirty / down if clean (each read is an XDATA-bus cycle; 128 reads/chunk could cost a few
   % bandwidth — MEASURE vs the guard's 0.4%), (4) only ship guard=0 if fw-fixed AND not slower.
 
+## Re-audit after the scratch-regrowth root cause (2026-09-05, see chestnut-usb3-20260830/dflash-restore-fault-20260905)
+The "wild write" was tinygrad's AMD scratch buffer being freed/reallocated on regrowth while graphs keep the old base baked
+in. It fires whenever a graph is built BEFORE a heavier-spilling kernel is compiled (LLM-cache restore, a new spec width,
+a new chunk shape, XCTX). Fault-motivated items re-judged against that:
+- [ ] REVERT `e0faf3771` HCQ same-queue serialize (~13% tok/s) and default `USB_VERIFY_WRITES=0` (`c9df7365f`, 15-20%):
+  both targeted mechanisms now disproven (0 dropped host->GPU writes in ~1e5 verified). Keep deferred verify as a detector.
+- [ ] REMOVE the attn_prep parking guard (`70bb76cea`, debug only).
+- [ ] RE-TEST DFlash XCTX>0 (`4b5c43f7e` was shelved for "dflash decode faults" = this bug; XCTX=16 measured slightly faster).
+- [ ] RE-TEST wide speculative verify (larger MTP_K / MAX_T): the 2026-09-04 "device hang" that gated it matches this trigger
+  (new T variants compiled after the base graphs). Also K=4-5 within MAX_T=12 with ATTN_QT=8.
+- [ ] KEEP `4218a224b` (KV/rope pad by MAX_T): the 08-26 "MMU fault at start_pos 98301" may have been scratch, but a chunk at
+  the ceiling does overrun; slack rows are free. Annotate, do not revert.
+- Independent, untouched: adaptive spin `1f3d594dc` (perf), hang hardening `bfa54552b`, all diagnostics, the copyin/C450
+  work (data-only repro, genuinely copyin), the F0 firmware fixes (latent, never observed).
+- Measurement plan (restored instances = the once-faulting config): DFlash XCTX=0/16 vs MTP K=3/4/5, 8 long requests each,
+  logs under dflash-restore-fault-20260905/logs via restore_cycle.sh (never truncates).
+
 ## TODO — reaching the bandwidth-bound decode ceiling (2026-09-05)
 
 Trigger: an RTX 5090 in an OCuLink eGPU dock serving Qwen3.8-27B at ~200 tok/s flat from 32K to 128K context
