@@ -320,7 +320,7 @@ So ~57% of our step time is NOT weight streaming. Every item below attacks that 
   accepted tokens/step. NInfer gets ~2.5-3 with MTP3; we get 3.08 (MTP) and 3.33 (DFlash XCTX=0, when it does
   not fault — see the restore-path bug). Sweep K / DFLASH_BLOCK / p_min against the per-step cost from the
   budget; wire "adaptive-down speculation" (existing item) so low-acceptance regions do not pay the verify width.
-- [ ] **Long-context flatness sweep.** We benchmark ~25-token prompts. Measure decode tok/s at 8K/32K/64K/114K
+- [x] MEASURED 09-06 on KFD (usb4-kfd-20260906 README): 86 / 82 / 76 / 57 / 46 / 39 tok/s at 74 / 1.8K / 6.9K / 28K / 55K / 103K prompt tokens — NOT flat; the attention decode kernel runs at ~5% of bandwidth at long context (next lever for 50-100K Hermes contexts) — **Long-context flatness sweep.** We benchmark ~25-token prompts. Measure decode tok/s at 8K/32K/64K/114K
   KV fill (the "decode vs KV occupancy" item above, never done). The quantized KV (k4+qjl / v4, ~6.8x smaller)
   plus chunked flash-decode (`attn_pfd` CH=256 + `attn_merge_mq`) should hold near-flat like NInfer's
   213 -> 202; find the knee and which kernel bends it (attn_pfd chunk count vs merge cost).
