@@ -220,6 +220,30 @@ a new chunk shape, XCTX). Fault-motivated items re-judged against that:
 - Measurement plan (restored instances = the once-faulting config): DFlash XCTX=0/16 vs MTP K=3/4/5, 8 long requests each,
   logs under dflash-restore-fault-20260905/logs via restore_cycle.sh (never truncates).
 
+## Sweeps + implementation backlog toward the ceiling (2026-09-06, after the scratch fix)
+Sampling (official Qwen3.8 card: thinking temp 1.0 / top_p 0.95 / top_k 20 / min_p 0 / presence 0 / repetition 1.0;
+instruct 0.7 / 0.80 / 20 / presence 1.5. Production: client temp 0.6, no top_p/top_k, `--repeat-penalty 1.15`):
+- [ ] **Repeat-penalty 1.15 vs 1.0 at temp 0.6** — never swept; the card says 1.0; a repetition penalty reshapes the verify
+  row away from the drafter's distribution (costs acceptance) and hurts code/structured output. `perf_sweep2.sh`.
+- [ ] **Official thinking settings (1.0/0.95/20) vs 0.6/0.95/20 vs 0.6-bare** with MTP AND DFlash — the 08-25 sweep was MTP
+  only; DFlash's acceptance-vs-temperature curve is unmeasured and likely steeper (block drafts + exact verification).
+- [ ] **Instruct settings (0.7/0.80/20, presence 1.5)** as the non-thinking row; the card warns presence>0 can mix languages.
+- [ ] **Benchmark protocol:** report two rows always — greedy (temp 0, what tok/s tables like llama-bench use) and the
+  production sampling row. Our sweeps so far are greedy => optimistic for every drafter.
+Other sweeps (each restored-instance, `restore_cycle.sh`/`perf_sweep.sh` style, logs never truncated):
+- [ ] DFlash: XCTX {0,16,32}, DFLASH_BLOCK {4,6,8}, p_min; MTP_K with adaptive-down; ATTN_QT; JIT_BATCH_SIZE (graphs per step);
+  AMD_USB_SPIN_MS; context depth 8K/32K/64K/114K; concurrency 1-4 (knee ~3 measured before); GDN-aware imatrix quant.
+Implementation / refactor (per-step budget first — measure before building):
+- [ ] **Spill-free gemv configs for T>=9.** The t10/t11 variants spill to scratch (private segment up to 524 B/thread, 195
+  scratch ops in the q5_K o_proj) = VRAM round trips per spilled value. That is the likely reason MTP K=4/5 and DFlash T=10
+  gain tok/step but lose tok/s (K=5: 3.73 tok/step, 69-75 tok/s). Retune gemv_config (R/U/XP) per T to fit registers.
+- [ ] **One graph per decode step.** A step is 4 graphs (64/128/256/323 calls) = 4 doorbells + 4 timeline waits over USB
+  (~0.5 ms each); JIT_BATCH_SIZE / graph_split.
+- [ ] **DFlash selector on GPU** (`sel_pred/sel_succ ... .numpy()` are host round trips inside the step).
+- [ ] **Restore path: create all programs before linking graphs** (also makes the scratch final before any base is baked;
+  belt-and-braces on top of AMD_SCRATCH_KEEP_OLD). **Upstream:** grow the scratch mapping in place.
+- [ ] Adaptive-down speculation; fused GDN step/conv; long-context flatness (attn_pfd chunk count vs merge cost).
+
 ## TODO — reaching the bandwidth-bound decode ceiling (2026-09-05)
 
 Trigger: an RTX 5090 in an OCuLink eGPU dock serving Qwen3.8-27B at ~200 tok/s flat from 32K to 128K context
