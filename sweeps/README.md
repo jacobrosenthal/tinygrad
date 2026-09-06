@@ -20,9 +20,17 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
   (flash + replug). Expected 80 -> 120-145 tok/s.
 - `chestnut-usb3-20260830/bitexact-20260906/` — greedy bit-exactness gate: plain (MTP=0) vs MTP K=3 vs DFlash block 6 on 8 prompts x
   400 tokens. Queued behind the GEMV_TG sweep (chain2).
-- `chestnut-usb3-20260830/usb-transfers-20260906/` — MEASURE the USB transfers per decode step (LIBUSB_DEBUG=4 log, split per request;
-  the hcq2 runtime calls libusb from compiled programs so only libusb's own log sees them). Sizes "one graph per step" and the USB4
-  move. Queued (chain3).
+- `chestnut-usb3-20260830/usb-transfers-20260906/` — MEASURED: **~540 libusb submits per decode step** (MTP K=3; 2.5x the code-derived
+  190-240); logging did not change tok/s. USB traffic is the dominant per-step cost: the case for USB4/KFD and for one-graph-per-step.
+- `chestnut-usb3-20260830/gemv-spillfree-20260906/` on-device: GEMV_TG=4 default = K=3 74.7 -> 75.2 (noise), K=5 67.2 -> 70.4 (+4.8%).
+  Merge candidate. K=5 still trails K=3 (per-step cost at T=11 dominates).
+- `chestnut-usb3-20260830/dflash-restore-fault-20260905/` selector sweeps: the eager tinygrad-op selector (DFLASH_EAGER_SEL) runs at
+  4-5 tok/s (~150 launches/step, 950-1180 s restores) but PROVES the acceptance: block 8 + K=7 + selector 3.52 tok/step (argmax
+  drafts 2.46-2.92). Block 8 needs MAX_T=16 (fine at 8K ctx). Without selector DFlash (62) loses to MTP K=3 (75).
+- `chestnut-usb3-20260830/dflash-selector-20260906/` — the fix: selector as two custom kernels inside the spec graph (branch
+  gemv-spillfree c9a53aa96, `DFLASH_SEL=1`), codebooks read from Q4_K bytes. Correctness test + throughput sweep queued (chain6).
+- `chestnut-usb3-20260830/bitexact-20260906/` update: MTP=0 (generic decode path) OOMs at 8K ctx on 24 GB, so the reference is
+  MTP K=1; MTP K=3 vs DFlash block 6 greedy: 0/8 identical (near-tie flips after 30-200 tokens). K=1/3/5/DFlash matrix queued (chain5).
 - `chestnut-usb3-20260830/dflash-restore-fault-20260905/` sampling sweep (09-06 01:01-01:49, README "Sampling sweep"): official
   thinking settings (temp 1.0/top_p .95/top_k 20) 61 tok/s vs greedy 75 (-18%) through acceptance; temp 0.6 + top_p/top_k 66 (-12%);
   the sampler RNG is seeded identically per process (restores are not independent samples). Rerun of the collision-lost legs
