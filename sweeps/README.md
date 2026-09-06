@@ -25,7 +25,9 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
   move. Queued (chain3).
 - `chestnut-usb3-20260830/dflash-restore-fault-20260905/` sampling sweep (09-06 01:01-01:49, README "Sampling sweep"): official
   thinking settings (temp 1.0/top_p .95/top_k 20) 61 tok/s vs greedy 75 (-18%) through acceptance; temp 0.6 + top_p/top_k 66 (-12%);
-  the sampler RNG is seeded identically per process (restores are not independent samples).
+  the sampler RNG is seeded identically per process (restores are not independent samples). Rerun of the collision-lost legs
+  (02:16-02:43): production's `--repeat-penalty 1.15` costs ~4.5% (71.0 vs 74.2 tok/s at temp 0.6, 2.67 vs 2.85 tok/step);
+  temp 0.6 + penalty 1.0 = greedy within noise. Deploy decision: drop or lower the penalty.
 
 | sweep | date | question | model | headline result |
 |---|---|---|---|---|
