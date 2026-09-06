@@ -12,6 +12,17 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
   (6/6 restores fault on req 1, 0/6 warmups; any source edit turns the next launch into a warmup). Full chronological test log,
   hang reports, wave dumps, ISA, negatives (per-call writes, kernargs, hw_page, small-copyin repro all clean). See its README.
 - `chestnut-usb3-20260830/repro-f2-rearm/` — 800 back-to-back 8-16 KiB uploads: 0/800 corrupted on ed4e39b7 (regression control).
+- `chestnut-usb3-20260830/gemv-spillfree-20260906/` — OFFLINE register-pressure probe of the batched gemv (clang -> LLVM -> gfx1100
+  ELF notes, no GPU): only the K4 formats spill (q5k 5120x6144 from T=7: 31/145/201 VGPRs at T=7/10/12), i.e. already in the
+  production K=3 chunk. Fix on branch `gemv-spillfree` (token-grouped x staging, `GEMV_TG`): 0 spills to T=10. On-device sweep queued.
+- `chestnut-usb3-20260830/usb4-kfd-20260906/` — plan for the #1 comms option: flash the shipped USB4 firmware back, run the GPU as a
+  native PCIe device under amdgpu/KFD (`DEV=AMD:KFD`); journal proves it worked on this host on 09-05 15:40-16:06. Needs the user
+  (flash + replug). Expected 80 -> 120-145 tok/s.
+- `chestnut-usb3-20260830/bitexact-20260906/` — greedy bit-exactness gate: plain (MTP=0) vs MTP K=3 vs DFlash block 6 on 8 prompts x
+  400 tokens. Queued behind the GEMV_TG sweep (chain2).
+- `chestnut-usb3-20260830/dflash-restore-fault-20260905/` sampling sweep (09-06 01:01-01:49, README "Sampling sweep"): official
+  thinking settings (temp 1.0/top_p .95/top_k 20) 61 tok/s vs greedy 75 (-18%) through acceptance; temp 0.6 + top_p/top_k 66 (-12%);
+  the sampler RNG is seeded identically per process (restores are not independent samples).
 
 | sweep | date | question | model | headline result |
 |---|---|---|---|---|
