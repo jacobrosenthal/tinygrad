@@ -168,7 +168,7 @@ into the fork or make our own weights.
   events, once they start firing, show up as ~90K prefills in the server journal and as
   `compacted=1` rows + timestamps in `~/.hermes/state.db` — the empirical graph accumulates
   on its own.
-- [ ] **Restricted MTP draft vocab** (syv-ai/qwen38-27b-rtx3090, +10 tok/s on a 3090): calibrate
+- [x] DONE 09-06 (MTP_DRAFT_VOCAB=65536: +8% on KFD, acceptance unchanged; merged) — **Restricted MTP draft vocab** (syv-ai/qwen38-27b-rtx3090, +10 tok/s on a 3090): calibrate
   ~40k tokens from our own outputs, have the MTP head score only those. Shrinks the draft
   lm_head gemv — worth more here than on PCIe boxes since the USB path is dispatch-latency-bound.
 - [ ] **Int4 GPTQ-calibrated lm_head** (same repo): quantize the 150k-vocab lm_head harder than
@@ -272,12 +272,12 @@ Other sweeps (each restored-instance, `restore_cycle.sh`/`perf_sweep.sh` style, 
 - [ ] DFlash: XCTX {0,16,32}, DFLASH_BLOCK {4,6,8}, p_min; MTP_K with adaptive-down; ATTN_QT; JIT_BATCH_SIZE (graphs per step);
   AMD_USB_SPIN_MS; context depth 8K/32K/64K/114K; concurrency 1-4 (knee ~3 measured before); GDN-aware imatrix quant.
 Implementation / refactor (per-step budget first — measure before building):
-- [ ] **Spill-free gemv configs for T>=9.** The t10/t11 variants spill to scratch (private segment up to 524 B/thread, 195
+- [x] DONE 09-06 (GEMV_TG, merged dfe59dd70; +4.8% at K=5, neutral at K=3) — **Spill-free gemv configs for T>=9.** The t10/t11 variants spill to scratch (private segment up to 524 B/thread, 195
   scratch ops in the q5_K o_proj) = VRAM round trips per spilled value. That is the likely reason MTP K=4/5 and DFlash T=10
   gain tok/step but lose tok/s (K=5: 3.73 tok/step, 69-75 tok/s). Retune gemv_config (R/U/XP) per T to fit registers.
-- [ ] **One graph per decode step.** A step is 4 graphs (64/128/256/323 calls) = 4 doorbells + 4 timeline waits over USB
+- [x] MOOT on KFD 09-06 (the 35 ms step is 100% device-busy; USB3 launch gaps were ~3 ms) — **One graph per decode step.** A step is 4 graphs (64/128/256/323 calls) = 4 doorbells + 4 timeline waits over USB
   (~0.5 ms each); JIT_BATCH_SIZE / graph_split.
-- [ ] **DFlash selector on GPU** (`sel_pred/sel_succ ... .numpy()` are host round trips inside the step).
+- [x] DONE 09-06 (fused in-graph selector, DFLASH_SEL; DFlash still loses to MTP K=3: 74.4 vs 82.2 on KFD) — **DFlash selector on GPU** (`sel_pred/sel_succ ... .numpy()` are host round trips inside the step).
 - [ ] **Restore path: create all programs before linking graphs** (also makes the scratch final before any base is baked;
   belt-and-braces on top of AMD_SCRATCH_KEEP_OLD). **Upstream:** grow the scratch mapping in place.
 - [ ] Adaptive-down speculation; fused GDN step/conv; long-context flatness (attn_pfd chunk count vs merge cost).
@@ -296,7 +296,7 @@ long-context attention path matter. The arithmetic for both boxes:
 
 So ~57% of our step time is NOT weight streaming. Every item below attacks that gap or the numerator; ranked.
 
-- [ ] **Per-step time budget (measure first).** Instrument one decode step end to end and attribute it:
+- [x] DONE 09-06 (usb4-kfd-20260906 profile: 35 ms = 29.3 gemv + 1.9 attn + 1.4 gdn + 2.9 small kernels; 20.65 GB/step) — **Per-step time budget (measure first).** Instrument one decode step end to end and attribute it:
   GPU kernel time (sum of kernel durations from PROFILE=1 / the VIZ trace), host waits on GPU signals over USB
   (count and duration of `AMDSignal._sleep` polls; ~12 sync points/step at ~0.5 ms each was the last estimate,
   the adaptive spin `AMD_USB_SPIN_MS` bought +13%), and host Python (`forward_spec` bookkeeping, tokenizer,
@@ -307,7 +307,7 @@ So ~57% of our step time is NOT weight streaming. Every item below attacks that 
   (`sel_pred/sel_succ ... .numpy()`). Target: main forward + draft + sample + accept + next-chunk build in ONE
   captured graph, one doorbell, one wait. Each removed sync point is ~0.5 ms of a ~37 ms step (~1.3%);
   removing 10 of 12 is worth ~+15%.
-- [ ] **Achieved GB/s per GEMV.** For every gemv/gemv_multi variant in the decode graph (T=1..12, q4_K/q5_K/q6_K/
+- [x] DONE 09-06 (profile/gemv_bandwidth.txt: 705 GB/s average; out-proj class 423) — **Achieved GB/s per GEMV.** For every gemv/gemv_multi variant in the decode graph (T=1..12, q4_K/q5_K/q6_K/
   iq4_xs), compute weight-bytes / kernel-time from the trace; anything under ~80% of 960 GB/s is a kernel
   problem (tile config `gemv_config`: R/U/WG/n_wg per (type, N, K, T)), not a bandwidth one. The DFlash-only
   T=10 variants (`_t10_`) were never tuned separately from the MTP T=6 ones. Also count non-gemv kernel time
