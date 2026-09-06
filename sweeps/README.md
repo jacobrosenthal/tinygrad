@@ -20,6 +20,9 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
   (flash + replug). Expected 80 -> 120-145 tok/s.
 - `chestnut-usb3-20260830/bitexact-20260906/` — greedy bit-exactness gate: plain (MTP=0) vs MTP K=3 vs DFlash block 6 on 8 prompts x
   400 tokens. Queued behind the GEMV_TG sweep (chain2).
+- `chestnut-usb3-20260830/usb-transfers-20260906/` — MEASURE the USB transfers per decode step (LIBUSB_DEBUG=4 log, split per request;
+  the hcq2 runtime calls libusb from compiled programs so only libusb's own log sees them). Sizes "one graph per step" and the USB4
+  move. Queued (chain3).
 - `chestnut-usb3-20260830/dflash-restore-fault-20260905/` sampling sweep (09-06 01:01-01:49, README "Sampling sweep"): official
   thinking settings (temp 1.0/top_p .95/top_k 20) 61 tok/s vs greedy 75 (-18%) through acceptance; temp 0.6 + top_p/top_k 66 (-12%);
   the sampler RNG is seeded identically per process (restores are not independent samples).
