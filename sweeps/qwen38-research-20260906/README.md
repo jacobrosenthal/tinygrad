@@ -153,3 +153,47 @@ budgeted per-tensor search + short QAT/QAD pass, diverse calibration corpus (bar
   published accepted/pass (~4.8–5.0 at block 8 with the selector) vs our 3.33 tok/step is the biggest cheap lever on the table:
   sweep DFLASH_BLOCK=8 with the selector ON (its host `.numpy()` round trips are the cost to measure/move on-GPU).
 - Our gemv FORMATS include iq3s: ISTA-DASLab GSQ-RCO IQ3_S (11.8 GB, 3.5 bpw, task-lossless) loads directly -> test for ceiling.
+
+## X + Hacker News (~20 searches, ~45 fetches; X text via the FxTwitter API — xcancel was shut down Aug 24)
+1. Aug 15-31 github.com/sudoingX/qwen38-mtp — llama.cpp draft-mtp A/B table. RX 7900 XTX: RADV 28.8->70.7 tok/s (n-max 3,
+   acc 0.43-0.95), Windows Vulkan 41.0->85.4 (n-max 3), ROCm 36.3->62.6 (n-max 2). 24 GB cards peak at n-max 2-3;
+   --spec-draft-p-min ~0.60 "helps starved cards, hurts fast ones"; MTP gain gone by --parallel 4.
+   => our 80 @ K=3 already matches the best llama.cpp number on this card; p-min gating maps to our host-latency-bound link.
+2. Aug 31 vramcalculator.com/qwen3-8-27b-speed (UNVERIFIED row attributed to splizard): "7900 XTX tinygrad q4 KV MTP: 71 tok/s"
+   vs llama.cpp Vulkan 48.5. tiny corp: chestnut shipping ($249, USB3+USB4) x.com/__tinygrad__/status/2087667206993961342.
+3. Aug 17-20 lcz.me/topic/1164 (7900 XTX, llama.cpp Vulkan, Q4_K_M, n-max 5): 73.4 tok/s tool-call JSON, 68-70 C++, 39-47
+   Chinese prose, 38.9 no-MTP; ReBAR off = 2-4x slower. => acceptance, not kernel speed, is the swing by workload.
+4. Aug 18-27 inco.ai/blog/dflash2, llama.cpp PR #27342: DFlash2 = DFlash + 2-tap dynamic conv (16.5M) + top-16 low-rank path
+   selector (2M, 0.6% latency); mean acceptance 4.80 vs MTP 4.28 vs DSpark 3.62; Q4_K_M drafter 5.39 = BF16 5.28. Vulkan graph-opt
+   bug #27805 gives WRONG acceptance on Vulkan. => the conv + selector ARE the DFlash1->2 gain; validate acceptance bit-for-bit.
+5. Aug 2026 lucebox.com/blog/qwen38-r9700, github.com/Luce-Org/lucebox (C++/HIP, Apache-2, lists 7900 XTX gfx1100): R9700 (RDNA4,
+   LOWER bandwidth than a 7900 XTX) UD-IQ4_XS + DFlash2 block 16: 32.3 -> 208 avg / 227.8 peak tok/s HumanEval, 133 math, 23.7
+   prose @70K; verify batch capped at 8 rows past 8K ctx; fused DeltaNet decode; byte-identical output.
+   => THE analog to our fork on AMD. Block-16 lossless verify + fused GDN decode + context-KV ring cache are portable.
+6. Aug 22 github.com/syv-ai/qwen38-27b-rtx3090 (vLLM + 32 patches): 3090 (BW ~ 7900 XTX) 114 sampled / 124 greedy tok/s, MTP k=4
+   (2.8-2.9 tok/step; "k=4 is the knee, k=5 loses"); DFlash2 118-126; own-output draft vocab, GPTQ-int4 lm_head, split-KV verify
+   attention, fp16 DeltaNet state; DFlash2 + n-gram chains: 260 -> 382 tok/s (15 tok/step) on context-copy.
+   => 124/2.9 = ~23 ms per step vs our 80/3.08 = ~38 ms: per-step cost is the target; n-gram chains on top of DFlash2 = our
+   NGRAM_DRAFT direction.
+7. NInfer (3090/4090, CUDA): 3090 65.6 @8K -> 43.1 @128K (MTP3, INT8 KV); 4090 148.6 code @81% acc; E8-lattice 4-bit KV fits full
+   262K in 24 GB (5.7% tax). => E8/INT8 KV for long context is portable.
+8. Aug 31 / Sep 5 (x.com MiaAI_lab, murasametech): EXL3 3.5bpw + DFlash2 EXL3 5.0bpw: MTP 51.5 vs DFlash2 72.7 tok/s (+41%) at
+   32K. Mia's vLLM patch #40914: stock verify ran a "context-free first-chunk cudagraph that never reads cached KV" -> 13/15
+   garbled. => a verify-path-reads-stale-KV bug class to test for in our batched verify.
+9. Aug 29 hackmd.io/@thc1006 (3090, llama.cpp UD-Q4_K_XL): MTP n2 +59.8%, DFlash2 n4 63.1; BUT 92-100% of requests diverge
+   from plain greedy by 1600 tokens, deterministically. => run a bit-exactness check: spec vs plain decode over 1.6K tokens.
+10. Aug 20 x.com/analogalok: DFlash2 drafter requantized to Q2_K (700 MB): identical acceptance (2.80 vs 2.81), +450 MB free.
+11. Sep 2-5 github.com/stew675/llama-cpp-rdna-boosts: 13 RDNA3/4 ROCm patches — chunked GatedDeltaNet prefill bf16/WMMA (+7.5%
+    MTP prefill), BF16 KV + native FA, WMMA FA + Q6_K, K-quant VDR, fused gate/up/GLU MMQ; 7900 XTX pp2048 4939 -> 5405.
+    => WMMA DeltaNet-prefill ideas for amd_prefill.py.
+12. Aug 20 alephinitesimal.com (DGX Spark bake-off): DFlash2 1.83-2.56x beats a 2B AR drafter (88% acc but slower) and n-gram
+    alone (no gain); "acceptance rate is not comparable across drafter architectures" => judge drafters by tok/s per step.
+13. Aug 26-27 quesma.com, piszczek.pl: Q4_K_M == BF16 on GPQA/IFBench/Terminal-Bench; UD-Q2_K_XL -5 pt; 1-bit collapses.
+    piszczek (24 GB, MTP n8 21.2 -> 59.5): a HIGHER-bit MTP head LOWERED acceptance vs the target-matched quant.
+    => keep MTP/DFlash heads quantized like the target.
+14. Sep 1: Qwen3.8-Flash-Next (125B MoE + 51B n-gram embeddings) needs 75 GB even at 1-bit — not viable over USB on 24 GB.
+15. No widely served 27B post-train beyond abliterations; Qwen refreshed only Max (0902). HN Aug 31: a 7900 XTX at Q4_K_M 131K
+    ctx runs 55 tok/s with MTP.
+Agent's try-first: (a) n-gram/lookup chains ON TOP of the DFlash2 block + widen verify to 8-16 rows (syv-ai/Lucebox pattern);
+(b) a bit-exactness gate (spec vs plain greedy, 1.6K tokens) and a stale-KV verify test; (c) requantize our drafter/MTP head to
+the target's scheme, try a 2-3 bit drafter, re-sweep draft depth with a p-min acceptance gate on prose vs code.
