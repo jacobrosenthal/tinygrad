@@ -197,3 +197,7 @@ budgeted per-tensor search + short QAT/QAD pass, diverse calibration corpus (bar
 Agent's try-first: (a) n-gram/lookup chains ON TOP of the DFlash2 block + widen verify to 8-16 rows (syv-ai/Lucebox pattern);
 (b) a bit-exactness gate (spec vs plain greedy, 1.6K tokens) and a stale-KV verify test; (c) requantize our drafter/MTP head to
 the target's scheme, try a 2-3 bit drafter, re-sweep draft depth with a p-min acceptance gate on prose vs code.
+- Selector wiring (model.py:1299): the DFlash2 path selector only runs with DFLASH_EAGER_SEL=1 (own TinyJit + one host
+  `.tolist()` per step, next chunk host-built); default = per-position argmax drafts (`res[-K:]`). `DFLASH_NOSEL` is a no-op env.
+  So every DFlash number we have (3.33 tok/step) is WITHOUT the selector that gives the published 4.8-5.0. Sweep queued:
+  scripts/perf_sweep_sel.sh — block 8 + selector, block 6 + selector, block 8 argmax.
