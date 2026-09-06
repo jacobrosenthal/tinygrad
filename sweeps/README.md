@@ -12,6 +12,10 @@ noted; the fork is served with `DEV=AMD:LLVM LLM_CACHE=1`.
   (6/6 restores fault on req 1, 0/6 warmups; any source edit turns the next launch into a warmup). Full chronological test log,
   hang reports, wave dumps, ISA, negatives (per-call writes, kernargs, hw_page, small-copyin repro all clean). See its README.
 - `chestnut-usb3-20260830/repro-f2-rearm/` — 800 back-to-back 8-16 KiB uploads: 0/800 corrupted on ed4e39b7 (regression control).
+- `chestnut-usb3-20260830/repro-scratch-regrow/` — UPSTREAM package for the scratch use-after-free: `repro.py` (custom_kernel + hand
+  LLVM IR, 260 B -> 2052 B private segment, jit replay after regrowth) and the note. Clean commit to cherry-pick: **51ef7811f** on
+  branch `upstream-scratch-keep-old` in ~/z/tinygrad-master (6-line fix in `_ensure_has_local_memory` + `test/test_scratch_regrow.py`).
+  On-device validation of repro/test (fork keep-old=0/1, master fixed/reverted) queued as chain7/chain8.
 - `chestnut-usb3-20260830/gemv-spillfree-20260906/` — OFFLINE register-pressure probe of the batched gemv (clang -> LLVM -> gfx1100
   ELF notes, no GPU): only the K4 formats spill (q5k 5120x6144 from T=7: 31/145/201 VGPRs at T=7/10/12), i.e. already in the
   production K=3 chunk. Fix on branch `gemv-spillfree` (token-grouped x staging, `GEMV_TG`): 0 spills to T=10. On-device sweep queued.
