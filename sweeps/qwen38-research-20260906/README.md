@@ -201,3 +201,55 @@ the target's scheme, try a 2-3 bit drafter, re-sweep draft depth with a p-min ac
   `.tolist()` per step, next chunk host-built); default = per-position argmax drafts (`res[-K:]`). `DFLASH_NOSEL` is a no-op env.
   So every DFlash number we have (3.33 tok/step) is WITHOUT the selector that gives the published 4.8-5.0. Sweep queued:
   scripts/perf_sweep_sel.sh — block 8 + selector, block 6 + selector, block 8 argmax.
+
+## Comms stack + USB4 big picture (read-only survey of the tree, firmware repo, upstream log, web)
+
+(a) In the tree: `extra/usbgpu/tbgpu/` is the macOS TinyGPU DriverKit path (PCI tunnel dext + socket server for APLRemotePCIDevice);
+no Linux TB-specific code exists or is needed: a tunneled GPU is a plain PCI device, so `PCIIface` (sysfs resource mmap, physical
+sysmem) or `KFDIface` (amdgpu + /dev/kfd) apply unchanged; `DEV=AMD:KFD|PCI|USB` selects. `extra/usbgpu/patch.py` = patched STOCK
+ASMedia fw (AS_USB4_240417) re-identified 0xADD1:0001 / USB4 router "Gopod USB4 NVMe SSD Pro Enclosure". Upstream dropped
+stock-fw USB3 (`d6fddb066`); USB3 now needs handmade fw. Upstream USB work: pipelined 0xF2 copyin (276 MB/s), async arm/drain
+(323), hcq2 libusb-in-UOps, yield between polls, fast-path race + 1-byte fence. Nothing on USB4, doorbell batching, interrupts.
+Firmware repo: "USB4 (#61)" (5.4k lines) merged 2026-07-06, REVERTED by geohot 2026-08-04 (`dcc8b97 revert usb4 slop`).
+KEY: journal 2026-09-05 15:40 on THIS host: stock-fw dock booted as a TB4 tunnel (00:07.0 ADL-P root -> 53/54:00.0 ASM tunnel
+switch -> 55/56:00.0 Navi31 switch -> 57:00.0 [1002:744c]); amdgpu initialized, KFD node added, BAR0 resized to 32 GB through the
+tunnel, survived one replug; a later abrupt disconnect wedged MES teardown. IOMMU on (device "untrusted", DMA-remapped: fine for
+KFD, blocks the AM PCIIface path which uses physical addresses).
+
+(b) Per-step cost model from the code: each USBMMIOInterface dword write = 0xF0 control + bulk OUT (2 transfers); each signal read
+= control + bulk IN (2). Per graph call: timeline wait 2 (+4 per extra poll), var patches ~4-6 dwords (8-12), 4 ring dwords (8),
+write_ptr + doorbell (4), kick signal (2) = ~26; per step: 4 graphs (~104) + 2-3 .numpy() copyouts (~10 each) + token copyin (~12)
++ poll iterations => ~190-240 transfers/step at ~75-150 us = 15-25 ms = essentially the whole non-weight gap (37 vs ~17 ms).
+(The earlier "~12 round trips" undercounted ~15x.) Derived from code, not yet measured: first experiment = count transfers/step.
+
+| option | decode gain | copyin | effort | risks / prerequisites |
+|---|---|---|---|---|
+| A. USB3 + batching (fw scatter-write of patches+ring+doorbell in one bulk; completion via F2 "GPU write triggers bulk IN") | ~200 -> ~30 transfers: ~+35-60% | none | med-high (fw + host) | same arm-race bug class that cost days |
+| B. nusb/Rust host stack | same protocol; per-transfer 150 -> 50-70 us: ~+15-25% | 300-530 -> 600-700 MB/s (load only) | high | USB3 control floor stays; marginal vs A/C |
+| C. USB4/TB tunnel, native PCIe (KFD, or AM PCIIface) | MMIO ~1.5 us vs 75-150 us: removes ~15-20 ms/step -> ~+50-80% (80 -> 120-145 tok/s); remaining = Python + 4 graphs | TB4 tunnel ~2.5-3 GB/s: 5-8x (16 GB in ~6 s) | LOW (KFD: flash patched stock fw, boot); med (AM: intel_iommu=off, unbind amdgpu) | amdgpu Gen1 fallback (`amdgpu.pcie_gen_cap=0x00070007`, check pp_dpm_pcie); abrupt disconnect wedges MES; no suspend; lose F2/FTDI/ATX/INA231 dock control on stock fw |
+| D. handmade USB4 @ 20G | = C | ~1.6-1.8 GB/s | very high (resurrect reverted stack, find the 10G/20G bit, no sleep path) | validated only on ASM4242 Linux hosts; this Intel host untested |
+
+(c) Ranked: 1. C (highest gain, least new code, and it removes the whole F0/F2 corruption class). First experiment: flash the patched
+stock fw (`~/z/asm2464pd-firmware`: `./ftdi_debug.py -bn && ./flash.py fw_tinygrad.bin && ./ftdi_debug.py -rn`), replug, `boltctl
+list`, `lspci -vv -s 54:00.0 | grep LnkSta` (expect Gen3/4 x4), `cat /sys/class/drm/card*/device/pp_dpm_pcie` (Gen1 => set
+`options amdgpu pcie_gen_cap=0x00070007`), then the benchmark with `DEV=AMD:KFD` (same LLVM compiler; KFD is upstream-supported)
+vs the 80 tok/s USB3 baseline; copyin with a 1 GB Tensor.realize(). 2. A only if the dock must stay USB3; its first step is
+read-only: count transfers/step with wrappers on USB3.control_*/bulk_* over 50 steps (also sizes the "one graph per step" win).
+B not before A's measurement; D not while C is available.
+
+## Synthesis — ranked plan (all four sources, 2026-09-06)
+1. USB4/TB native PCIe via KFD (comms C). Cheapest big win: expected +50-80% decode from removing ~200 USB transfers/step, plus 5-8x
+   load/restore. Needs Jacob: flash patched stock fw, replug, kernel param check. Keep the handmade-USB3 path as the fallback.
+2. DFlash2 as published: block 8 + path selector (DFLASH_EAGER_SEL=1) — sweep queued (perf_sweep_sel.sh). Then block 16 with verify
+   capped at 8 rows (Lucebox: 208 tok/s on an R9700), selector moved on-GPU (its host round trip is what EAGER_SEL costs).
+3. Correctness gates before wider verify: bit-exactness (spec vs plain greedy, 1.6K tokens) + stale-KV verify test (two groups hit
+   deterministic divergence; Vulkan DFlash2 acceptance bug #27805).
+4. Per-step host cost: measure transfers/step; one graph per step; selector + sampling on-GPU; spill-free T>=9 gemv configs
+   (ceiling TODO). These compound with #1 (Python + 4 submissions remain after USB is gone).
+5. Weights: test unsloth UD-Q5_K_S/M (quality) and ISTA GSQ-RCO IQ3_S (3.5 bpw task-lossless; iq3s kernel exists) — a +25%
+   bandwidth-ceiling candidate; own per-tensor KLD sweep to settle GDN sensitivity (arXiv says 4-bit everywhere is fine; GGUF
+   community says ssm_out/alpha/beta need Q5-Q8). Drafter/MTP heads quantized like the target; 2-3 bit drafter is free.
+6. Drafter training (rented GPU-days): DFlash2 retrain with Spec-AUF + D-PACE + Draft-OPD on OUR quant's hidden states (DimInfer
+   recipe); FastMTP/MTP-D fine-tune of the native MTP head; confidence-scheduled K (DSpark/SpecKV) host-side; n-gram chains on top
+   of the block (syv-ai: 382 tok/s on context-copy).
+7. Long context: 2-3 bit KV (Kitty/TurboQuant/E8), dasc/DAMP state checkpoints for prefix reuse, WMMA GDN prefill (stew675).
