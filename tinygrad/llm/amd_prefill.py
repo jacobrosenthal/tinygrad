@@ -372,7 +372,11 @@ def _attn_pf_src(H:int, HKV:int, D:int, RD:int, MAXC:int, gated:bool, kvq:KVQuan
   assert CH % 16 == 0
   NR, RT = QT * G, (QT * G + 15) // 16
   assert D == 256 and NR % 16 == 0
-  NWAVE = RT * 2; WG = NWAVE * 32
+  # One wave per 16-row tile. It used to be two, splitting the 256 output dims (dh = wave & 1), but the score WMMAs and the
+  # softmax depend only on the row tile and the lane -- not on dh -- so both waves of a pair computed them identically. Ablation
+  # on a 59,748-token prefill: deleting the score WMMAs is worth 689 -> 883 tok/s and deleting the softmax 689 -> 885, while
+  # deleting the PV WMMAs (the part that genuinely differed) only reaches 739. Merging halves that duplicated work.
+  NWAVE = RT; WG = NWAVE * 32
   QSTRIDE = 2 * D if gated else D
   J = kvq.qjl
   off = kvq.offsets(MAXC)
@@ -423,7 +427,7 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
   {f"const u32 pos0 = chunk * {CH}; if (pos0 >= kv_end) return; const u32 pend = pos0 + {CH} < kv_end ? pos0 + {CH} : kv_end;" if CH else
      "const u32 pos0 = 0, pend = kv_end;"}
   // wave is uniform per wave: say so (readfirstlane) so the per-position scale loads (same address for all lanes) become scalar loads
-  const u32 t = tid(), lane = lane_id(), wave = __builtin_amdgcn_readfirstlane(t >> 5), rt = wave >> 1, dh = wave & 1, l16 = lane & 15, h = lane >> 4;
+  const u32 t = tid(), lane = lane_id(), wave = __builtin_amdgcn_readfirstlane(t >> 5), rt = wave, l16 = lane & 15, h = lane >> 4;
   const u8* Kh = cache + (u64)kvh * {MAXC * kvq.bytes_per_pos};
   if (t < 16) {{ cbk8_s[t] = {cbk8}; cbv_s[t] = {cbv}; }}
   {f'for (u32 i = t; i < {D}; i += WG) zrow[i] = 0;' if QG else ''}
@@ -449,14 +453,14 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
   {"const i8* sqrow_g = qtl < nq ? sqq + qrow_off : (const i8*)zrow;" if J else ""}""" if QG else ""}
   // this lane's 8 accumulator rows: 2i + h of row tile rt
   float qs_r[8], sqs_r[8], m[8], l[8]; i32 row_pos[8];
-  f32x8 O[8];
+  f32x8 O[16];   // 16 chunks of 16 output dims: this wave owns all of D
   #pragma unroll
   for (int i = 0; i < 8; i++) {{
     const u32 r = rt * 16 + 2 * i + h;
     qs_r[i] = qsc_s[r]; sqs_r[i] = sqsc_s[r]; m[i] = -1e30f; l[i] = 0.0f; row_pos[i] = sp + (i32)qt0 + (i32)(r / {G});
   }}
   #pragma unroll
-  for (int dt = 0; dt < 8; dt++) O[dt] = (f32x8){{0, 0, 0, 0, 0, 0, 0, 0}};
+  for (int dt = 0; dt < 16; dt++) O[dt] = (f32x8){{0, 0, 0, 0, 0, 0, 0, 0}};
   _Float16* Pw = Ps + wave * 256;
   const u32 ntiles = (pend + 15) / 16;
   for (u32 tile = pos0 / 16; tile < ntiles; tile++) {{
@@ -509,14 +513,14 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
       float ps = row_sum16(p[i]); ps = h ? read_lane(ps, 31) : read_lane(ps, 15);
       l[i] = l[i] * corr + ps; m[i] = mn;
       #pragma unroll
-      for (int dt = 0; dt < 8; dt++) O[dt][i] *= corr;
+      for (int dt = 0; dt < 16; dt++) O[dt][i] *= corr;
       Pw[(2 * i + h) * 16 + l16] = (_Float16)p[i];
     }}
     __builtin_amdgcn_fence(__ATOMIC_SEQ_CST, "wavefront");
     f16x16 pa; __builtin_memcpy(&pa, Pw + l16 * 16, 32);
     #pragma unroll
-    for (int dt = 0; dt < 8; dt++) {{
-      f16x16 vb; __builtin_memcpy(&vb, Vt + VT(dh * 128 + dt * 16 + l16), 32);
+    for (int dt = 0; dt < 16; dt++) {{
+      f16x16 vb; __builtin_memcpy(&vb, Vt + VT(dt * 16 + l16), 32);
       O[dt] = __builtin_amdgcn_wmma_f32_16x16x16_f16_w32(pa, vb, O[dt]);
     }}
     __builtin_amdgcn_fence(__ATOMIC_SEQ_CST, "wavefront");
@@ -527,10 +531,10 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
     const u32 r = rt * 16 + 2 * i + h, tl = r / {G}, hh = r % {G};
     if (tl < nq) {{
       const u64 row = (u64)(qt0 + tl) * {H} + {G} * kvh + hh;
-      float* dst = pacc + (row * {NCH} + chunk) * {D} + dh * 128 + l16;
+      float* dst = pacc + (row * {NCH} + chunk) * {D} + l16;
       #pragma unroll
-      for (int dt = 0; dt < 8; dt++) dst[dt * 16] = O[dt][i];
-      if (l16 == 0 && dh == 0) {{ pm[row * {NCH} + chunk] = m[i]; pl[row * {NCH} + chunk] = l[i]; }}
+      for (int dt = 0; dt < 16; dt++) dst[dt * 16] = O[dt][i];
+      if (l16 == 0) {{ pm[row * {NCH} + chunk] = m[i]; pl[row * {NCH} + chunk] = l[i]; }}
     }}
   }}
   return;
@@ -544,9 +548,9 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
     BAR();
     if (rt == rtt) {{
       #pragma unroll
-      for (int dt = 0; dt < 8; dt++)
+      for (int dt = 0; dt < 16; dt++)
         #pragma unroll
-        for (int i = 0; i < 8; i++) Os[(2 * i + h) * {D} + dh * 128 + dt * 16 + l16] = O[dt][i] * l[i];
+        for (int i = 0; i < 8; i++) Os[(2 * i + h) * {D} + dt * 16 + l16] = O[dt][i] * l[i];
     }}
     wht_vecs(Os, 16, t);
     for (u32 b = wave; b < 32; b += {NWAVE}) {{  // one wave per 128-block: row rr, half hf
@@ -613,7 +617,7 @@ def attn_prefill(cache:Tensor, q_raw:Tensor, k_raw:Tensor, v_raw:Tensor, qnw:Ten
   name = f"attn_pf{sfx}_q{QT}"
   src = _attn_pf_src(H, HKV, D, RD, MAXC, gated, kvq, QT).replace("KERNEL(attn_pf,", f"KERNEL({name},")
   ir_pf = hip_to_ir(src, arch)
-  NWG, WGS = ((T + QT - 1) // QT) * HKV, 32 * 2 * ((QT * G + 15) // 16)
+  NWG, WGS = ((T + QT - 1) // QT) * HKV, 32 * ((QT * G + 15) // 16)
   def pf_fxn(*params):
     sink = UOp.sink(UOp.special(NWG, "gidx0"), UOp.special(WGS, "lidx0"), *params,
                     arg=KernelInfo(name=name, estimates=Estimates(ops=T * H * MAXC * D * 4, mem=HKV * MAXC * kvq.bytes_per_pos * (T // QT))))
@@ -706,7 +710,7 @@ def attn_decode_mq(cache:Tensor, q_raw:Tensor, k_raw:Tensor, v_raw:Tensor, qnw:T
   name = f"attn_pfd{sfx}_c{CH}"
   src = _attn_pf_src(H, HKV, D, RD, MAXC, gated, kvq, QT, CH).replace("KERNEL(attn_pfd,", f"KERNEL({name},")
   ir_pf = hip_to_ir(src, arch)
-  NWG, WGS = NQB * HKV * NCH, 32 * 2 * ((QT * G + 15) // 16)  # +query-block dim: wg_id -> (chunk, qb, kvh); WGS = the kernel's WG
+  NWG, WGS = NQB * HKV * NCH, 32 * ((QT * G + 15) // 16)  # +query-block dim: wg_id -> (chunk, qb, kvh); WGS = the kernel's WG
   def pfd_fxn(*params):
     sink = UOp.sink(UOp.special(NWG, "gidx0"), UOp.special(WGS, "lidx0"), *params,
                     arg=KernelInfo(name=name, estimates=Estimates(ops=T * H * MAXC * D * 4, mem=HKV * MAXC * kvq.bytes_per_pos)))
