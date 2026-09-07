@@ -386,6 +386,7 @@ def _attn_pf_src(H:int, HKV:int, D:int, RD:int, MAXC:int, gated:bool, kvq:KVQuan
   return PRELUDE + rf"""
 #define WG {WG}
 #define BAR() __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup")
+#define VT(r) ((r) * 16 + ((r) >> 3) * 8)   // Vt row offset in halves (row pitch 32 B + 16 B per 8 rows)
 #define dpp_keep(v, ctrl) __builtin_bit_cast(float, __builtin_amdgcn_update_dpp(__builtin_bit_cast(i32, (v)), __builtin_bit_cast(i32, (v)), (ctrl), 0xf, 0xf, false))
 typedef i32 i32x4 __attribute__((ext_vector_type(4)));
 typedef i32 i32x8 __attribute__((ext_vector_type(8)));
@@ -403,7 +404,7 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
                     const u8* __restrict__ cache, {"" if CH else "const float* __restrict__ q_raw, "}const i32* __restrict__ sp_p) {{
   {'' if QG else f'__attribute__((shared)) u8 qbuf[{(2 if J else 1) * NR * LQ}];  // Qs[NR][LQ] (| SQs[NR][LQ]); reused as Os[16][D] f32 in the epilogue'}
   __attribute__((shared)) i8 Ks[16 * {LQ}]{f", KJs[16 * {LQ}]" if J else ""};
-  __attribute__((shared)) _Float16 Vt[{D} * 16];            // [dim][pos]
+  __attribute__((shared)) _Float16 Vt[{D} * 16 + {(D // 8) * 8}];   // [dim][pos], 16 B pad every 8 rows: the lane stride of the transposed stores (8 rows = 256 B) hit one LDS bank 32-way
   __attribute__((shared)) _Float16 Ps[{NWAVE} * 16 * 16];   // per wave [row][pos]
   __attribute__((shared)) float ka_s[16], kb_s[16], va_s[16], qsc_s[{NR}], sqsc_s[{NR}], cbv_s[16];
   __attribute__((shared)) i32 cbk8_s[16];
@@ -468,7 +469,7 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
         u32 kw0 = 0, kw1 = 0{", jw0 = 0, jw1 = 0" if J else ""};
         {" ".join(f"{'kw0' if i < 4 else 'kw1'} |= ((u32)cbk8_s[{kv_idx_of('k', kvq.kbits, i)}] & 0xffu) << {8 * (i % 4)};" for i in range(8))}
         {" ".join(f"{'jw0' if i < 4 else 'jw1'} |= (((kj >> {i}) & 1u) ? 1u : 0xffu) << {8 * (i % 4)};" for i in range(8)) if J else ""}
-        {" ".join(f"Vt[(lane * 8 + {i}) * 16 + pp] = (_Float16)(cbv_s[{kv_idx_of('v', kvq.vbits, i)}] * va);" for i in range(8))}
+        {" ".join(f"Vt[VT(lane * 8 + {i}) + pp] = (_Float16)(cbv_s[{kv_idx_of('v', kvq.vbits, i)}] * va);" for i in range(8))}
         {{ const u32x2 w = {{kw0, kw1}}; __builtin_memcpy(Ks + pp * {LQ} + lane * 8, &w, 8); }}
         {f"{{ const u32x2 w = {{jw0, jw1}}; __builtin_memcpy(KJs + pp * {LQ} + lane * 8, &w, 8); }}" if J else ""}
         if (lane == 0) {{ ka_s[pp] = ld_f32(Kh + {off['ks']} + (u64)pos * 8); kb_s[pp] = {f"ld_f32(Kh + {off['ks']} + (u64)pos * 8 + 4)" if J else "0.0f"}; }}
@@ -477,7 +478,7 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
         __builtin_memcpy(Ks + pp * {LQ} + lane * 8, &z, 8);
         {f"__builtin_memcpy(KJs + pp * {LQ} + lane * 8, &z, 8);" if J else ""}
         #pragma unroll
-        for (int i = 0; i < 8; i++) Vt[(lane * 8 + i) * 16 + pp] = (_Float16)0.0f;
+        for (int i = 0; i < 8; i++) Vt[VT(lane * 8 + i) + pp] = (_Float16)0.0f;
         if (lane == 0) {{ ka_s[pp] = 0.0f; kb_s[pp] = 0.0f; }}
       }}
     }}
@@ -513,7 +514,7 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
     f16x16 pa; __builtin_memcpy(&pa, Pw + l16 * 16, 32);
     #pragma unroll
     for (int dt = 0; dt < 8; dt++) {{
-      f16x16 vb; __builtin_memcpy(&vb, Vt + (dh * 128 + dt * 16 + l16) * 16, 32);
+      f16x16 vb; __builtin_memcpy(&vb, Vt + VT(dh * 128 + dt * 16 + l16), 32);
       O[dt] = __builtin_amdgcn_wmma_f32_16x16x16_f16_w32(pa, vb, O[dt]);
     }}
     __builtin_amdgcn_fence(__ATOMIC_SEQ_CST, "wavefront");
