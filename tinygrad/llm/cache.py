@@ -21,7 +21,7 @@ _TRANSIENT = ("cache_kv", "cache_k", "conv_state", "recurrent_state")
 # NOTE: model attributes are never dropped by size: precomputed tables (e.g. freqs_cis at 160k context) are big and their contents matter
 _CUTOFF = 16 << 20
 # env vars that change what gets captured; a different value means a different cache entry
-_ENV_KEYS = ("MTP", "MTP_K", "HALF", "AMD_GEMV", "AMD_CHUNK", "REALIZE", "JIT", "JIT_BATCH_SIZE",
+_ENV_KEYS = ("MTP", "MTP_K", "MTP_DRAFT_VOCAB", "HALF", "AMD_GEMV", "AMD_CHUNK", "REALIZE", "JIT", "JIT_BATCH_SIZE",
              "GEMV_R", "GEMV_RT", "GEMV_WG", "GEMV_U", "GEMV_NWG", "GEMV_XP", "GEMV_TG",
              # these shape the captured graphs too: a restore under a different value would replay graphs captured for another
              "MAX_T", "ATTN_QT", "ATTN_QG")
