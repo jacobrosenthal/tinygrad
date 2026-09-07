@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 from typing import Any
 from tinygrad import Tensor, nn, UOp, TinyJit, getenv, function, dtypes
 from tinygrad.llm.kernels.amd import Linear, gated_delta_prefill, flash_attention, amd_custom_kernels_supported
-from tinygrad.helpers import DEBUG, Timing
+from tinygrad.helpers import DEBUG, Timing, Context
 from tinygrad.llm.gguf import gguf_load
 from tinygrad.uop.ops import resolve
 
@@ -879,6 +879,16 @@ class Transformer:
     wkw = {"window": self._repeat_window_tensor([0])} if self._penalties_enabled else {}
     for _ in range(2):
       for L in range(K + 1): self._spec_jit(T:=L + 1 + K)(Tensor([[0] * T], dtype="int32"), v_sp.bind(0), temp, T, L + 1, **wkw)
+    # prefill widths: _generate_spec picks the narrowest captured width that covers what is left of the prompt, so the wide one has
+    # to be captured too. generate([0]) above only reaches the narrow one, and a width first seen on a live request pays a full
+    # eager capture inside that request (a 1914-token prefill measured 212 tok/s instead of 856). It has to go through the real
+    # path: the prefill chunk is a shrink of the persistent prompt buffer, and a synthetic Tensor does not match that capture.
+    # a prompt of exactly w tokens leaves w-1, which selects width w (w-1 is above the next width down), so this captures each one.
+    # TRACEMETA=0 for speed: the metadata tracker walks the Python stack on every rewrite, and warmup schedules a lot.
+    with Context(TRACEMETA=0):
+      for w in sorted({256, 512, chunk_T}):
+        if 256 < w <= chunk_T:
+          for _ in range(2): list(zip(range(1), self.generate([0] * w)))
     self._cached_tokens = []  # the extra calls rewrote the state at position 0
     self._warming, self._ckpt_tokens, self._ckpts = False, None, []
 
@@ -1137,14 +1147,20 @@ class Transformer:
     # of pure Python, 2026-08-26 cProfile: 6.4 of 11.4 s of a 2202-token prefill in _apply_map_to_tensors)
     t = self._prompt_tensor(tokens, chunk_T) if p < prompt_len else None
     if p == 0: self._ckpts = []  # a new conversation: the kv cache is rewritten from position 0
+    # the chunk is processed at its full width whatever n_tok says, so a wide chunk taxes short prefills: a 78-token prompt costs
+    # 1.32 s at width 1024 against 0.48 s at 256. With prefix caching most turns append only a few hundred tokens, so that tax
+    # would land on the common case. Pick the narrowest captured width that still covers what is left; each width is its own JIT.
+    widths = sorted({w for w in (256, 512, chunk_T) if w <= chunk_T})
     while p < prompt_len:
-      n_toks = min(chunk_T, prompt_len - p)
+      left = prompt_len - p - (1 if p < prompt_len - 1 else 0)  # the last token is held back for a chunk of its own
+      cw = next((w for w in widths if w >= left), chunk_T)
+      n_toks = min(cw, prompt_len - p)
       # hold the prompt's last token back for a chunk of its own: the checkpoint is taken just before it (see _save_checkpoint)
       if p < prompt_len - 1 and p + n_toks == prompt_len: n_toks -= 1
-      sp, nt = v_start_pos.bind(p), v_toks.bind(n_toks)
-      emb = self._emb_chunk(spans or [], p, chunk_T) if self.image_pad_id is not None else None
+      sp, nt = v_start_pos.bind(p), UOp.variable("toks", 1, cw).bind(n_toks)
+      emb = self._emb_chunk(spans or [], p, cw) if self.image_pad_id is not None else None
       window = self._repeat_window_tensor(tokens[:p]) if self._penalties_enabled else None
-      res, cands = run(t[:, sp:sp + chunk_T], p, nt, nt, emb, window)
+      res, cands = run(t[:, sp:sp + cw], p, nt, nt, emb, window)
       p_prev, p = p, p + n_toks
       self._cached_tokens = tokens[:p]
       if p == prompt_len - 1: self._save_checkpoint(tokens[:p])

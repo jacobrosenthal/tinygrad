@@ -24,7 +24,7 @@ _CUTOFF = 16 << 20
 _ENV_KEYS = ("MTP", "MTP_K", "MTP_DRAFT_VOCAB", "HALF", "AMD_GEMV", "AMD_CHUNK", "REALIZE", "JIT", "JIT_BATCH_SIZE",
              "GEMV_R", "GEMV_RT", "GEMV_WG", "GEMV_U", "GEMV_NWG", "GEMV_XP", "GEMV_TG",
              # these shape the captured graphs too: a restore under a different value would replay graphs captured for another
-             "MAX_T", "ATTN_QT", "ATTN_QG")
+             "MAX_T", "ATTN_QT", "ATTN_QT_PF", "ATTN_QG", "PREFILL_T")
 
 def _cache_key(path:str, max_context:int|None, extra:str="") -> str:
   h = hashlib.sha256()
