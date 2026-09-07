@@ -618,6 +618,12 @@ class Transformer:
     logits = Transformer._apply_top_pk(logits, top_p, top_k)
     return (logits / temperature.maximum(1e-12) - (Tensor.rand_like(logits).maximum(1e-12).log().neg()).log()).argmax(-1)
 
+  def _draft_logits(self, h:Tensor) -> Tensor:
+    """lm_head for an MTP draft row: the restricted draft head when MTP_DRAFT_VOCAB is set, else the full output projection"""
+    if (dh := getattr(self, "_draft_head", None)) is None: return self.output(h)
+    from tinygrad.llm import amd_gemv
+    return amd_gemv.linear_decode_raw(dh, h)
+
   def forward_spec(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp, n_keep:int|UOp,
                    emb:Tensor|None=None, window:Tensor|None=None) -> tuple[Tensor, ...]:
     """main model on a T-token chunk (n_keep tokens commit GDN/conv state; the rest are the K drafts being verified), then K chained
@@ -673,12 +679,12 @@ class Transformer:
     amd_gemv.new_forward(n_keep if prefill else n_keep + n_acc)
     mx = self.mtp(x, self.token_embd(next_toks).float(), start_pos, n_tok)
     h = pick(mx, j_last)
-    drafts = [Transformer._sample_rows(self.output(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k, window,
+    drafts = [Transformer._sample_rows(self._draft_logits(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k, window,
                                         self.repeat_penalty, self.frequency_penalty, self.presence_penalty).reshape(1).cast(dtypes.int32)]
     for k in range(1, K):
       amd_gemv.new_forward(1)
       h = self.mtp(h, self.token_embd(drafts[-1].reshape(1, 1)).float(), (j_last + start_pos) + k, 1)  # Tensor + UOp works, not UOp + Tensor
-      drafts.append(Transformer._sample_rows(self.output(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k, window,
+      drafts.append(Transformer._sample_rows(self._draft_logits(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k, window,
                                               self.repeat_penalty, self.frequency_penalty, self.presence_penalty).reshape(1).cast(dtypes.int32))
     draft = drafts[0].cat(*drafts[1:]) if K > 1 else drafts[0]
     # candidate next chunks: L accepted -> U = drafts[:L] + [out[n_keep-1+L]], chunk = U + new drafts
@@ -827,6 +833,14 @@ class Transformer:
       amd_gemv.install()
       if DEBUG >= 1: print(f"amd_gemv: attached raw ggml weights to {len(amd_gemv.attach(model))} layers")
       else: amd_gemv.attach(model)
+      # MTP_DRAFT_VOCAB=N: the K sequential draft passes read only the first N rows of the lm_head (a prefix slice of its raw ggml bytes,
+      # so draft ids need no remap); the verify still scores the full vocab, so acceptance stays exact. The full q6k head is 1.02 GB and
+      # was read 3x per step for the drafts = 3.5 ms of a 35 ms step. Ids are BPE-rank ordered.
+      if (nv := getenv("MTP_DRAFT_VOCAB", 0)) and "output.weight" in model._ggml_raw:
+        gw = model._ggml_raw["output.weight"]; rb = gw.K // 256 * amd_gemv.FORMATS[gw.ggml_type]["bb"]
+        assert 0 < nv <= gw.N, f"MTP_DRAFT_VOCAB={nv} must be in (0, {gw.N}]"
+        model._draft_head = amd_gemv.GGMLWeight(gw.raw[:nv * rb].realize(), gw.ggml_type, nv, gw.K)  # zero-copy view of the weight base: cache-restore safe
+        if DEBUG >= 1: print(f"mtp: draft head restricted to the first {nv} token ids ({nv * rb / 1e6:.0f} MB of {gw.N * rb / 1e9:.2f} GB)")
       # prefill in fixed-size token chunks through the fused kernels when every block takes that path (state updates must skip padding)
       probe = Tensor.empty(1, 1, config.dim, device=nn.state.get_parameters(model)[0].device)
       for b in model.blk: b._init_state(probe)
