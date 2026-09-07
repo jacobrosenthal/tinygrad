@@ -22,7 +22,7 @@ _TRANSIENT = ("cache_kv", "cache_k", "conv_state", "recurrent_state")
 _CUTOFF = 16 << 20
 # env vars that change what gets captured; a different value means a different cache entry
 _ENV_KEYS = ("MTP", "MTP_K", "HALF", "AMD_GEMV", "AMD_CHUNK", "REALIZE", "JIT", "JIT_BATCH_SIZE",
-             "GEMV_R", "GEMV_RT", "GEMV_WG", "GEMV_U", "GEMV_NWG", "GEMV_XP",
+             "GEMV_R", "GEMV_RT", "GEMV_WG", "GEMV_U", "GEMV_NWG", "GEMV_XP", "GEMV_TG",
              # these shape the captured graphs too: a restore under a different value would replay graphs captured for another
              "MAX_T")
 
