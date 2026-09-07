@@ -1,7 +1,7 @@
 from __future__ import annotations
 import base64, functools, json, pathlib, queue, re, socket, socketserver, threading, time, traceback, typing, urllib.request, uuid
 from typing import TYPE_CHECKING
-from tinygrad.helpers import DEBUG, colored, stderr_log
+from tinygrad.helpers import DEBUG, colored, stderr_log, getenv
 from tinygrad.viz.serve import TCPServerWithReuse, Handler as VizHandler
 if TYPE_CHECKING:
   from tinygrad.llm.cli import SimpleTokenizer
@@ -136,6 +136,10 @@ class Request:
     self.ids, self.disconnected, self.max_tokens, self.temperature, self.log_prefix = ids, disconnected, max_tokens, temperature, log_prefix
     self.tools, self.images, self.media = tools, images or [], typing.cast(list, [])
     self.prompt_tokens = len(ids)  # generation appends to ids
+    self.cache_prompt = True
+    # the handler re-tokenizes the conversation with the reply (see Handler._recache_tokens) and hands it to the inference thread here,
+    # which applies it before taking the next request
+    self.recache: queue.Queue[list[int]|None] = queue.Queue(maxsize=1)
     self.finish_reason = "stop"
     self.cached_tokens = 0
     self.error: Exception|None = None
@@ -157,6 +161,36 @@ class Handler(VizHandler):
       self.send_data(json.dumps({"object":"list","data":[{"id":self.server.model_name,"object":"model"}]}).encode())
     elif self.path.startswith("/assets/"): super().do_GET()
     else: self.send_data((pathlib.Path(__file__).parent / "chat.html").read_bytes(), content_type="text/html")
+  def _recache_tokens(self, messages:list[dict], reply:dict, preserve_thinking:bool, enable_thinking:bool, reasoning_effort:str,
+                      tools=None) -> list[int]|None:
+    """After replying, re-render `messages + [reply]` (no generation prompt) and re-tokenize it, so
+    model._cached_tokens matches what a FUTURE request's fresh render+tokenize will produce for this same
+    prefix -- letting get_start_pos() find a real prefix match on the next turn.
+    This exists because the raw token stream that generate() actually cached is NOT safe to reuse directly:
+    (1) it may include a <think> block that a normal client strips before sending the next turn, and
+    (2) tokenizing "<the prompt>" alone and tokenizing "<the prompt><reply text>" as one string can legally
+    produce different token ids right at that boundary (BPE merges are decided over the whole string, e.g.
+    two adjacent newlines from the role header + the reply's own leading newline can merge into one token
+    that never existed in the original prompt-only tokenization). Recomputing from the same text both
+    sides will render sidesteps both: next turn's render() call hits the identical text up to this point,
+    so its tokenizer produces the identical ids.
+    Only meaningful for the fork's has_recurrent_block=True path, which requires an exact full-prefix
+    match -- but harmless to always run (a plain KV-cache model just uses the longest common prefix
+    anyway, so a mismatched tail there is quietly discarded). Runs on the handler thread (CPU only); the
+    inference thread applies the result (LLMServer._apply_recache)."""
+    try:
+      # deliberately drop reasoning_content here: essentially every OpenAI-compatible client (this includes
+      # the fork's own chat.html) sends only the visible `content` back on the next turn, never the model's
+      # own prior <think> block -- so that's the text a future request will actually re-render, and matching
+      # it (not what the server itself still remembers thinking) is what makes get_start_pos() find a hit.
+      replay = messages + [{"role": "assistant", "content": reply.get("content")}]
+      text = self.server.template.render(messages=replay, tools=tools, add_generation_prompt=False,
+        preserve_thinking=preserve_thinking, enable_thinking=enable_thinking, reasoning_effort=reasoning_effort)
+      return self.server.tok.encode(text)
+    except Exception as e:
+      stderr_log(f"prefix-cache recompute failed (non-fatal, next turn just won't reuse this one): {e}\n")
+      return None
+
   def run_model(self, req:Request, model_name:str, include_usage:bool=False, reasoning:bool=False, continuous_usage:bool=False):
     tok = self.server.tok
     tmpl = {"id":f"chatcmpl-{uuid.uuid4().hex[:24]}", "object":"chat.completion.chunk", "created":int(time.time()), "model":model_name}
@@ -240,29 +274,47 @@ class Handler(VizHandler):
       max_tokens = body.get("max_completion_tokens") or body.get("max_tokens")
       req = Request(ids, functools.partial(disconnected, self.connection), max_tokens=max_tokens, temperature=float(body.get("temperature", 0.6)),
                     log_prefix=log_prefix, tools=body.get("tools"), images=images)
+      # llama.cpp's request field, same meaning: prefill from scratch. drops the live state and leaves the snapshots alone,
+      # which makes a cold reference run possible without a restart (the correctness tests compare against it)
+      req.cache_prompt = body.get("cache_prompt") is not False
       stream_options = body.get("stream_options", {})
       include_usage = not body.get("stream") or stream_options.get("include_usage", False)
       continuous_usage = include_usage and stream_options.get("continuous_usage_stats", False)
       chunks = self.run_model(req, body.get("model") or self.server.model_name, include_usage, continuous_usage=continuous_usage,
                               reasoning=bool(enable) or rendered.rstrip().endswith(tuple(f[0] for f in StreamRouter.FORMATS)))
-      if body.get("stream"): self.stream_json(chunks)
-      else:
-        out, reasoning, tool_calls, finish_reason = [], [], [], "stop"
+      def accumulate(chunks):
+        # shared by both branches: collect content/reasoning/tool_calls while passing chunks through untouched,
+        # so the prefix cache (see _recache_tokens) can be kept in sync for streaming requests too
         for c in chunks:
-          if "error" in c: return self.send_data(json.dumps(c).encode(), status_code=500)
-          if not c["choices"]: continue
-          choice = c["choices"][0]
-          if (delta := choice.get("delta", {})):
-            if delta.get("content"): out.append(delta["content"])
-            if delta.get("reasoning_content"): reasoning.append(delta["reasoning_content"])
-            tool_calls += [{k:v for k, v in tc.items() if k != "index"} for tc in delta.get("tool_calls", [])]
-          if choice.get("finish_reason"): finish_reason = choice["finish_reason"]
+          if c.get("choices"):
+            choice = c["choices"][0]
+            if (delta := choice.get("delta", {})):
+              if delta.get("content"): out.append(delta["content"])
+              if delta.get("reasoning_content"): reasoning.append(delta["reasoning_content"])
+              tool_calls_raw.extend(delta.get("tool_calls", []))
+            if choice.get("finish_reason"): finish[0] = choice["finish_reason"]
+          yield c
+      out, reasoning, tool_calls_raw, finish = [], [], [], ["stop"]
+      recache: list[int]|None = None
+      try:
+        last, error = None, None
+        if body.get("stream"): self.stream_json(accumulate(chunks))
+        else:
+          for c in accumulate(chunks):
+            if "error" in c: error = c
+            last = c
+        tool_calls = [{k:v for k, v in tc.items() if k != "index"} for tc in tool_calls_raw]
         message: dict[str, typing.Any] = {"role":"assistant", "content":"".join(out) or None}
         if reasoning: message["reasoning_content"] = "".join(reasoning)
         if tool_calls: message["tool_calls"] = tool_calls
+        if req.error is None: recache = self._recache_tokens(body["messages"], message, preserve, enable, effort, tools=body.get("tools"))
+      finally:
+        req.recache.put(recache)
+      if not body.get("stream"):
+        if error is not None: return self.send_data(json.dumps(error).encode(), status_code=500)
         try:
-          self.send_data(json.dumps({**c, "object":"chat.completion",
-            "choices":[{"index":0, "message":message, "finish_reason":finish_reason}]}).encode())
+          self.send_data(json.dumps({**(last or {}), "object":"chat.completion",
+            "choices":[{"index":0, "message":message, "finish_reason":finish[0]}]}).encode())
         except (BrokenPipeError, ConnectionResetError): pass
     else:
       raise RuntimeError(f"unhandled path {self.path}")
@@ -270,10 +322,17 @@ class Handler(VizHandler):
 class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
   daemon_threads = True
   def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any,
-               reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None):
+               reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None,
+               host_snapshots:int=0, host_snapshot_gb:float=16.0):
     self.model, self.model_name, self.tok, self.template, self.vision = model, model_name, tok, template, vision
     self.reasoning_effort, self.enable_thinking = reasoning_effort, enable_thinking
     self.waiting: queue.Queue[Request|None] = queue.Queue()
+    self.snapshots: list = []  # StateSnapshot, oldest first; see LLMServer._pick_prefix_state
+    # host-memory snapshot tier (--host-snapshots N / --host-snapshot-gb, default off): states evicted from the VRAM slots are
+    # copied to host memory instead of dropped. A snapshot is ~2.2 GB at max_context 98304, so this needs real RAM headroom
+    self.host_snapshots: list = []
+    self.max_host_snapshots, self.max_host_bytes = host_snapshots, int(host_snapshot_gb * 1e9)
+    self.max_snapshots, self.snapshot_min_tokens = getenv("PREFIX_SNAPSHOTS", 1), getenv("PREFIX_SNAPSHOT_MIN", 1024)
     super().__init__(server_address, Handler)
 
   def serve_forever(self, poll_interval:float=0.5):
@@ -294,6 +353,13 @@ class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
           stderr_log(f"\ndevice {dead[0]} is in error state: exiting\n")
           os._exit(3)
       req.out.put(None)
+      if req.error is None and not req.disconnected(): self._apply_recache(req)
+
+  def _apply_recache(self, req:Request):
+    # wait for the handler's re-tokenized conversation (Handler._recache_tokens) before the next request looks at the cache
+    try: tokens = req.recache.get(timeout=getenv("RECACHE_TIMEOUT_S", 10))
+    except queue.Empty: tokens = None
+    if tokens is not None: self.model._cached_tokens = tokens
 
   def shutdown(self):
     # a request queued after the sentinel is never picked up, so its handler thread waits forever. fine since handlers are daemon threads
@@ -317,12 +383,71 @@ class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
     if len(req.ids) >= self.model.max_context: raise ValueError(f"prompt has {len(req.ids)} tokens with its images, but the model context is "
                                                                 f"{self.model.max_context}")
 
+  def _pick_prefix_state(self, ids:list[int], media:list) -> None:
+    """prefix-state snapshots (PREFIX_SNAPSHOTS=N saved slots, default 1; PREFIX_SNAPSHOT_MIN tokens, default 1024;
+    --host-snapshots N / --host-snapshot-gb for the host-memory tier, default off).
+    the model holds ONE decode state, so any request that doesn't extend the cached conversation evicts it -- another session,
+    a sub-agent, a housekeeping call -- and the next turn of the long conversation then reprocesses its whole 20K+ token
+    prefix from scratch (the recurrent blocks need an exact full-prefix match, so there is no partial reuse to fall back on).
+    Before such an eviction, save the live state; when a later request extends a saved conversation rather than the live one,
+    restore it, saving the live one into the freed slot if it is itself worth keeping (two long conversations alternating,
+    e.g. an agent and its sub-agent, keep swapping through one slot). A snapshot is a full copy of every state buffer
+    (~1.5 GB at max_context 65536 for Qwen3.8-27B with the quantized kv cache), so the slot count is kept small."""
+    srv, model = self, self.model
+    if srv.max_snapshots <= 0 or media or time.perf_counter() < getattr(srv, "snapshots_paused_until", 0.0): return
+    live = model.get_start_pos(ids)
+    # candidates: the VRAM slots, then the host tier (PREFIX_HOST_SNAPSHOTS slots / PREFIX_HOST_GB): a state evicted from VRAM is
+    # copied to host memory instead of being dropped -- re-prefilling a 30K-token conversation takes over a minute here, restoring
+    # a 2 GB snapshot from host memory a fraction of a second even over PCIe x4
+    best_i, best, best_host = -1, live, False
+    for tier, lst in ((False, srv.snapshots), (True, srv.host_snapshots)):
+      for i, s in enumerate(lst):
+        # a snapshot serves a request that extends either its generated sequence or (far more often) its prefill checkpoint
+        m = max([model.prefix_match(ids, s.tokens), model.prefix_match(ids, s.ckpt_tokens or [])] + [model.prefix_match(ids, t) for t, _ in s.ckpts])
+        if m > best: best_i, best, best_host = i, m, tier
+    live_worth_keeping = live == 0 and len(model._cached_tokens) >= srv.snapshot_min_tokens
+    try:
+      t0 = time.perf_counter()
+      if best_i >= 0:
+        snap = (srv.host_snapshots if best_host else srv.snapshots).pop(best_i)
+        if live_worth_keeping: srv.snapshots.append(model.snapshot_state())
+        model.restore_state(snap)
+        if best_host: srv.snapshots.append(model.snapshot_state())  # it is live again; keep a device copy so the next switch is cheap
+        stderr_log(f"{colored(f'restored snapshot ({best} tok, {'host' if best_host else 'vram'}, {(time.perf_counter()-t0)*1e3:.0f} ms)', 'cyan')}  {colored('--', 'BLACK')}  ")
+      elif live_worth_keeping:
+        srv.snapshots.append(snap := model.snapshot_state())
+        stderr_log(f"{colored(f'saved snapshot ({len(snap.tokens)} tok, {snap.nbytes()/1e9:.2f} GB, {(time.perf_counter()-t0)*1e3:.0f} ms)', 'cyan')}  {colored('--', 'BLACK')}  ")
+      while len(srv.snapshots) > srv.max_snapshots:
+        old = srv.snapshots.pop(0)
+        if srv.max_host_snapshots > 0 and old.nbytes() <= srv.max_host_bytes:
+          t1 = time.perf_counter(); srv.host_snapshots.append(old.to_host())
+          stderr_log(f"{colored(f'snapshot -> host ({len(old.tokens)} tok, {(time.perf_counter()-t1)*1e3:.0f} ms)', 'cyan')}  {colored('--', 'BLACK')}  ")
+        del old
+      while len(srv.host_snapshots) > srv.max_host_snapshots or sum(s.nbytes() for s in srv.host_snapshots) > srv.max_host_bytes:
+        srv.host_snapshots.pop(0)
+    except MemoryError as e:
+      # out of VRAM for a clone (a 131072-context run hit this at a 33K prompt, 2026-08-26): drop the saved slots to free
+      # their memory and pause snapshots for a while instead of disabling them for the life of the process -- the next
+      # conversation may be short again, and the live prefix cache keeps working either way
+      srv.snapshots = []
+      srv.snapshots_paused_until = time.perf_counter() + getenv("PREFIX_SNAPSHOT_PAUSE_S", 600)
+      stderr_log(f"{colored(f'prefix snapshots paused {getenv("PREFIX_SNAPSHOT_PAUSE_S", 600)}s: {e}', 'red')}  {colored('--', 'BLACK')}  ")
+
   def generate(self, req:Request):
     n, finished = 0, False
     self.encode_images(req)
-    media_keys = tuple((s, m.key) for s, m in self.model._media_spans(req.ids, req.media)) if req.media else ()
-    req.cached_tokens = cache_start_pos = self.model.get_start_pos(req.ids, media_keys)
-    stderr_log(req.log_prefix + f"in:{colored(f'{cache_start_pos:5d}', 'green')} +{len(req.ids)-cache_start_pos:5d}  {colored('--', 'BLACK')}  ")
+    stderr_log(req.log_prefix)
+    model = self.model
+    if not req.cache_prompt: model._cached_tokens, model._ckpt_tokens = [], None
+    else: self._pick_prefix_state(req.ids, req.media)
+    media_keys = tuple((s, m.key) for s, m in model._media_spans(req.ids, req.media)) if req.media else ()
+    req.cached_tokens = cache_start_pos = model.get_start_pos(req.ids, media_keys)
+    stderr_log(f"in:{colored(f'{cache_start_pos:5d}', 'green')} +{len(req.ids)-cache_start_pos:5d}  {colored('--', 'BLACK')}  ")
+    if cache_start_pos == 0 and (model._cached_tokens or model._ckpt_tokens):
+      # nothing was reused although something was cached: say where each candidate diverged (index/length), it is the whole story
+      div = lambda c: next((i for i, (a, b) in enumerate(zip(req.ids, c)) if a != b), min(len(req.ids), len(c)))
+      ck = model._ckpt_tokens or []
+      stderr_log(f"{colored(f'miss: live@{div(model._cached_tokens)}/{len(model._cached_tokens)} ckpt@{div(ck)}/{len(ck)}', 'yellow')}  {colored('--', 'BLACK')}  ")
     prompt_tokens = len(req.ids)
     st = pt = time.perf_counter()
     try:
