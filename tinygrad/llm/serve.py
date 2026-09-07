@@ -305,9 +305,25 @@ class Handler(HTTPRequestHandler):
         # which makes a cold reference run possible without a restart (the correctness tests compare against it)
         self.server.model._cached_tokens, self.server.model._ckpt_tokens = [], None
       else: self._pick_prefix_state(ids, media)
+      # top_p/top_k are server-fixed (--top-p/--top-k at startup, see model.py _apply_top_pk): baked into the JIT
+      # graph, not a per-request field. Log rather than silently ignore a client that asked for something different
+      req_top_p, req_top_k = body.get("top_p"), body.get("top_k")
+      if (req_top_p is not None and float(req_top_p) != self.server.model.top_p) or \
+         (req_top_k is not None and int(req_top_k) != self.server.model.top_k):
+        stderr_log(f"note: request top_p={req_top_p} top_k={req_top_k} ignored -- this server is fixed at "
+                   f"top_p={self.server.model.top_p} top_k={self.server.model.top_k} (--top-p/--top-k)\n")
+      # same story for repeat/frequency/presence penalty -- server-fixed (see model.py _apply_repeat_penalty), not per-request
+      req_rp, req_fp, req_pp = body.get("repeat_penalty"), body.get("frequency_penalty"), body.get("presence_penalty")
+      if (req_rp is not None and float(req_rp) != self.server.model.repeat_penalty) or \
+         (req_fp is not None and float(req_fp) != self.server.model.frequency_penalty) or \
+         (req_pp is not None and float(req_pp) != self.server.model.presence_penalty):
+        stderr_log(f"note: request repeat_penalty={req_rp} frequency_penalty={req_fp} presence_penalty={req_pp} ignored -- this "
+                   f"server is fixed at repeat_penalty={self.server.model.repeat_penalty} "
+                   f"frequency_penalty={self.server.model.frequency_penalty} presence_penalty={self.server.model.presence_penalty} "
+                   f"(--repeat-penalty/--frequency-penalty/--presence-penalty)\n")
       chunks = self.run_model(ids, body.get("model") or self.server.model_name,
                               not body.get("stream") or body.get("stream_options",{}).get("include_usage", False),
-                              max_tokens=max_tokens, temperature=float(body.get("temperature", 0.6)),
+                              max_tokens=max_tokens, temperature=float(body.get("temperature", self.server.temperature)),
                               reasoning=bool(enable) or rendered.rstrip().endswith("<think>"), media=media)
       def accumulate(chunks):
         # shared by both branches: collect content/reasoning/tool_calls while passing chunks through untouched,
@@ -338,10 +354,10 @@ class Handler(HTTPRequestHandler):
 
 class LLMServer(TCPServerWithReuse):
   def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any,
-               reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None,
+               reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None, temperature:float=1.0,
                host_snapshots:int=0, host_snapshot_gb:float=16.0):
     self.model, self.model_name, self.tok, self.template, self.vision = model, model_name, tok, template, vision
-    self.reasoning_effort, self.enable_thinking = reasoning_effort, enable_thinking
+    self.reasoning_effort, self.enable_thinking, self.temperature = reasoning_effort, enable_thinking, temperature
     self.snapshots: list = []  # StateSnapshot, oldest first; see Handler._pick_prefix_state
     # host-memory snapshot tier (--host-snapshots N / --host-snapshot-gb, default off): states evicted from the VRAM slots are
     # copied to host memory instead of dropped. A snapshot is ~2.2 GB at max_context 98304, so this needs real RAM headroom

@@ -175,10 +175,26 @@ def main():
   parser.add_argument("--no_chat_template", action="store_true", help="Don't use the model's chat template, always use the fallback template")
   parser.add_argument("--reasoning-effort", default="medium", choices=["low","medium","xhigh","none"],
                       help="Qwen thinking depth (chat template). none disables thinking.")
+  parser.add_argument("--temperature", type=float, default=1.0, help="sampling temperature used when a request sends none (default 1.0, Qwen's thinking-mode recommendation)")
   parser.add_argument("--checkpoints", type=int, default=3, help="periodic recurrent-state checkpoints per conversation, so a request that diverges mid-conversation resumes from the nearest one (default 3, 0 = off; ~100 MB each)")
   parser.add_argument("--checkpoint-every", type=int, default=4096, help="spacing of the periodic checkpoints in tokens (default 4096)")
   parser.add_argument("--host-snapshots", type=int, default=0, help="prefix-state snapshots evicted from VRAM are kept in host memory, up to N (default 0 = off; ~2.2 GB each at max_context 98304)")
   parser.add_argument("--host-snapshot-gb", type=float, default=16.0, help="cap on host memory used by --host-snapshots (default 16)")
+  parser.add_argument("--top-p", type=float, default=1.0, help="nucleus sampling threshold, fixed for the server's lifetime (1.0 = off; Qwen recommends 0.95)")
+  parser.add_argument("--top-k", type=int, default=0, help="top-k sampling, fixed for the server's lifetime (0 = off; Qwen recommends 20)")
+  parser.add_argument("--repeat-penalty", type=float, default=1.0,
+                      help="llama.cpp/HF-style repetition penalty over the last --repeat-last-n tokens, fixed for the server's "
+                           "lifetime (1.0 = off; 1.1-1.15 is a typical range). Breaks degenerate repeat loops that top-p/top-k "
+                           "alone don't catch")
+  parser.add_argument("--frequency-penalty", type=float, default=0.0,
+                      help="OpenAI-style additive penalty scaled by how many times a token appeared in the last --repeat-last-n "
+                           "tokens, fixed for the server's lifetime (0.0 = off)")
+  parser.add_argument("--presence-penalty", type=float, default=0.0,
+                      help="OpenAI-style additive penalty for any token that appeared at all in the last --repeat-last-n tokens, "
+                           "fixed for the server's lifetime (0.0 = off)")
+  parser.add_argument("--repeat-last-n", type=int, default=64,
+                      help="window size (in tokens) the repeat/frequency/presence penalties look back over (default 64, "
+                           "llama.cpp's default); only matters if one of those penalties is non-zero")
   parser.add_argument("--mmproj", default="auto", metavar="PATH",
                       help="vision projector GGUF for image input (auto: mmproj*.gguf next to the model, none: disabled)")
   args = parser.parse_args()
@@ -198,7 +214,9 @@ def main():
   with Context(DEBUG=max(DEBUG.value, 2 if args.serve else 0)):
     model_path = fetch(models.get(args.model, args.model))
     mmproj = find_mmproj(model_path, args.mmproj)
-    model, kv = Transformer.from_gguf(model_path, args.max_context, vision=mmproj is not None)
+    model, kv = Transformer.from_gguf(model_path, args.max_context, vision=mmproj is not None, top_p=args.top_p, top_k=args.top_k,
+                                       repeat_penalty=args.repeat_penalty, frequency_penalty=args.frequency_penalty,
+                                       presence_penalty=args.presence_penalty, repeat_last_n=args.repeat_last_n)
     model._ckpt_max, model._ckpt_every = args.checkpoints, max(1, args.checkpoint_every)
   model_name = os.environ.get("QWEN_MODEL_ID") or kv.get('general.name') or kv.get('general.basename') or args.model
   file_sizes = [y.nbytes() for y in UOp.sink(*[x.uop for x in nn.state.get_parameters(model)]).toposort() if y.op is Ops.BUFFER]
@@ -238,7 +256,7 @@ def main():
     with Context(DEBUG=max(DEBUG.value, 1)): model.warmup()
     if not getattr(model, "_from_cache", False):
       from tinygrad.llm.cache import save_llm_cache
-      save_llm_cache(model, kv, str(model_path), args.max_context, "vision" if vision is not None else "")
+      save_llm_cache(model, kv, str(model_path), args.max_context, model._cache_extra)  # same key from_gguf loads with
   if vision is not None and (args.warmup or args.serve):
     with Context(DEBUG=max(DEBUG.value, 1)): vision.warmup()
 
@@ -247,12 +265,12 @@ def main():
     enable_thinking = args.reasoning_effort != "none"
     effort = "medium" if args.reasoning_effort == "none" else args.reasoning_effort
     LLMServer((args.host, args.serve), model, model_name, tok, template,
-              reasoning_effort=effort, enable_thinking=enable_thinking, vision=vision,
+              reasoning_effort=effort, enable_thinking=enable_thinking, vision=vision, temperature=args.temperature,
               host_snapshots=args.host_snapshots, host_snapshot_gb=args.host_snapshot_gb).serve_forever()
 
   # do benchmark
   if args.benchmark is not None:
-    gen = model.generate(toks:=[tok.bos_id or 0])
+    gen = model.generate(toks:=[tok.bos_id or 0], temperature=args.temperature)  # honor --temperature; generate()'s default is 0.0 (greedy)
     import time
     st = time.perf_counter()
     for i in range(args.benchmark):
