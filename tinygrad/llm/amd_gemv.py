@@ -403,6 +403,17 @@ DEV float fmt_dot{sfx}(const Dec{sfx}& o, const RawX{sfx}& x, u32 j) {{
 }}
 """
 
+def _tg(T:int, f:dict) -> int:
+  """tokens whose x slices are staged in registers at once (GEMV_TG). At T >= 8 the K4 formats (12 VGPRs of x per token) spill with
+  all T slices live: stage them in groups instead (each group's dots run before the next group's loads), which bounds x registers at
+  TG * slice while the weights still stream once per T tokens. 0 = all T at once (the old code)"""
+  tg = int(getenv("GEMV_TG", 0))
+  # measured offline (compile_probe.py, gfx1100, R2 U2): q5k 5120x6144 spills from T=7 (31 VGPRs; 145 at T10, 201 at T12) with all
+  # slices live and 0 in groups of 4 (201 VGPRs at T7, 247 at T10); q4k 5120x6144 sits at 253 VGPRs at T7 (185 grouped); q6k gets slightly
+  # WORSE (0 -> 2 spills at T10), so only the K4 formats group by default, from T=5 where the ungrouped count passes ~200
+  if tg <= 0: tg = 4 if T >= 5 and f["name"] in ("q4k", "q5k") else T
+  return min(max(tg, 1), T)
+
 def _seg_body(f:dict, N:int, K:int, R:int, U:int, WG:int, n_wg:int, sfx:str, residual:bool, T:int=1, XP:bool|None=None) -> str:
   """the row loop of one gemv segment: rows [0, N) of weights w x T tokens -> y[T][N], for workgroups wg in [0, n_wg) (grid-stride over
   row groups). XP: prefetch the x slices one step ahead together with the weights (register cost grows with T)"""
@@ -412,6 +423,22 @@ def _seg_body(f:dict, N:int, K:int, R:int, U:int, WG:int, n_wg:int, sfx:str, res
   if XP is None: XP = T <= 2
   gcall = ", grid" if f["grid"] else ""
   xload = lambda b: f"fmt_load_x{sfx}((const u8*)xq + (u64)t * {K}u, ({b}) * 256, xs + t * {K // 32}u, ({b}) * 8, xsum16 + t * {K // 16}u, ({b}) * 16, j)"
+  TG = _tg(T, f)
+  if not XP and TG < T:
+    # token-grouped x staging: the x slices of TG tokens at a time, dots for those tokens, then the next group
+    xstage = f"""{{ const u32 b = 4 * s + g;
+    #pragma unroll
+    for (u32 t0 = 0; t0 < {T}; t0 += {TG}) {{
+      RawX{sfx} xg[{TG}];
+      #pragma unroll
+      for (u32 t = t0; t < t0 + {TG} && t < {T}; t++) xg[t - t0] = {xload('b')};
+      #pragma unroll
+      for (u32 t = t0; t < t0 + {TG} && t < {T}; t++) {{
+        #pragma unroll
+        for (int r = 0; r < {R}; r++) acc[r][t] += fmt_dot{sfx}(o[r], xg[t - t0], j);
+      }}
+    }} }}"""
+  else: xstage = ""
   return rf"""
   {{
   const u32 lane = lane_id();
@@ -442,15 +469,11 @@ def _seg_body(f:dict, N:int, K:int, R:int, U:int, WG:int, n_wg:int, sfx:str, res
       for (int r = 0; r < {R}; r++) nxt[r] = fmt_load_w{sfx}(wrow[r], b * {BB}, j);
       {"" if not XP else f"#pragma unroll{chr(10)}      for (u32 t = 0; t < {T}; t++) xnxt[t] = {xload('b')};"}
     }}
-    {"" if XP else f"{{ const u32 b = 4 * s + g;{chr(10)}    #pragma unroll{chr(10)}    for (u32 t = 0; t < {T}; t++) xcur[t] = {xload('b')}; }}"}
+    {"" if XP or xstage else f"{{ const u32 b = 4 * s + g;{chr(10)}    #pragma unroll{chr(10)}    for (u32 t = 0; t < {T}; t++) xcur[t] = {xload('b')}; }}"}
     Dec{sfx} o[{R}];
     #pragma unroll
     for (int r = 0; r < {R}; r++) o[r] = fmt_decode{sfx}(cur[r], j{gcall});
-    #pragma unroll
-    for (u32 t = 0; t < {T}; t++) {{
-      #pragma unroll
-      for (int r = 0; r < {R}; r++) acc[r][t] += fmt_dot{sfx}(o[r], xcur[t], j);
-    }}
+    {xstage if xstage else f"#pragma unroll{chr(10)}    for (u32 t = 0; t < {T}; t++) {{{chr(10)}      #pragma unroll{chr(10)}      for (int r = 0; r < {R}; r++) acc[r][t] += fmt_dot{sfx}(o[r], xcur[t], j);{chr(10)}    }}"}
     #pragma unroll
     for (int r = 0; r < {R}; r++) cur[r] = nxt[r];
     {"" if not XP else f"#pragma unroll{chr(10)}    for (int t = 0; t < {T}; t++) xcur[t] = xnxt[t];"}
@@ -574,7 +597,8 @@ def gemv(w:Tensor, ggml_type:int, N:int, K:int, xq:Tensor, xs:Tensor, xsum16:Ten
   f = FORMATS[ggml_type]
   R, U, WG, n_wg = gemv_config(ggml_type, N, K, T)
   XP = _xp(T)
-  name = f"gemv_{f['name']}_{N}_{K}_t{T}_r{R}_u{U}_w{WG}_g{n_wg}" + ("_res" if residual is not None else "") + ("" if XP is None else f"_xp{int(XP)}")
+  name = f"gemv_{f['name']}_{N}_{K}_t{T}_r{R}_u{U}_w{WG}_g{n_wg}" + ("_res" if residual is not None else "") + ("" if XP is None else f"_xp{int(XP)}") + \
+         (f"_tg{_tg(T, f)}" if _tg(T, f) < T else "")
   src = _gemv_src(ggml_type, N, K, R, U, WG, n_wg, residual is not None, T, XP).replace("KERNEL(gemv,", f"KERNEL({name},")
   y = Tensor.empty(T * N, dtype=dtypes.float32, device=w.device)
   args = [w, xq, xs, xsum16] + ([_grid_tensor(f["grid"], w.device)] if f["grid"] else []) + \
@@ -589,7 +613,7 @@ def gemv_multi(ws:list[tuple[Tensor, int, int]], K:int, xq:Tensor, xs:Tensor, xs
   segs = [(t, N) for _, t, N in ws]
   XP = _xp(T)
   name = "gemv_multi_" + "_".join(f"{FORMATS[t]['name']}{N}" for t, N in segs) + f"_{K}_t{T}_" + "_".join(f"r{R}u{U}g{g}" for R, U, g in cfgs) + \
-         ("" if XP is None else f"_xp{int(XP)}")
+         ("" if XP is None else f"_xp{int(XP)}") + ("_tg" + "".join(str(_tg(T, FORMATS[t])) for t, _ in segs) if any(_tg(T, FORMATS[t]) < T for t, _ in segs) else "")
   src = _gemv_multi_src(segs, K, WG, cfgs, T, XP).replace("KERNEL(gemv_multi,", f"KERNEL({name},")
   dev = ws[0][0].device
   ys = [Tensor.empty(T * N, dtype=dtypes.float32, device=dev) for _, _, N in ws]
