@@ -42,6 +42,12 @@ class SimpleTokenizer:
     self._tok2bytes = {tid: tok for tok, tid in self._normal_tokens.items()} | {tid: tok.encode() for tok, tid in self._special_tokens.items()}
     self.preset = preset
     self.bos_id, self.eos_id, self.eot_id = bos_id, eos_id, eot_id
+    # piece cache: encode() tokenizes the text between special tokens independently, so a piece's ids never depend on its
+    # neighbours. A chat turn re-sends every earlier message verbatim (same pieces) plus the new ones: memoizing pieces makes
+    # re-tokenizing a 65K-token prompt cost a regex split + dict lookups instead of a full BPE pass (measured 1.7 s at 65K,
+    # 0.85 s at 33K per request, 2026-08-26). Bounded by total cached chars; oldest pieces are dropped first.
+    self._piece_cache: dict[str, list[int]] = {}
+    self._piece_cache_chars, self._piece_cache_max_chars = 0, 8 * 1024 * 1024
 
   @staticmethod
   def from_gguf_kv(kv:dict):
@@ -65,13 +71,22 @@ class SimpleTokenizer:
     except KeyError: raise RuntimeError("token not found")
   def _encode_sentence(self, chunk:str) -> list[int]:
     return [tok for word in self._split_to_word.findall(chunk) for tok in self._encode_word(word.encode())]
+  def _encode_piece(self, piece:str) -> list[int]:
+    if (ids := self._piece_cache.get(piece)) is not None: return ids
+    ids = self._encode_sentence(piece)
+    if len(piece) >= 32:  # tiny pieces are cheaper to re-encode than to manage
+      while self._piece_cache_chars + len(piece) > self._piece_cache_max_chars and self._piece_cache:
+        k = next(iter(self._piece_cache)); self._piece_cache_chars -= len(k); del self._piece_cache[k]
+      self._piece_cache[piece] = ids; self._piece_cache_chars += len(piece)
+    return ids
+
   def encode(self, text:str) -> list[int]:
     tokens: list[int] = []
     pos = 0
     for match in self._split_to_sentence.finditer(text):
-      tokens.extend(self._encode_sentence(text[pos:match.start(0)]) + [self._special_tokens[text[match.start(0):match.end(0)]]])
+      tokens.extend(self._encode_piece(text[pos:match.start(0)]) + [self._special_tokens[text[match.start(0):match.end(0)]]])
       pos = match.end(0)
-    return tokens + self._encode_sentence(text[pos:])
+    return tokens + self._encode_piece(text[pos:])
 
   def decode(self, ids:list[int]) -> str: return b''.join(self._tok2bytes[tid] for tid in ids).decode(errors='replace')
   def stream_decoder(self) -> typing.Callable[..., str]:
