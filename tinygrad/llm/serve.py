@@ -272,7 +272,22 @@ class Handler(VizHandler):
 
       # reply
       max_tokens = body.get("max_completion_tokens") or body.get("max_tokens")
-      req = Request(ids, functools.partial(disconnected, self.connection), max_tokens=max_tokens, temperature=float(body.get("temperature", 0.6)),
+      # top_p/top_k are server-fixed (--top-p/--top-k at startup, see model.py _apply_top_pk): baked into the JIT
+      # graph, not a per-request field. Log rather than silently ignore a client that asked for something different
+      model = self.server.model
+      req_top_p, req_top_k = body.get("top_p"), body.get("top_k")
+      if (req_top_p is not None and float(req_top_p) != model.top_p) or (req_top_k is not None and int(req_top_k) != model.top_k):
+        log_prefix += (f"note: request top_p={req_top_p} top_k={req_top_k} ignored -- this server is fixed at "
+                       f"top_p={model.top_p} top_k={model.top_k} (--top-p/--top-k)  {colored('--', 'BLACK')}  ")
+      # same story for repeat/frequency/presence penalty -- server-fixed (see model.py _apply_repeat_penalty), not per-request
+      req_rp, req_fp, req_pp = body.get("repeat_penalty"), body.get("frequency_penalty"), body.get("presence_penalty")
+      if (req_rp is not None and float(req_rp) != model.repeat_penalty) or (req_fp is not None and float(req_fp) != model.frequency_penalty) or \
+         (req_pp is not None and float(req_pp) != model.presence_penalty):
+        log_prefix += (f"note: request repeat_penalty={req_rp} frequency_penalty={req_fp} presence_penalty={req_pp} ignored -- this "
+                       f"server is fixed at repeat_penalty={model.repeat_penalty} frequency_penalty={model.frequency_penalty} "
+                       f"presence_penalty={model.presence_penalty} (--repeat-penalty/--frequency-penalty/--presence-penalty)  {colored('--', 'BLACK')}  ")
+      req = Request(ids, functools.partial(disconnected, self.connection), max_tokens=max_tokens,
+                    temperature=float(body.get("temperature", self.server.temperature)),
                     log_prefix=log_prefix, tools=body.get("tools"), images=images)
       # llama.cpp's request field, same meaning: prefill from scratch. drops the live state and leaves the snapshots alone,
       # which makes a cold reference run possible without a restart (the correctness tests compare against it)
@@ -322,10 +337,10 @@ class Handler(VizHandler):
 class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
   daemon_threads = True
   def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any,
-               reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None,
+               reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None, temperature:float=1.0,
                host_snapshots:int=0, host_snapshot_gb:float=16.0):
     self.model, self.model_name, self.tok, self.template, self.vision = model, model_name, tok, template, vision
-    self.reasoning_effort, self.enable_thinking = reasoning_effort, enable_thinking
+    self.reasoning_effort, self.enable_thinking, self.temperature = reasoning_effort, enable_thinking, temperature
     self.waiting: queue.Queue[Request|None] = queue.Queue()
     self.snapshots: list = []  # StateSnapshot, oldest first; see LLMServer._pick_prefix_state
     # host-memory snapshot tier (--host-snapshots N / --host-snapshot-gb, default off): states evicted from the VRAM slots are
