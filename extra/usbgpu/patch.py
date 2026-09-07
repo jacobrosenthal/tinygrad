@@ -49,12 +49,11 @@ patched_fw = patch(file_path, file_hash, patches)
 
 dev = None
 for vendor, device in SUPPORTED_CONTROLLERS:
-  try:
-    dev = USB3(vendor, device, 0x81, 0x83, 0x02, 0x04, use_bot=True)
-    break
-  except RuntimeError: pass
+  if (devs := USB3.list_devices(vendor, device)):
+    dev = USB3(devs[0][0], 0x81, 0x83, 0x02, 0x04, use_bot=True)
+    break 
 if dev is None:
-  raise RuntimeError('Could not open controller. You can set USBDEV environment variable to your device\'s vendor and device ID (e.g., USBDEV="174C:2464")')
+  raise RuntimeError('Could not open controller. Set USBDEV="174C:2464" (your lsusb VID:PID).')
 
 config1 = bytes([
   0xFF, 0xFF, 0xFF, 0xFF, 0x41, 0x41, 0x41, 0x41, 0x42, 0x42, 0x42, 0x42, 0x30, 0x30, 0x36, 0x30,
