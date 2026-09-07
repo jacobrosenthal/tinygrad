@@ -380,9 +380,10 @@ def _attn_pf_src(H:int, HKV:int, D:int, RD:int, MAXC:int, gated:bool, kvq:KVQuan
   SK = max(abs(c) for c in kvq.cbk) / 127.0
   cbk8 = " ".join(f"t == {i} ? {int(round(c / SK))} :" for i, c in enumerate(kvq.cbk)) + " 0"
   cbv = " ".join(f"t == {i} ? {c:.7f}f :" for i, c in enumerate(kvq.cbv)) + " 0.0f"
-  # ATTN_QG (chunked kernel only): WMMA A operands straight from the global qq/sqq rows (12 KB, cache-resident) instead of an LDS copy;
-  # drops qbuf (2 x NR x LQ = 24.5 KB at QT=8) so two workgroups fit per CU (occupancy 1.5 -> 3 waves per SIMD)
-  QG = bool(CH) and bool(int(getenv("ATTN_QG", 1)))
+  # ATTN_QG: WMMA A operands straight from the global qq/sqq rows (12 KB, cache-resident) instead of an LDS copy; drops qbuf
+  # (2 x NR x LQ = 24.5 KB at QT=8), which is what limits how many workgroups fit per CU. Worth +8% decode at 55K context and
+  # +20% prefill; the prefill epilogue keeps its own 16 KB Os buffer since it can no longer borrow qbuf.
+  QG = bool(int(getenv("ATTN_QG", 1)))
   return PRELUDE + rf"""
 #define WG {WG}
 #define BAR() __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup")
@@ -409,6 +410,7 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
   __attribute__((shared)) float ka_s[16], kb_s[16], va_s[16], qsc_s[{NR}], sqsc_s[{NR}], cbv_s[16];
   __attribute__((shared)) i32 cbk8_s[16];
   {'__attribute__((shared)) u8 zrow[' + str(D) + '];' if QG else ''}
+  {f'__attribute__((shared)) float Osbuf[16 * {D}];' if QG and not CH else ''}
   {"" if QG else f'i8* Qs = (i8*)qbuf; {f"i8* SQs = (i8*)qbuf + {NR * LQ};" if J else ""}'}
   {f"const u32 chunk = wg_id() % {NCH}, wg2 = wg_id() / {NCH}; const u32 qb = wg2 / {HKV}, kvh = wg2 % {HKV};" if CH else
      f"const u32 qb = wg_id() / {HKV}, kvh = wg_id() % {HKV};"}
@@ -535,7 +537,7 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
 #if 0  // the full-output epilogue below refers to the outputs attn_pf has and attn_pfd does not
   """}
   // epilogue per row tile: O / l into LDS, undo the rotation (signs * WHT / 16), gate, write + quantize per 128
-  float* Os = (float*)qbuf;
+  float* Os = {'Osbuf' if QG else '(float*)qbuf'};
   #pragma unroll
   for (int i = 0; i < 8; i++) l[i] = l[i] > 0.0f ? 1.0f / l[i] : 0.0f;
   for (u32 rtt = 0; rtt < {RT}; rtt++) {{
