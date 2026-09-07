@@ -25,7 +25,9 @@ SQTT = ContextVar("SQTT", abs(VIZ.value)>=2)
 SQTT_ITRACE_SE_MASK, SQTT_LIMIT_SE, SQTT_SIMD_SEL, SQTT_TOKEN_EXCLUDE = \
   ContextVar("SQTT_ITRACE_SE_MASK", 0b11), ContextVar("SQTT_LIMIT_SE", 0), ContextVar("SQTT_SIMD_SEL", 0), ContextVar("SQTT_TOKEN_EXCLUDE", 0)
 PMC = ContextVar("PMC", abs(VIZ.value)>=2)
-AMD_USB_POLL_US = getenv("AMD_USB_POLL_US", 500) # microseconds to sleep between USB signal polls. 0 disables
+AMD_USB_POLL_US = getenv("AMD_USB_POLL_US", 500) # microseconds to sleep between USB signal polls once past the spin window. 0 = busy-poll
+AMD_USB_SPIN_MS = getenv("AMD_USB_SPIN_MS", 3)  # busy-poll for this long at the start of every USB signal wait before backing off to
+# AMD_USB_POLL_US sleeps: the dock has no completion interrupt, and a fixed sleep overshoots each of the ~12 short syncs of a decode step
 EVENT_INDEX_PARTIAL_FLUSH = 4 # based on a comment in nvd.h
 WAIT_REG_MEM_FUNCTION_EQ  = 3 # ==
 WAIT_REG_MEM_FUNCTION_NEQ = 4 # !=
@@ -46,8 +48,10 @@ class AMDSignal(HCQSignal):
   def __init__(self, *args, **kwargs): super().__init__(*args, **{**kwargs, 'timestamp_divider': 100})
 
   def _sleep(self, time_spent_since_last_sleep_ms:int):
-    # USB signals live in VRAM across the link, so yield between polls. Native AMD only blocks after 200 ms.
-    if self.owner is not None and self.owner.is_usb() and AMD_USB_POLL_US: time.sleep(AMD_USB_POLL_US / 1e6)
+    # USB signals live in VRAM across the link and must be polled: spin first, then sleep. Native AMD only blocks after 200 ms.
+    if self.owner is not None and self.owner.is_usb():
+      if time_spent_since_last_sleep_ms < AMD_USB_SPIN_MS: return
+      if AMD_USB_POLL_US: time.sleep(AMD_USB_POLL_US / 1e6)
     elif time_spent_since_last_sleep_ms > 200 and self.owner is not None: self.owner.iface.sleep(200)
 
 class AMDComputeQueue(HWQueue):
