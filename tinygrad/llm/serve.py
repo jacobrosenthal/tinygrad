@@ -109,6 +109,17 @@ class StreamRouter:
 class Handler(VizHandler):
   server: LLMServer
   def log_request(self, code='-', size='-'): pass
+  def not_found(self):
+    """unknown paths used to return chat.html with 200 (GET) or raise unhandled path (POST). both look like a broken server to a
+    launcher, and neither was logged, so the probes were invisible."""
+    stderr_log(f"{colored(f'404 {self.command} {self.path}', 'yellow')}  {colored('--', 'BLACK')}  \n")
+    self.send_data(json.dumps({"error": {"message": f"unknown path {self.path}", "type": "not_found"}}).encode(), status_code=404)
+  def _ollama_model(self) -> dict:
+    """the model description ollama clients expect from /api/tags and /api/show"""
+    n = self.server.model_name
+    return {"name": n, "model": n, "modified_at": "1970-01-01T00:00:00Z", "size": 0, "digest": "0"*64,
+            "details": {"parent_model": "", "format": "gguf", "family": "qwen3", "families": ["qwen3"],
+                        "parameter_size": "27B", "quantization_level": "Q4_K"}}
   def do_GET(self):
     if self.path in ("/health", "/v1/health"):
       # a device whose GPU was reset (or that hung unrecoverably) can never serve again: report it so launchers do not reuse this process
@@ -120,8 +131,16 @@ class Handler(VizHandler):
       self.send_data(json.dumps({"default_generation_settings": {"n_ctx": self.server.model.max_context}}).encode())
     elif self.path == "/v1/models":
       self.send_data(json.dumps({"object":"list","data":[{"id":self.server.model_name,"object":"model"}]}).encode())
+    # ollama-compatible discovery: harnesses probe these on startup to find the model and what it can do, and a launcher that
+    # gets HTML or nothing here decides the server is down. /api/show is a POST, see do_POST.
+    elif self.path in ("/api/tags", "/api/ps"):
+      self.send_data(json.dumps({"models": [self._ollama_model()]}).encode())
+    elif self.path == "/api/version":
+      self.send_data(json.dumps({"version": "0.0.0-tinygrad"}).encode())
+    elif self.path == "/":
+      self.send_data((pathlib.Path(__file__).parent / "chat.html").read_bytes(), content_type="text/html")
     elif self.path.startswith("/assets/"): super().do_GET()
-    else: self.send_data((pathlib.Path(__file__).parent / "chat.html").read_bytes(), content_type="text/html")
+    else: self.not_found()
   def _recache_for_next_turn(self, messages:list[dict], reply:dict, preserve_thinking:bool, enable_thinking:bool, reasoning_effort:str,
                               tools=None) -> None:
     """After replying, re-render `messages + [reply]` (no generation prompt) and re-tokenize it, so
@@ -221,8 +240,13 @@ class Handler(VizHandler):
     def log_stats(interrupted:bool=False):
       et = time.perf_counter()
       total = f"total:{et-st:6.2f}s"
+      # MTP acceptance: _mtp_accept=(n_acc, n_step) accumulates in the spec-decode loop; the JIT-captured
+      # serve path bypasses model.py's periodic DEBUG print, so surface it here (harmless when MTP is off).
+      acc, astr = getattr(model, '_mtp_accept', None), ""
+      if acc and acc[0] is not None and acc[1] and (K:=getattr(model, 'mtp_k', 0)):
+        astr = f"accept:{acc[0]/(acc[1]*K):5.2f} ({acc[0]/acc[1]+1:.2f} tok/step)  {colored('--', 'BLACK')}  "
       stderr_log(f"gen:{len(out)/(et-pt) if len(out) > 1 else 0:4.0f} tok/s  {colored('--', 'BLACK')}  "
-                 f"out:{len(out):5d}  {colored('--', 'BLACK')}  {colored(total, 'red') if interrupted else total}\n")
+                 f"{astr}out:{len(out):5d}  {colored('--', 'BLACK')}  {colored(total, 'red') if interrupted else total}\n")
     completed = False
     try:
       yield chunk({"role":"assistant", "content":""})
@@ -251,8 +275,17 @@ class Handler(VizHandler):
       completed = True
       yield {"choices": [{"index":0, "delta":{},"finish_reason":finish_reason}], **tmpl}
       if include_usage:
+        # decode_seconds: pure generation time (excludes prep + prefill), the same et-pt this
+        # process already computes for its own "gen: N tok/s" log line (see log_stats below).
+        # A client deriving tok/s from wall-clock request duration (prep+prefill+decode) reads
+        # low whenever prefill dominates -- a cold/partially-cached prompt makes generation look
+        # slow even though decode speed never changed. Exposing the server's own already-computed
+        # decode-only duration lets a client compute a tok/s figure that means the same thing
+        # "gen:" does, instead of reinventing a worse version of it from timestamps.
         yield {"choices": [], "usage": {"prompt_tokens": prompt_tokens, "completion_tokens": len(out),
-                                        "total_tokens": prompt_tokens + len(out)}, **tmpl}
+                                        "total_tokens": prompt_tokens + len(out),
+                                        "prompt_tokens_details": {"cached_tokens": cache_start_pos},
+                                        "decode_seconds": time.perf_counter() - pt}, **tmpl}
       log_stats()
     except GeneratorExit:
       if not completed: log_stats(interrupted=True)
@@ -273,7 +306,21 @@ class Handler(VizHandler):
     stderr_log(f"{self.path}  {colored('--', 'BLACK')}  ")
     raw_body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
     body: dict[str, typing.Any] = json.loads(raw_body.decode("utf-8"))
+    if self.server.record_dir:  # --record-requests DIR: exact traces of real traffic, for offline replay
+      try:
+        with open(pathlib.Path(self.server.record_dir) / f"requests-{time.strftime('%Y%m%d')}.jsonl", "a") as f:
+          f.write(json.dumps({"ts": time.time(), "path": self.path, "body": body}) + "\n")
+      except OSError as e: stderr_log(f"{colored(f'record failed: {e}', 'red')}  {colored('--', 'BLACK')}  ")
     if DEBUG >= 1: print(json.dumps(body, indent=2))
+    if self.path == "/api/show":
+      # ollama's capability probe. clients read `capabilities` to decide whether they may send tools or images, so it has to
+      # reflect what this process was actually started with (--mmproj for vision), not a fixed list.
+      caps = ["completion", "tools", "thinking"] + (["vision"] if self.server.vision is not None else [])
+      return self.send_data(json.dumps({
+        **self._ollama_model(), "capabilities": caps, "license": "", "modelfile": "", "parameters": "",
+        "template": "{{ .Prompt }}",
+        "model_info": {"general.architecture": "qwen3", "general.parameter_count": 27_000_000_000,
+                       "qwen3.context_length": self.server.model.max_context}}).encode())
     if self.path == "/v1/chat/completions":
       # render and tokenize
       normalize_messages(body["messages"])
@@ -371,12 +418,12 @@ class Handler(VizHandler):
         self.send_data(json.dumps({**last, "object":"chat.completion",
           "choices":[{"index":0, "message":message, "finish_reason":finish[0]}]}).encode())
     else:
-      raise RuntimeError(f"unhandled path {self.path}")
+      self.not_found()
 
 class LLMServer(TCPServerWithReuse):
   def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any,
                reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None, temperature:float=1.0,
-               host_snapshots:int=0, host_snapshot_gb:float=16.0):
+               host_snapshots:int=0, host_snapshot_gb:float=16.0, record_dir:str=""):
     self.model, self.model_name, self.tok, self.template, self.vision = model, model_name, tok, template, vision
     self.reasoning_effort, self.enable_thinking, self.temperature = reasoning_effort, enable_thinking, temperature
     self.snapshots: list = []  # StateSnapshot, oldest first; see Handler._pick_prefix_state
@@ -384,5 +431,7 @@ class LLMServer(TCPServerWithReuse):
     # copied to host memory instead of dropped. A snapshot is ~2.2 GB at max_context 98304, so this needs real RAM headroom
     self.host_snapshots: list = []
     self.max_host_snapshots, self.max_host_bytes = host_snapshots, int(host_snapshot_gb * 1e9)
+    self.record_dir = record_dir
+    if record_dir: pathlib.Path(record_dir).mkdir(parents=True, exist_ok=True)
     self.max_snapshots, self.snapshot_min_tokens = getenv("PREFIX_SNAPSHOTS", 1), getenv("PREFIX_SNAPSHOT_MIN", 1024)
     super().__init__(server_address, Handler)
