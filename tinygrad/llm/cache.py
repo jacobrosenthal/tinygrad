@@ -31,12 +31,17 @@ def _cache_key(path:str, max_context:int|None, extra:str="") -> str:
   st = os.stat(path)
   h.update(f"{path} {st.st_size} {st.st_mtime_ns} {max_context} {extra}".encode())
   for k in _ENV_KEYS: h.update(f" {k}={os.environ.get(k, '')}".encode())
-  # the pickled graphs depend on the tinygrad sources; hash their mtimes so editing any of it invalidates the cache
-  for p in sorted(pathlib.Path(__file__).parents[1].rglob("*.py")): h.update(f" {p} {p.stat().st_mtime_ns}".encode())
+  # the pickled graphs depend on the tinygrad sources; hash their CONTENT so editing any of it invalidates the cache.
+  # (was mtimes -- but a branch checkout round-trip rewrites files with identical content and fresh mtimes, which
+  # forced a full ~9 min cold compile after every `git checkout master && git pull && git checkout <branch>`.)
+  for p in sorted(pathlib.Path(__file__).parents[1].rglob("*.py")):
+    h.update(f" {p} ".encode()); h.update(hashlib.sha256(p.read_bytes()).digest())
   return h.hexdigest()
 
-def _cache_file(path:str) -> pathlib.Path:
-  return pathlib.Path(cache_dir) / "llm" / (hashlib.sha256(path.encode()).hexdigest()[:16] + ".pkl")
+def _cache_file(path:str, max_context:int|None, extra:str="") -> pathlib.Path:
+  # one file per (model, context, extra): the captured graphs are specialized on max_context, so a server started at another
+  # context size must not overwrite this one's entry (the key check would only make it a miss, costing a full warmup each switch)
+  return pathlib.Path(cache_dir) / "llm" / (hashlib.sha256(f"{path} {max_context} {extra}".encode()).hexdigest()[:16] + ".pkl")
 
 def _make_tensor(uop:UOp, is_param:bool) -> Tensor:
   # Tensors must re-register in all_tensors (default unpickling would skip Tensor.__init__)
@@ -96,7 +101,7 @@ def save_llm_cache(model, kv:dict, path:str, max_context:int|None, extra:str="")
       if p is None: raise RuntimeError("model was loaded from a Tensor, not a path: no way to reference the weights")
     meta = {"key": _cache_key(path, max_context, extra), "max_slot": next(UOp.unique_num),
             "bases": [(p, off, b.size) for b, p, off in _gguf.base_registry]}
-    (cf:=_cache_file(path)).parent.mkdir(parents=True, exist_ok=True)
+    (cf:=_cache_file(path, max_context, extra)).parent.mkdir(parents=True, exist_ok=True)
     tmp = cf.with_suffix(f".tmp{os.getpid()}")
     keep, transient = _model_buffers(model)
     with Timing("saved llm cache in ", enabled=DEBUG >= 1), open(tmp, "wb") as f:
@@ -111,7 +116,7 @@ def save_llm_cache(model, kv:dict, path:str, max_context:int|None, extra:str="")
 
 def load_llm_cache(path:str, max_context:int|None, extra:str=""):
   """returns (model, kv) or None. re-uploads the weights from the GGUF file, then unpickles the model around them."""
-  if not getenv("LLM_CACHE", 1) or not (cf:=_cache_file(path)).is_file(): return None
+  if not getenv("LLM_CACHE", 1) or not (cf:=_cache_file(path, max_context, extra)).is_file(): return None
   try:
     with open(cf, "rb") as f:
       meta = pickle.load(f)
