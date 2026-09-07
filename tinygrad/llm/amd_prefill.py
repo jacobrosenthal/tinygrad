@@ -380,6 +380,9 @@ def _attn_pf_src(H:int, HKV:int, D:int, RD:int, MAXC:int, gated:bool, kvq:KVQuan
   SK = max(abs(c) for c in kvq.cbk) / 127.0
   cbk8 = " ".join(f"t == {i} ? {int(round(c / SK))} :" for i, c in enumerate(kvq.cbk)) + " 0"
   cbv = " ".join(f"t == {i} ? {c:.7f}f :" for i, c in enumerate(kvq.cbv)) + " 0.0f"
+  # ATTN_QG (chunked kernel only): WMMA A operands straight from the global qq/sqq rows (12 KB, cache-resident) instead of an LDS copy;
+  # drops qbuf (2 x NR x LQ = 24.5 KB at QT=8) so two workgroups fit per CU (occupancy 1.5 -> 3 waves per SIMD)
+  QG = bool(CH) and bool(int(getenv("ATTN_QG", 1)))
   return PRELUDE + rf"""
 #define WG {WG}
 #define BAR() __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup")
@@ -398,13 +401,14 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
                     "float* __restrict__ out, i8* __restrict__ oq, float* __restrict__ os, float* __restrict__ osum16,"}
                     const i8* __restrict__ qq, const float* __restrict__ qsc, const i8* __restrict__ sqq, const float* __restrict__ sqsc,
                     const u8* __restrict__ cache, {"" if CH else "const float* __restrict__ q_raw, "}const i32* __restrict__ sp_p) {{
-  __attribute__((shared)) u8 qbuf[{(2 if J else 1) * NR * LQ}];  // Qs[NR][LQ] (| SQs[NR][LQ]); reused as Os[16][D] f32 in the epilogue
+  {'' if QG else f'__attribute__((shared)) u8 qbuf[{(2 if J else 1) * NR * LQ}];  // Qs[NR][LQ] (| SQs[NR][LQ]); reused as Os[16][D] f32 in the epilogue'}
   __attribute__((shared)) i8 Ks[16 * {LQ}]{f", KJs[16 * {LQ}]" if J else ""};
   __attribute__((shared)) _Float16 Vt[{D} * 16];            // [dim][pos]
   __attribute__((shared)) _Float16 Ps[{NWAVE} * 16 * 16];   // per wave [row][pos]
   __attribute__((shared)) float ka_s[16], kb_s[16], va_s[16], qsc_s[{NR}], sqsc_s[{NR}], cbv_s[16];
   __attribute__((shared)) i32 cbk8_s[16];
-  i8* Qs = (i8*)qbuf; {f"i8* SQs = (i8*)qbuf + {NR * LQ};" if J else ""}
+  {'__attribute__((shared)) u8 zrow[' + str(D) + '];' if QG else ''}
+  {"" if QG else f'i8* Qs = (i8*)qbuf; {f"i8* SQs = (i8*)qbuf + {NR * LQ};" if J else ""}'}
   {f"const u32 chunk = wg_id() % {NCH}, wg2 = wg_id() / {NCH}; const u32 qb = wg2 / {HKV}, kvh = wg2 % {HKV};" if CH else
      f"const u32 qb = wg_id() / {HKV}, kvh = wg_id() % {HKV};"}
   const u32 qt0 = qb * {QT}, n = (u32)sp_p[1];
@@ -415,16 +419,19 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
   // this workgroup's positions [pos0, pend)
   {f"const u32 pos0 = chunk * {CH}; if (pos0 >= kv_end) return; const u32 pend = pos0 + {CH} < kv_end ? pos0 + {CH} : kv_end;" if CH else
      "const u32 pos0 = 0, pend = kv_end;"}
-  const u32 t = tid(), lane = lane_id(), wave = t >> 5, rt = wave >> 1, dh = wave & 1, l16 = lane & 15, h = lane >> 4;
+  // wave is uniform per wave: say so (readfirstlane) so the per-position scale loads (same address for all lanes) become scalar loads
+  const u32 t = tid(), lane = lane_id(), wave = __builtin_amdgcn_readfirstlane(t >> 5), rt = wave >> 1, dh = wave & 1, l16 = lane & 15, h = lane >> 4;
   const u8* Kh = cache + (u64)kvh * {MAXC * kvq.bytes_per_pos};
   if (t < 16) {{ cbk8_s[t] = {cbk8}; cbv_s[t] = {cbv}; }}
-  // the query rows: r = tl * G + hh -> token qt0 + tl, head G*kvh + hh (rows of padding tokens are zero)
+  {f'for (u32 i = t; i < {D}; i += WG) zrow[i] = 0;' if QG else ''}
+  {"" if QG else f"""  // the query rows: r = tl * G + hh -> token qt0 + tl, head G*kvh + hh (rows of padding tokens are zero)
   for (u32 i = t; i < {NR * D}; i += WG) {{
     const u32 r = i / {D}, d = i % {D}, tl = r / {G}, hh = r % {G};
     const u64 src = ((u64)(qt0 + tl) * {H} + {G} * kvh + hh) * {D} + d;
     Qs[r * {LQ} + d] = tl < nq ? qq[src] : (i8)0;
     {f"SQs[r * {LQ} + d] = tl < nq ? sqq[src] : (i8)0;" if J else ""}
   }}
+"""}
   if (t < {NR}) {{
     const u32 tl = t / {G}, hh = t % {G};
     const u64 row = (u64)(qt0 + tl) * {H} + {G} * kvh + hh;
@@ -432,6 +439,11 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
     sqsc_s[t] = {"tl < nq ? sqsc[row] : 0.0f" if J else "0.0f"};
   }}
   BAR();
+  {f"""// QG: this lane's WMMA A row (rt*16 + l16) straight from global qq/sqq; rows of padding tokens read a zero row
+  const u32 qr = rt * 16 + l16, qtl = qr / {G}, qhh = qr % {G};
+  const u64 qrow_off = ((u64)(qt0 + (qtl < nq ? qtl : 0)) * {H} + {G} * kvh + qhh) * {D};
+  const i8* qrow_g = qtl < nq ? qq + qrow_off : (const i8*)zrow;
+  {"const i8* sqrow_g = qtl < nq ? sqq + qrow_off : (const i8*)zrow;" if J else ""}""" if QG else ""}
   // this lane's 8 accumulator rows: 2i + h of row tile rt
   float qs_r[8], sqs_r[8], m[8], l[8]; i32 row_pos[8];
   f32x8 O[8];
@@ -475,10 +487,10 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
     #pragma unroll
     for (int ks = 0; ks < {D // 16}; ks++) {{
       i32x4 a, b;
-      __builtin_memcpy(&a, Qs + (rt * 16 + l16) * {LQ} + ks * 16, 16);
+      {"__builtin_memcpy(&a, qrow_g + ks * 16, 16);" if QG else f"__builtin_memcpy(&a, Qs + (rt * 16 + l16) * {LQ} + ks * 16, 16);"}
       __builtin_memcpy(&b, Ks + l16 * {LQ} + ks * 16, 16);
       ci = __builtin_amdgcn_wmma_i32_16x16x16_iu8_w32(true, a, true, b, ci, false);
-      {f"__builtin_memcpy(&a, SQs + (rt * 16 + l16) * {LQ} + ks * 16, 16); __builtin_memcpy(&b, KJs + l16 * {LQ} + ks * 16, 16);" if J else ""}
+      {(f"__builtin_memcpy(&a, sqrow_g + ks * 16, 16); __builtin_memcpy(&b, KJs + l16 * {LQ} + ks * 16, 16);" if QG else f"__builtin_memcpy(&a, SQs + (rt * 16 + l16) * {LQ} + ks * 16, 16); __builtin_memcpy(&b, KJs + l16 * {LQ} + ks * 16, 16);") if J else ""}
       {"cj = __builtin_amdgcn_wmma_i32_16x16x16_iu8_w32(true, a, true, b, cj, false);" if J else ""}
     }}
     const float ka = ka_s[l16], kb = kb_s[l16];
