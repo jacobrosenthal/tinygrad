@@ -1,5 +1,5 @@
 from __future__ import annotations
-import enum, functools, itertools, pathlib
+import dataclasses, enum, functools, itertools, pathlib
 from dataclasses import dataclass, replace
 from typing import Any
 from tinygrad import Tensor, nn, UOp, TinyJit, getenv, function, dtypes
@@ -7,6 +7,32 @@ from tinygrad.llm.kernels.amd import Linear, gated_delta_prefill, flash_attentio
 from tinygrad.helpers import DEBUG, Timing
 from tinygrad.llm.gguf import gguf_load
 from tinygrad.uop.ops import resolve
+
+@dataclass
+class StateSnapshot:
+  """a saved decode state: the token prefix it was computed for, the media key, and a private copy of every state buffer.
+  The copies are raw Buffers moved with Buffer.copy_from (one copy op each, no Tensor.realize: a realize walks every live
+  Tensor in the process, ~0.2 s here). They live on the model's device (a VRAM slot) or, once evicted, in host memory
+  (device "PYTHON"): see StateSnapshot.to_host and Handler._pick_prefix_state in serve.py."""
+  tokens: list[int]
+  media: tuple
+  bufs: list  # Buffer per Transformer.snapshot_tensors() entry
+  ckpt_tokens: list[int]|None  # the prefill checkpoint that belongs to this state (see Transformer._save_checkpoint), if one was taken
+  ckpt_bufs: list
+  ckpts: list = dataclasses.field(default_factory=list)  # periodic checkpoints (token prefix, buffers), see Transformer._ckpts
+  def nbytes(self) -> int: return sum(b.nbytes for b in self.bufs + self.ckpt_bufs) + sum(b.nbytes for _, bs in self.ckpts for b in bs)
+  @property
+  def on_host(self) -> bool: return bool(self.bufs) and bool(getattr(self.bufs[0].options, "host", False))
+  @staticmethod
+  def _host_copy(b):
+    # a device-visible pinned host buffer (BufferSpec(host=True)) on the same device: the copy is one SDMA transfer over PCIe in
+    # either direction. A "PYTHON" buffer instead goes through _copyout's chunked staging loop (~0.2 GB/s measured, 2026-08-26)
+    from tinygrad.device import Buffer, BufferSpec
+    return Buffer(b.device, b.size, b.dtype, options=BufferSpec(host=True)).ensure_allocated().copy_from(b)
+  def to_host(self) -> "StateSnapshot":
+    """the same snapshot with every buffer copied to host memory (frees the device copies)"""
+    return StateSnapshot(self.tokens, self.media, [self._host_copy(b) for b in self.bufs], self.ckpt_tokens, [self._host_copy(b) for b in self.ckpt_bufs],
+                         [(t, [self._host_copy(b) for b in bs]) for t, bs in self.ckpts])
 
 class ExpertGating(enum.IntEnum):
   SOFTMAX = 1
@@ -472,6 +498,11 @@ class Transformer:
     # tinygrad.llm.cache drops the buffers like the live state
     self._ckpt: dict[str, dict[str, Tensor]] = {}
     self._ckpt_tokens: list[int]|None = None
+    # periodic recurrent-state checkpoints along the live conversation (--checkpoints N every --checkpoint-every tokens): a request that
+    # diverges mid-conversation (compaction, an edited tool result, a new session sharing the system prompt) resumes from the longest
+    # one it still extends instead of token 0. ~100 MB each here; valid while the kv cache holds the same prefix (see get_start_pos)
+    self._ckpts: list[tuple[list[int], list]] = []
+    self._ckpt_max, self._ckpt_every = 0, 4096
     self._warming = False
     # vision: set when an encoder is attached. image tokens (the pad id) take their embeddings from an `emb` input of the prefill chunk
     self.image_pad_id: int|None = None
@@ -726,7 +757,7 @@ class Transformer:
     for _ in range(2):
       for L in range(K + 1): self._spec_jit(T:=L + 1 + K)(Tensor([[0] * T], dtype="int32"), v_sp.bind(0), temp, T, L + 1)
     self._cached_tokens = []  # the extra calls rewrote the state at position 0
-    self._warming, self._ckpt_tokens = False, None
+    self._warming, self._ckpt_tokens, self._ckpts = False, None, []
 
   # ---- recurrent-state checkpoints: a chat turn's next prompt extends the previous *prompt*, not the cached sequence (the template
   # strips the reasoning of earlier answers, a tool call comes back with its result appended), and GDN state cannot be rewound. so the
@@ -751,6 +782,18 @@ class Transformer:
     self._ckpt_tokens = list(tokens)
   def _restore_checkpoint(self):
     for t, c in self._ckpt_pairs(): t.uop.buffer.ensure_allocated().copy_from(c.uop.buffer.ensure_allocated())
+  def _take_periodic_checkpoint(self, tokens:list[int]):
+    """copy the recurrent states for the prefix `tokens` (direct copies); on MemoryError stop taking them for this conversation"""
+    if not self.has_recurrent_block or self._warming or len(self._ckpts) >= self._ckpt_max: return
+    try: bufs = [self._device_copy(t) for t, _ in self._ckpt_pairs()]
+    except MemoryError: self._ckpt_max = 0; return
+    self._ckpts.append((list(tokens), bufs))
+  def _resume_from_periodic(self, ck:tuple[list[int], list]) -> int:
+    toks, bufs = ck
+    for (t, _), b in zip(self._ckpt_pairs(), bufs): t.uop.buffer.ensure_allocated().copy_from(b)
+    self._cached_tokens = list(toks)
+    self._ckpts = [c for c in self._ckpts if len(c[0]) <= len(toks)]  # longer ones cover kv positions about to be rewritten
+    return len(toks)
 
   def get_start_pos(self, tokens:list[int], media_key:tuple=()) -> int:
     # image tokens are all the same pad id: the cached prefix only counts up to the first image that differs from the cached request
@@ -764,9 +807,55 @@ class Transformer:
         self._restore_checkpoint()
         self._cached_tokens = list(ck)
         return len(ck)
+      # periodic checkpoints: the longest whose prefix the request extends and whose kv positions the cache still holds
+      best = None
+      for c in self._ckpts:
+        n = len(c[0])
+        if (cut is None or cut >= n) and n < len(tokens) and tokens[:n] == c[0] and self._cached_tokens[:n] == c[0] and (best is None or n > len(best[0])): best = c
+      if best is not None: return self._resume_from_periodic(best)
       return 0
     prefix_len = sum(1 for _ in itertools.takewhile(lambda ab: ab[0] == ab[1], zip(tokens[:-1], cached)))
     return min(block._reusable_prefix_len(prefix_len, len(self._cached_tokens)) for block in self.blk)
+
+  # ---- prefix-state snapshots: save/restore the whole decode state, so one conversation's cache survives another's requests ----
+  def prefix_match(self, tokens:list[int], cached:list[int]) -> int:
+    """how many leading tokens of `tokens` a state that ended at `cached` can serve. same rule as get_start_pos without the media cut"""
+    if self.has_recurrent_block:
+      return len(cached) if cached and len(cached) < len(tokens) and tokens[:len(cached)] == cached else 0
+    return sum(1 for _ in itertools.takewhile(lambda ab: ab[0] == ab[1], zip(tokens[:-1], cached)))
+  def snapshot_tensors(self) -> list[Tensor]:
+    """every buffer the forward pass mutates in place: attention kv caches, recurrent (ssm) states, the mtp block's kv cache.
+    the jits capture these by identity, so a snapshot clones their contents and a restore assigns back into the same buffers"""
+    out: list[Tensor] = []
+    for b in self.blk + ([self.mtp.blk] if self.mtp is not None else []):
+      for name in ("cache_kv", "cache_k", "conv_state", "recurrent_state"):
+        if (t := getattr(b, name, None)) is not None: out.append(t)
+    return out
+  @staticmethod
+  def _device_copy_buf(src):
+    from tinygrad.device import Buffer
+    return Buffer(src.device, src.size, src.dtype).ensure_allocated().copy_from(src)
+  @staticmethod
+  def _device_copy(t:Tensor): return Transformer._device_copy_buf(t.uop.buffer.ensure_allocated())
+  def snapshot_state(self) -> StateSnapshot:
+    """copy the whole decode state, and the prefill checkpoint with it: a conversation almost always comes back extending its
+    previous prompt rather than the generated sequence, so the checkpoint is what a restored snapshot gets resumed from.
+    Direct buffer copies (see StateSnapshot); a MemoryError from the allocation is the caller's to handle."""
+    bufs = [self._device_copy(t) for t in self.snapshot_tensors()]
+    ckpt_bufs = [self._device_copy(c) for _, c in self._ckpt_pairs()] if self._ckpt_tokens is not None else []
+    ckpts = [(list(t), [self._device_copy_buf(b) for b in bs]) for t, bs in self._ckpts]
+    return StateSnapshot(list(self._cached_tokens), self._cached_media, bufs, list(self._ckpt_tokens) if self._ckpt_tokens is not None else None, ckpt_bufs, ckpts)
+  def restore_state(self, snap:StateSnapshot) -> None:
+    """write a snapshot (device or host copy) back into the live state buffers"""
+    live = self.snapshot_tensors()
+    assert len(live) == len(snap.bufs), "snapshot does not match the model's state layout"
+    for t, b in zip(live, snap.bufs): t.uop.buffer.ensure_allocated().copy_from(b)
+    if snap.ckpt_bufs:
+      for (_, c), b in zip(self._ckpt_pairs(), snap.ckpt_bufs): c.uop.buffer.ensure_allocated().copy_from(b)
+    self._cached_tokens, self._cached_media = list(snap.tokens), snap.media
+    # the live checkpoint belonged to the conversation that was live; its kv positions are gone now. take the snapshot's (if any)
+    self._ckpt_tokens = list(snap.ckpt_tokens) if snap.ckpt_bufs else None
+    self._ckpts = [(list(t), [self._device_copy_buf(b) for b in bs]) for t, bs in snap.ckpts]
 
   # ---- vision: image embeddings replace the <|image_pad|> tokens, attention positions follow Qwen's m-rope ----
   def _media_cut(self, media_key:tuple) -> int|None:
@@ -898,6 +987,7 @@ class Transformer:
     # chunk has to be realized by the jit, and a realize walks every live Tensor in the process (~250K here, ~0.2 s per chunk
     # of pure Python, 2026-08-26 cProfile: 6.4 of 11.4 s of a 2202-token prefill in _apply_map_to_tensors)
     t = self._prompt_tensor(tokens, chunk_T) if p < prompt_len else None
+    if p == 0: self._ckpts = []  # a new conversation: the kv cache is rewritten from position 0
     while p < prompt_len:
       n_toks = min(chunk_T, prompt_len - p)
       # hold the prompt's last token back for a chunk of its own: the checkpoint is taken just before it (see _save_checkpoint)
@@ -905,9 +995,10 @@ class Transformer:
       sp, nt = v_start_pos.bind(p), v_toks.bind(n_toks)
       emb = self._emb_chunk(spans or [], p, chunk_T) if self.image_pad_id is not None else None
       res, cands = run(t[:, sp:sp + chunk_T], p, nt, nt, emb)
-      p += n_toks
+      p_prev, p = p, p + n_toks
       self._cached_tokens = tokens[:p]
       if p == prompt_len - 1: self._save_checkpoint(tokens[:p])
+      elif self._ckpt_max and p // self._ckpt_every > p_prev // self._ckpt_every: self._take_periodic_checkpoint(tokens[:p])
     first, drafts, chunk = res[n_toks - 1], res[-K:], cands[0]
     tokens.append(first)
     yield first
