@@ -1,0 +1,8 @@
+baseline-serve: branch=amd-qwen-on-master@1f3d594dc MTP K=3 ctx=8192 16:28:20
+SERVED 16:33:50
+OUTPUT[:200]: '\n\n## Merging Two Sorted Lists\n\nThe classic approach uses **two pointers**, one for each list. At each step you compare the elements at both pointers and append the smaller one to the result, advancing'
+COHERENT
+usage: {"prompt_tokens": 29, "completion_tokens": 200, "total_tokens": 229, "prompt_tokens_details": {"cached_tokens": 0}, "decode_seconds": 2.513891822000005}
+--- server perf line ---
+/v1/chat/completions  --  prep:    0 ms  --  in:    0 +   29  --  prefill:  10 tok/s  --  gen:  80 tok/s  --  accept: 0.69 (3.08 tok/step)  --  out:  200  --  total:  5.29s
+DONE 16:33:56

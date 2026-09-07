@@ -1,0 +1,85 @@
+using model "Qwen3.8-27B" with 17,564,969,728 bytes and 27,320,697,856 params, max context 98304 on AMD
+32104.81 ms,   0.03 tok/s,    0.00 GB/s, 0/17601 MB  --  <|endoftext|>
+multiprocessing.pool.RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/multiprocessing/pool.py", line 125, in worker
+    result = (True, func(*args, **kwds))
+                    ~~~~^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/engine/realize.py", line 259, in _compile_kernel
+    with Context(**x[2]): return x[0], to_program(*x[1])
+                                       ~~~~~~~~~~^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/codegen/__init__.py", line 507, in to_program
+    if (prg:=to_program_cache.get(key:=to_program_key(ast, renderer))) is None: to_program_cache[key] = prg = do_to_program(ast, renderer)
+                                                                                                              ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/uop/ops.py", line 1563, in __wrapper
+    ret = func(*args, **kwargs)
+  File "/usr/lib/python3.13/contextlib.py", line 85, in inner
+    return func(*args, **kwds)
+  File "/home/jacob/z/tinygrad/tinygrad/codegen/__init__.py", line 494, in do_to_program
+    prg = graph_rewrite(prg, pm_to_program, ctx=renderer, name="linearize/render")
+  File "/home/jacob/z/tinygrad/tinygrad/uop/ops.py", line 1544, in __wrapper
+    if TRACK_MATCH_STATS < 2 and not new_ctx: return func(*args, **kwargs)
+                                                     ~~~~^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/uop/ops.py", line 1765, in graph_rewrite
+    return rewrite_ctx.walk_rewrite(sink) if walk else rewrite_ctx.unified_rewrite(sink)
+                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/uop/ops.py", line 1741, in unified_rewrite
+    if self.pm is None or (new_src_n:=self.pm_rewrite(new_n)) is None:
+                                      ~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/uop/ops.py", line 1661, in pm_rewrite
+    def pm_rewrite(self, x:UOp) -> UOp|None: return unwrap(self.pm).rewrite(x, self.ctx)
+                                                    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/uop/ops.py", line 1497, in rewrite
+    if (ret:=match(uop, ctx)) is not None and ret is not uop: return ret
+             ~~~~~^^^^^^^^^^
+  File "<string>", line 3, in compiled_match
+  File "/home/jacob/z/tinygrad/tinygrad/codegen/__init__.py", line 452, in do_render
+    src = ctx.render(list(lin.src))
+  File "/home/jacob/z/tinygrad/tinygrad/renderer/llvmir.py", line 265, in render
+    return "\n".join((k:=self._render_kernel(uops, prefix))[0] + (k[1], self._render_footer(uops)))
+                         ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/renderer/llvmir.py", line 200, in _render_kernel
+    raise RuntimeError(f"failed to render {u.op} with {u.dtype} srcs {[x.dtype for x in u.src]}")
+RuntimeError: failed to render Ops.CUSTOM with dtypes.float srcs [dtypes.float]
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/jacob/z/tinygrad/tinygrad/llm/cli.py", line 308, in <module>
+    if __name__ == "__main__": main()
+                               ~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/cli.py", line 286, in main
+    else: next(gen)
+          ~~~~^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 1081, in generate
+    else: out = self(t[:, sp:sp+nt] if start_pos < prompt_len or out is None else out, sp, temp, window=window).realize()
+                ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 700, in __call__
+    return jit(tokens.contiguous(), start_pos, temperature, **kw)
+  File "/usr/lib/python3.13/contextlib.py", line 85, in inner
+    return func(*args, **kwds)
+  File "/home/jacob/z/tinygrad/tinygrad/engine/jit.py", line 243, in __call__
+    if len(params:=get_parameters(ret)): Tensor.realize(*params)
+                                         ~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/tensor.py", line 764, in _wrapper
+    ret = fn(*args, **kwargs)
+  File "/usr/lib/python3.13/contextlib.py", line 85, in inner
+    return func(*args, **kwds)
+  File "/home/jacob/z/tinygrad/tinygrad/tensor.py", line 421, in realize
+    run_linear(*Tensor.linear_with_vars(*to_realize), update_stats=do_update_stats)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/engine/realize.py", line 322, in run_linear
+    if not jit: linear = link_linear(compile_linear(linear, validate=VALIDATE_WITH_CPU, input_uops=inputs))
+                                     ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/engine/realize.py", line 313, in compile_linear
+    linear = lower_and_compile(linear)
+  File "/home/jacob/z/tinygrad/tinygrad/engine/realize.py", line 283, in lower_and_compile
+    for i, prg in (map if pool is None else pool.imap_unordered)(_compile_kernel, tasks):
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/multiprocessing/pool.py", line 873, in next
+    raise value
+RuntimeError: failed to render Ops.CUSTOM with dtypes.float srcs [dtypes.float]

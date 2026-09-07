@@ -1,0 +1,98 @@
+--- GEMV_TG=16 (old)
+gemv_multi_q6k12288_q8_01024_q8_01024_5120_t1_r2u2g768_r1u2g128_r1u2g128 vgpr=117 spill=  0 scratch=   0B sgpr= 25 lds=0B
+gemv_multi_q6k12288_q8_01024_q8_01024_5120_t4_r2u2g768_r2u2g64_r2u2g64 vgpr=143 spill=  0 scratch=   0B sgpr= 38 lds=0B
+gemv_multi_q6k12288_q8_01024_q8_01024_5120_t7_r2u2g768_r2u2g64_r2u2g64 vgpr=157 spill=  0 scratch=   0B sgpr= 56 lds=0B
+gemv_multi_q6k12288_q8_01024_q8_01024_5120_t8_r2u2g768_r2u2g64_r2u2g64 vgpr=158 spill=  0 scratch=   0B sgpr= 65 lds=0B
+gemv_multi_q6k12288_q8_01024_q8_01024_5120_t10_r2u2g768_r2u2g64_r2u2g64 vgpr=174 spill=  0 scratch=   0B sgpr= 80 lds=0B
+gemv_multi_q6k12288_q8_01024_q8_01024_5120_t12_r2u2g768_r2u2g64_r2u2g64 vgpr=195 spill=  0 scratch=   0B sgpr= 95 lds=0B
+gemv_multi_q4k12288_q6k1024_q8_01024_5120_t1_r2u2g768_r1u2g128_r1u2g128 vgpr= 80 spill=  0 scratch=   0B sgpr= 23 lds=0B
+gemv_multi_q4k12288_q6k1024_q8_01024_5120_t4_r2u2g768_r2u2g64_r2u2g64 vgpr=145 spill=  0 scratch=   0B sgpr= 41 lds=0B
+gemv_multi_q4k12288_q6k1024_q8_01024_5120_t7_r2u2g768_r2u2g64_r2u2g64 vgpr=198 spill=  0 scratch=   0B sgpr= 59 lds=0B
+gemv_multi_q4k12288_q6k1024_q8_01024_5120_t8_r2u2g768_r2u2g64_r2u2g64 vgpr=214 spill=  0 scratch=   0B sgpr= 67 lds=0B
+gemv_multi_q4k12288_q6k1024_q8_01024_5120_t10_r2u2g768_r2u2g64_r2u2g64 vgpr=239 spill=  0 scratch=   0B sgpr= 80 lds=0B
+gemv_multi_q4k12288_q6k1024_q8_01024_5120_t12_r2u2g768_r2u2g64_r2u2g64 vgpr=238 spill=  0 scratch=   0B sgpr= 98 lds=0B
+gemv_multi_q4k12288_q5k1024_q8_01024_5120_t1_r2u2g768_r1u2g128_r1u2g128 vgpr= 78 spill=  0 scratch=   0B sgpr= 22 lds=0B
+gemv_multi_q4k12288_q5k1024_q8_01024_5120_t4_r2u2g768_r2u2g64_r2u2g64 vgpr=133 spill=  0 scratch=   0B sgpr= 37 lds=0B
+gemv_multi_q4k12288_q5k1024_q8_01024_5120_t7_r2u2g768_r2u2g64_r2u2g64 vgpr=174 spill=  0 scratch=   0B sgpr= 55 lds=0B
+gemv_multi_q4k12288_q5k1024_q8_01024_5120_t8_r2u2g768_r2u2g64_r2u2g64 vgpr=188 spill=  0 scratch=   0B sgpr= 63 lds=0B
+gemv_multi_q4k12288_q5k1024_q8_01024_5120_t10_r2u2g768_r2u2g64_r2u2g64 vgpr=216 spill=  0 scratch=   0B sgpr= 79 lds=0B
+gemv_multi_q4k12288_q5k1024_q8_01024_5120_t12_r2u2g768_r2u2g64_r2u2g64 vgpr=245 spill=  0 scratch=   0B sgpr= 95 lds=0B
+gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_t1_r2u2g640_r1u2g768_r1u2g6_r1u2g6 vgpr=101 spill=  0 scratch=   0B sgpr= 22 lds=0B
+gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_t4_r2u2g640_r2u2g384_r2u2g3_r2u2g3 vgpr=132 spill=  0 scratch=   0B sgpr= 38 lds=0B
+gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_t7_r2u2g640_r2u2g384_r2u2g3_r2u2g3 vgpr=173 spill=  0 scratch=   0B sgpr= 53 lds=0B
+gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_t8_r2u2g640_r2u2g384_r2u2g3_r2u2g3 vgpr=187 spill=  0 scratch=   0B sgpr= 61 lds=0B
+gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_t10_r2u2g640_r2u2g384_r2u2g3_r2u2g3 vgpr=215 spill=  0 scratch=   0B sgpr= 77 lds=0B
+gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_t12_r2u2g640_r2u2g384_r2u2g3_r2u2g3 vgpr=244 spill=  0 scratch=   0B sgpr= 93 lds=0B
+gemv_multi_q6k17408_q5k17408_5120_t1_r2u2g1088_r2u2g1088     vgpr=117 spill=  0 scratch=   0B sgpr= 26 lds=0B
+gemv_multi_q6k17408_q5k17408_5120_t4_r2u2g1088_r2u2g1088     vgpr=143 spill=  0 scratch=   0B sgpr= 38 lds=0B
+gemv_multi_q6k17408_q5k17408_5120_t7_r2u2g1088_r2u2g1088     vgpr=191 spill=  0 scratch=   0B sgpr= 56 lds=0B
+gemv_multi_q6k17408_q5k17408_5120_t8_r2u2g1088_r2u2g1088     vgpr=188 spill=  0 scratch=   0B sgpr= 65 lds=0B
+gemv_multi_q6k17408_q5k17408_5120_t10_r2u2g1088_r2u2g1088    vgpr=236 spill=  0 scratch=   0B sgpr= 78 lds=0B
+gemv_multi_q6k17408_q5k17408_5120_t12_r2u2g1088_r2u2g1088    vgpr=256 spill=  2 scratch=  12B sgpr= 94 lds=0B
+gemv_multi_q6k17408_q6k17408_5120_t1_r2u2g1088_r2u2g1088     vgpr=118 spill=  0 scratch=   0B sgpr= 30 lds=0B
+gemv_multi_q6k17408_q6k17408_5120_t4_r2u2g1088_r2u2g1088     vgpr=143 spill=  0 scratch=   0B sgpr= 42 lds=0B
+gemv_multi_q6k17408_q6k17408_5120_t7_r2u2g1088_r2u2g1088     vgpr=198 spill=  0 scratch=   0B sgpr= 60 lds=0B
+gemv_multi_q6k17408_q6k17408_5120_t8_r2u2g1088_r2u2g1088     vgpr=214 spill=  0 scratch=   0B sgpr= 68 lds=0B
+gemv_multi_q6k17408_q6k17408_5120_t10_r2u2g1088_r2u2g1088    vgpr=239 spill=  0 scratch=   0B sgpr= 82 lds=0B
+gemv_multi_q6k17408_q6k17408_5120_t12_r2u2g1088_r2u2g1088    vgpr=256 spill=  4 scratch=  12B sgpr= 99 lds=0B
+gemv_multi_iq4xs17408_q3k17408_5120_t1_r2u2g1088_r2u2g1088   vgpr=122 spill=  0 scratch=   0B sgpr= 26 lds=0B
+gemv_multi_iq4xs17408_q3k17408_5120_t4_r2u2g1088_r2u2g1088   vgpr=147 spill=  0 scratch=   0B sgpr= 38 lds=0B
+gemv_multi_iq4xs17408_q3k17408_5120_t7_r2u2g1088_r2u2g1088   vgpr=180 spill=  0 scratch=   0B sgpr= 50 lds=0B
+gemv_multi_iq4xs17408_q3k17408_5120_t8_r2u2g1088_r2u2g1088   vgpr=191 spill=  0 scratch=   0B sgpr= 54 lds=0B
+gemv_multi_iq4xs17408_q3k17408_5120_t10_r2u2g1088_r2u2g1088  vgpr=213 spill=  0 scratch=   0B sgpr= 62 lds=0B
+gemv_multi_iq4xs17408_q3k17408_5120_t12_r2u2g1088_r2u2g1088  vgpr=235 spill=  0 scratch=   0B sgpr= 70 lds=0B
+gemv_multi_iq4xs17408_iq4xs17408_5120_t1_r2u2g1088_r2u2g1088 vgpr= 71 spill=  0 scratch=   0B sgpr= 25 lds=0B
+gemv_multi_iq4xs17408_iq4xs17408_5120_t4_r2u2g1088_r2u2g1088 vgpr= 96 spill=  0 scratch=   0B sgpr= 34 lds=0B
+gemv_multi_iq4xs17408_iq4xs17408_5120_t7_r2u2g1088_r2u2g1088 vgpr=142 spill=  0 scratch=   0B sgpr= 47 lds=0B
+gemv_multi_iq4xs17408_iq4xs17408_5120_t8_r2u2g1088_r2u2g1088 vgpr=143 spill=  0 scratch=   0B sgpr= 51 lds=0B
+gemv_multi_iq4xs17408_iq4xs17408_5120_t10_r2u2g1088_r2u2g1088 vgpr=151 spill=  0 scratch=   0B sgpr= 60 lds=0B
+gemv_multi_iq4xs17408_iq4xs17408_5120_t12_r2u2g1088_r2u2g1088 vgpr=148 spill=  0 scratch=   0B sgpr= 67 lds=0B
+--- GEMV_TG=0 (default)
+gemv_multi_q6k12288_q8_01024_q8_01024_5120_t1_r2u2g768_r1u2g128_r1u2g128 vgpr=117 spill=  0 scratch=   0B sgpr= 25 lds=0B
+gemv_multi_q6k12288_q8_01024_q8_01024_5120_t4_r2u2g768_r2u2g64_r2u2g64 vgpr=143 spill=  0 scratch=   0B sgpr= 38 lds=0B
+gemv_multi_q6k12288_q8_01024_q8_01024_5120_t7_r2u2g768_r2u2g64_r2u2g64 vgpr=157 spill=  0 scratch=   0B sgpr= 56 lds=0B
+gemv_multi_q6k12288_q8_01024_q8_01024_5120_t8_r2u2g768_r2u2g64_r2u2g64 vgpr=158 spill=  0 scratch=   0B sgpr= 65 lds=0B
+gemv_multi_q6k12288_q8_01024_q8_01024_5120_t10_r2u2g768_r2u2g64_r2u2g64 vgpr=174 spill=  0 scratch=   0B sgpr= 80 lds=0B
+gemv_multi_q6k12288_q8_01024_q8_01024_5120_t12_r2u2g768_r2u2g64_r2u2g64 vgpr=195 spill=  0 scratch=   0B sgpr= 95 lds=0B
+gemv_multi_q4k12288_q6k1024_q8_01024_5120_t1_r2u2g768_r1u2g128_r1u2g128 vgpr= 80 spill=  0 scratch=   0B sgpr= 23 lds=0B
+gemv_multi_q4k12288_q6k1024_q8_01024_5120_t4_r2u2g768_r2u2g64_r2u2g64 vgpr=145 spill=  0 scratch=   0B sgpr= 41 lds=0B
+gemv_multi_q4k12288_q6k1024_q8_01024_5120_t7_r2u2g768_r2u2g64_r2u2g64_tg477 vgpr=196 spill=  0 scratch=   0B sgpr= 59 lds=0B
+gemv_multi_q4k12288_q6k1024_q8_01024_5120_t8_r2u2g768_r2u2g64_r2u2g64_tg488 vgpr=199 spill=  0 scratch=   0B sgpr= 67 lds=0B
+gemv_multi_q4k12288_q6k1024_q8_01024_5120_t10_r2u2g768_r2u2g64_r2u2g64_tg41010 vgpr=201 spill=  0 scratch=   0B sgpr= 82 lds=0B
+gemv_multi_q4k12288_q6k1024_q8_01024_5120_t12_r2u2g768_r2u2g64_r2u2g64_tg41212 vgpr=198 spill=  0 scratch=   0B sgpr= 98 lds=0B
+gemv_multi_q4k12288_q5k1024_q8_01024_5120_t1_r2u2g768_r1u2g128_r1u2g128 vgpr= 78 spill=  0 scratch=   0B sgpr= 22 lds=0B
+gemv_multi_q4k12288_q5k1024_q8_01024_5120_t4_r2u2g768_r2u2g64_r2u2g64 vgpr=133 spill=  0 scratch=   0B sgpr= 37 lds=0B
+gemv_multi_q4k12288_q5k1024_q8_01024_5120_t7_r2u2g768_r2u2g64_r2u2g64_tg447 vgpr=138 spill=  0 scratch=   0B sgpr= 55 lds=0B
+gemv_multi_q4k12288_q5k1024_q8_01024_5120_t8_r2u2g768_r2u2g64_r2u2g64_tg448 vgpr=143 spill=  0 scratch=   0B sgpr= 63 lds=0B
+gemv_multi_q4k12288_q5k1024_q8_01024_5120_t10_r2u2g768_r2u2g64_r2u2g64_tg4410 vgpr=179 spill=  0 scratch=   0B sgpr= 79 lds=0B
+gemv_multi_q4k12288_q5k1024_q8_01024_5120_t12_r2u2g768_r2u2g64_r2u2g64_tg4412 vgpr=186 spill=  0 scratch=   0B sgpr= 95 lds=0B
+gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_t1_r2u2g640_r1u2g768_r1u2g6_r1u2g6 vgpr=101 spill=  0 scratch=   0B sgpr= 22 lds=0B
+gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_t4_r2u2g640_r2u2g384_r2u2g3_r2u2g3 vgpr=132 spill=  0 scratch=   0B sgpr= 38 lds=0B
+gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_t7_r2u2g640_r2u2g384_r2u2g3_r2u2g3_tg4477 vgpr=146 spill=  0 scratch=   0B sgpr= 53 lds=0B
+gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_t8_r2u2g640_r2u2g384_r2u2g3_r2u2g3_tg4488 vgpr=145 spill=  0 scratch=   0B sgpr= 61 lds=0B
+gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_t10_r2u2g640_r2u2g384_r2u2g3_r2u2g3_tg441010 vgpr=178 spill=  0 scratch=   0B sgpr= 77 lds=0B
+gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_t12_r2u2g640_r2u2g384_r2u2g3_r2u2g3_tg441212 vgpr=186 spill=  0 scratch=   0B sgpr= 93 lds=0B
+gemv_multi_q6k17408_q5k17408_5120_t1_r2u2g1088_r2u2g1088     vgpr=117 spill=  0 scratch=   0B sgpr= 26 lds=0B
+gemv_multi_q6k17408_q5k17408_5120_t4_r2u2g1088_r2u2g1088     vgpr=143 spill=  0 scratch=   0B sgpr= 38 lds=0B
+gemv_multi_q6k17408_q5k17408_5120_t7_r2u2g1088_r2u2g1088_tg74 vgpr=157 spill=  0 scratch=   0B sgpr= 56 lds=0B
+gemv_multi_q6k17408_q5k17408_5120_t8_r2u2g1088_r2u2g1088_tg84 vgpr=153 spill=  0 scratch=   0B sgpr= 65 lds=0B
+gemv_multi_q6k17408_q5k17408_5120_t10_r2u2g1088_r2u2g1088_tg104 vgpr=172 spill=  0 scratch=   0B sgpr= 80 lds=0B
+gemv_multi_q6k17408_q5k17408_5120_t12_r2u2g1088_r2u2g1088_tg124 vgpr=195 spill=  0 scratch=   0B sgpr= 95 lds=0B
+gemv_multi_q6k17408_q6k17408_5120_t1_r2u2g1088_r2u2g1088     vgpr=118 spill=  0 scratch=   0B sgpr= 30 lds=0B
+gemv_multi_q6k17408_q6k17408_5120_t4_r2u2g1088_r2u2g1088     vgpr=143 spill=  0 scratch=   0B sgpr= 42 lds=0B
+gemv_multi_q6k17408_q6k17408_5120_t7_r2u2g1088_r2u2g1088     vgpr=198 spill=  0 scratch=   0B sgpr= 60 lds=0B
+gemv_multi_q6k17408_q6k17408_5120_t8_r2u2g1088_r2u2g1088     vgpr=214 spill=  0 scratch=   0B sgpr= 68 lds=0B
+gemv_multi_q6k17408_q6k17408_5120_t10_r2u2g1088_r2u2g1088    vgpr=239 spill=  0 scratch=   0B sgpr= 82 lds=0B
+gemv_multi_q6k17408_q6k17408_5120_t12_r2u2g1088_r2u2g1088    vgpr=256 spill=  4 scratch=  12B sgpr= 99 lds=0B
+gemv_multi_iq4xs17408_q3k17408_5120_t1_r2u2g1088_r2u2g1088   vgpr=122 spill=  0 scratch=   0B sgpr= 26 lds=0B
+gemv_multi_iq4xs17408_q3k17408_5120_t4_r2u2g1088_r2u2g1088   vgpr=147 spill=  0 scratch=   0B sgpr= 38 lds=0B
+gemv_multi_iq4xs17408_q3k17408_5120_t7_r2u2g1088_r2u2g1088   vgpr=180 spill=  0 scratch=   0B sgpr= 50 lds=0B
+gemv_multi_iq4xs17408_q3k17408_5120_t8_r2u2g1088_r2u2g1088   vgpr=191 spill=  0 scratch=   0B sgpr= 54 lds=0B
+gemv_multi_iq4xs17408_q3k17408_5120_t10_r2u2g1088_r2u2g1088  vgpr=213 spill=  0 scratch=   0B sgpr= 62 lds=0B
+gemv_multi_iq4xs17408_q3k17408_5120_t12_r2u2g1088_r2u2g1088  vgpr=235 spill=  0 scratch=   0B sgpr= 70 lds=0B
+gemv_multi_iq4xs17408_iq4xs17408_5120_t1_r2u2g1088_r2u2g1088 vgpr= 71 spill=  0 scratch=   0B sgpr= 25 lds=0B
+gemv_multi_iq4xs17408_iq4xs17408_5120_t4_r2u2g1088_r2u2g1088 vgpr= 96 spill=  0 scratch=   0B sgpr= 34 lds=0B
+gemv_multi_iq4xs17408_iq4xs17408_5120_t7_r2u2g1088_r2u2g1088 vgpr=142 spill=  0 scratch=   0B sgpr= 47 lds=0B
+gemv_multi_iq4xs17408_iq4xs17408_5120_t8_r2u2g1088_r2u2g1088 vgpr=143 spill=  0 scratch=   0B sgpr= 51 lds=0B
+gemv_multi_iq4xs17408_iq4xs17408_5120_t10_r2u2g1088_r2u2g1088 vgpr=151 spill=  0 scratch=   0B sgpr= 60 lds=0B
+gemv_multi_iq4xs17408_iq4xs17408_5120_t12_r2u2g1088_r2u2g1088 vgpr=148 spill=  0 scratch=   0B sgpr= 67 lds=0B

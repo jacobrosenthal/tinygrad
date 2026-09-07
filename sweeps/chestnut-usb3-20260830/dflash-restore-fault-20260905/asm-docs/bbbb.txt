@@ -1,0 +1,334 @@
+                        5                                                                                                  4                                                                     3                                                            2                                                                        1
+
+
+
+
+        HDD_POWER_Control for NVME device
+                                                                                                                                                                                                                                                                                                        1.8V change to 1.9V
+                                                                                                                                            Max : 4A                                                                                                     VDD 1.8V                             2A                                                VCC18_SYS
+
+                                                                                                                                             3.3V                                    R74    1             2 0Ohm                               +5V_BUS                            U4             2.2uH,0412              1.92V
+
+
+
+
+                                                                                                      1
+D                                                                                                           0.1uF/50V                                                                                                                                                                            L2                                                                         D
+                                                                                                            C105                                                      +3.3V_M2       R75    1             2 0Ohm                +3.3V_SSD                         4                      3
+                                                                                                                                                                                                                                                                       IN           LX
+
+
+
+
+                                                                                 6
+    +5V_BUS                                                             U3                                         2.2UH/L6.95xW6.6mm                                                                                                                                                                           26.7K 1%
+
+
+
+
+                                                                                                      2
+
+
+
+
+                                                                                                                                                                                                                                               1
+                                                                                                                   L1                                                                                                                              22UF/10V                                             R47
+
+
+
+
+                                                                                    BST
+
+
+
+
+                                                                                                                                                                                                                                                                            GND
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                   1
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                     1
+                                                                  3                              2            1              2                                                        1                      6                                                    1                      5
+                                                                         VIN              SW                                                                                               VIN       VOUT                                                              EN          FB
+
+
+
+
+                                                                                                                                 1
+            C79                                                                                                                                                                                                                                    C82                                                          1        2                  C84           C85
+
+
+
+
+                                                                                                                                                                                                                                               2
+    1
+
+
+
+
+                                                                                                                                            1
+
+
+
+                                                                                                                                                       1
+
+
+
+
+                                                                                                                                                                      1
+
+
+
+
+                                                                                                                                                                                                                                1
+            22UF/10V        1 R45               2                 5                                                                                                                   5                      2                                                                                                          22PF/50V           10UF/10V      10UF/10V
+                                                                                                                                                                                                                                                                                                        R48 C83
+
+
+
+
+                                                                                    GND
+                                                                         EN                                                                                                                EN         Iset
+
+
+
+
+                                                                                                                                                                                                                                                                            2
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                   2
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                     2
+                                                                                                 4                         R46                   C80          C81          C102                                                      C103
+                    100KOhm                                                                FB                        40.2KOhm /1%     R1                     22UF/10V     22UF/10V    4
+                                                                                                                                                                                           FAULT     GND
+                                                                                                                                                                                                             3      C104            22UF/10V
+                                                                                                                                                                                                                                                              BL8039                                   12.1K/1%
+    2
+
+
+
+
+                                                                                                                                            2
+
+
+
+                                                                                                                                                       2
+
+
+
+
+                                                                                                                                                                      2
+
+
+
+
+                                                                                                                                                                                                                                2
+                                                                                                                                                                                                                    470PF/16V/NC
+
+
+
+
+                                                                                 1
+
+
+
+
+                                                                                                                                 2
+
+
+
+
+                                                                                                                                                                                                                           1
+              VCC33_SYS                                                                   LP6454                                                                                           TCP1001/NC U7
+    GND                                                                                                                                   22PF/50V
+                                                                                                                                                                                                                                                                  Vout=0.6V*[1+R1/R2)]
+
+
+
+
+                                                                                                                                 2
+                                                                                                                                                       GND            GND
+                                                                                                                                                                                     Iset=3.6A                     R71          GND
+
+
+
+
+                                                                                                                                                                                                                           2
+                         HDD_PC_EN1
+                                                                                                                                                                                                                   536R/1%/NC
+                                                                                                                      R50
+                                                                                 GND                              12.1KOhm /1%        R2                         HDD_PC_EN2                                                                                                              VCC18_SYS                                              VCC18
+                                                                                                                                                                                                                                                                                                          R72       1           2 0Ohm
+
+
+
+
+                                                                                                                                 1
+                    VOUT=0.765V*[1+(R1/R2)]                                                                                                                                                                  GND
+
+
+
+
+                                                                                                                               Wifi was here tooo >:3
+                                                                                                                                 GND
+                                                                 R76           0 Ohm
+                                                             1                2 HDD_PC_EN1
+              HDD_PC_EN
+
+C
+                                                                 R77           0 Ohm/NC                                                                                                                                                                                                                                                                                     C
+                                                             1                2 HDD_PC_EN2
+
+
+
+
+                                                                                                                                                                                                                                                                                                                        +5V_BUS
+                                                                                                                               Change to 1.13V                                                                                                                                                                J5
+                                                                                          1
+
+
+
+
+    +5V_BUS                                                                                     0.1uF/50V
+                                                                                                C106                                                   VDD095_SYS                                                                                                                                                   2
+                                                                                                                                     3A
+                                                                 6
+
+
+
+
+                                                    U5                                                                                                                                                                                                                                                              3
+                                                                                          2
+                                                                  BST
+
+
+
+
+                                                3                               2                         L3
+                    R52                                 VIN             SW
+                                                                                                          L-1.0uH,0412
+                             100K               5
+                                                                  GND
+
+
+
+
+                                                        EN                      4                           R53            5.76K 1%       C91              C92                                                                                                                                                           GND
+                                                                         FB
+              22UF/10V                                                                                    C107 1          2 NC
+                                                                 1
+
+
+
+
+            C89                                                         LP6454                                                        22uF/10v             22uF/10v
+                                                                                                            R54
+
+                                                                                                                      12.1K 1%
+B                                                                                    VOUT=0.765V*[1+(R1/R2)]                                                                                                                                                                                                                                                                B
+
+
+
+
+                                                                                              VDD095_SYS                                         VDD095
+                                                                                                               R73    1           2 0Ohm
+                                      BL1117-33CX
+    +5V_BUS             U6                                            VCC33_SYS
+
+                    3                               2
+                                   GND
+
+
+
+
+                            Vin          Vout
+                                                                     C88
+        C90
+                                  1
+
+
+
+
+                                                                     10uF
+        10UF/10V                                                                                                                                                                                                                                                                                 OT1                      OT2
+
+
+                                                                                                                                                                                                                                                                                              for SMT Optical Point
+
+                                                                                                                                                                                                     H2               H1
+        +5V_BUS
+                                                                                                                                                                                                     H4               H3
+A           22UF/10V/NC 22UF/10V/NC 22UF/10V/NC 22UF/10V/NC                                                                                                                                                                                                                                                                                                                 A
+        1
+
+
+
+
+                        1
+
+
+
+
+                                                1
+
+
+
+
+                                                                        1
+
+
+
+
+                                                                                            1
+
+
+
+
+                                                                                                   22UF/10V/NC
+
+              C97                 C98                    C99                   C100                C101
+        2
+
+
+
+
+                        2
+
+
+
+
+                                                2
+
+
+
+
+                                                                        2
+
+
+
+
+                                                                                            2
+
+
+
+
+                                                                                                                                                                                                                                                                                Title
+                                                                                                                                                                                                                                                                                         Power
+
+                                                                                                                                                                                                                                                                                Size     Document Number                                                            Rev
+                                                                                                                                                                                                                                                                                B        <Doc>                                                                        0.3
+
+                                                                                                                                                                                                                                                                                Date:        Monday, November 13, 2023             Sheet         2       of   2
+                        5                                                                                                  4                                                                     3                                                            2                                                                        1
+

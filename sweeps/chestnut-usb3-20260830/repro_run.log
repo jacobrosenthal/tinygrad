@@ -1,0 +1,18 @@
+llm cache: uploaded weights in 50826.04 ms
+llm cache: unpickled model in 994.16 ms
+  {"trial": 2, "task": "prose", "wall_s": 16.016, "prompt_tokens": 57, "completion_tokens": 800, "finish_reason": "length", "content_len": 1533, "reasoning_len": 1975, "truncated_in_reasoning": false}
+trial 2 / code ...
+  {"trial": 2, "task": "code", "wall_s": 12.458, "prompt_tokens": 72, "completion_tokens": 800, "finish_reason": "length", "content_len": 1710, "reasoning_len": 1263, "truncated_in_reasoning": false}
+trial 3 / prose ...
+  {"trial": 3, "task": "prose", "wall_s": 17.298, "prompt_tokens": 57, "completion_tokens": 800, "finish_reason": "length", "content_len": 0, "reasoning_len": 3544, "truncated_in_reasoning": true}
+trial 3 / code ...
+  {"trial": 3, "task": "code", "wall_s": 11.487, "prompt_tokens": 72, "completion_tokens": 800, "finish_reason": "length", "content_len": 0, "reasoning_len": 3217, "truncated_in_reasoning": true}
+wrote results-repro.json
+--- accept lines ---
+accept: 0.78 (3.33 tok/step)
+accept: 0.34 (2.03 tok/step)
+accept: 0.63 (2.88 tok/step)
+accept: 0.37 (2.11 tok/step)
+accept: 0.62 (2.87 tok/step)
+accept: 0.32 (1.95 tok/step)
+accept: 0.74 (3.21 tok/step)

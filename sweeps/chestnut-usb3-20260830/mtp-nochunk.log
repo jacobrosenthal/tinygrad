@@ -1,0 +1,34 @@
+using model "Qwen3.8-27B" with 19,953,131,648 bytes and 64,557,981,568 params, max context 98304 on AMD
+566.33 ms,   1.77 tok/s,    0.00 GB/s, 0/17611 MB  --  <|endoftext|>
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/jacob/z/tinygrad/tinygrad/llm/cli.py", line 308, in <module>
+    if __name__ == "__main__": main()
+                               ~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/cli.py", line 286, in main
+    else: next(gen)
+          ~~~~^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 1081, in generate
+    else: out = self(t[:, sp:sp+nt] if start_pos < prompt_len or out is None else out, sp, temp, window=window).realize()
+                ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 700, in __call__
+    return jit(tokens.contiguous(), start_pos, temperature, **kw)
+  File "/usr/lib/python3.13/contextlib.py", line 85, in inner
+    return func(*args, **kwds)
+  File "/home/jacob/z/tinygrad/tinygrad/engine/jit.py", line 242, in __call__
+    ret = self.fxn(*args, **kwargs)
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 539, in forward
+    for block in self.blk: x = block(x, start_pos, n_tok)
+                               ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 185, in __call__
+    return _run(x, start_pos)
+  File "/home/jacob/z/tinygrad/tinygrad/function.py", line 56, in __call__
+    ret = self.fxn(*args, **kwargs)
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 183, in _run
+    h =     x + self._attention(self.attn_norm(x), start_pos)
+                ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 241, in _attention
+    assert self.kv_quant is None, "the quantized kv cache is only readable by the fused attention kernel"
+           ^^^^^^^^^^^^^^^^^^^^^
+AssertionError: the quantized kv cache is only readable by the fused attention kernel

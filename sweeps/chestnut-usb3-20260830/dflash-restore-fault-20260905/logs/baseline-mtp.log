@@ -1,0 +1,43 @@
+using model "Qwen3.8-27B" with 18,091,778,176 bytes and 62,621,654,912 params, max context 8192 on AMD
+benchmark seed: 1 tokens (bare BOS)
+41137.89 ms,   0.02 tok/s,    2.11 GB/s, 86737/18435 MB  --  <|endoftext|>给
+21009.25 ms,   0.05 tok/s,    1.02 GB/s, 21361/18435 MB  --  <|endoftext|>给这些
+5732.50 ms,   0.17 tok/s,    3.73 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面
+ 38.41 ms,  26.04 tok/s,  556.22 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字
+ 34.56 ms,  28.94 tok/s,  618.12 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂
+ 34.26 ms,  29.18 tok/s,  623.44 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n
+ 34.78 ms,  28.75 tok/s,  614.17 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实
+ 34.94 ms,  28.62 tok/s,  611.34 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关
+ 35.02 ms,  28.56 tok/s,  610.01 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n
+ 35.45 ms,  28.21 tok/s,  602.55 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n4
+ 36.24 ms,  27.60 tok/s,  589.51 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n40
+ 35.20 ms,  28.41 tok/s,  606.92 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400
+ 34.93 ms,  28.63 tok/s,  611.60 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g
+ 34.93 ms,  28.63 tok/s,  611.51 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\n
+ 35.05 ms,  28.53 tok/s,  609.55 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking
+ 34.98 ms,  28.59 tok/s,  610.72 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the
+ 35.27 ms,  28.35 tok/s,  605.62 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the J
+ 34.68 ms,  28.84 tok/s,  616.06 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Jugg
+ 35.65 ms,  28.05 tok/s,  599.14 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggern
+ 35.78 ms,  27.95 tok/s,  596.96 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern
+ 35.20 ms,  28.41 tok/s,  606.79 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\n
+  0.00 ms, 1430615.16 tok/s,    0.00 GB/s, 0/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven
+22461.61 ms,   0.04 tok/s,    0.95 GB/s, 21407/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n
+ 33.55 ms,  29.81 tok/s,  636.71 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些
+ 34.52 ms,  28.97 tok/s,  618.76 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\n
+ 35.68 ms,  28.03 tok/s,  598.77 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone
+ 35.32 ms,  28.31 tok/s,  604.83 GB/s, 21361/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n
+  0.00 ms, 696864.11 tok/s,    0.00 GB/s, 0/18447 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<
+5808.91 ms,   0.17 tok/s,    3.69 GB/s, 21407/18461 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<\n
+  0.00 ms, 1094091.90 tok/s,    0.00 GB/s, 0/18461 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<\nTaking
+ 39.55 ms,  25.28 tok/s,  541.23 GB/s, 21407/18461 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<\nTaking the
+  0.00 ms, 1264222.50 tok/s,    0.00 GB/s, 0/18461 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<\nTaking the J
+  0.00 ms, 2967359.05 tok/s,    0.00 GB/s, 0/18461 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<\nTaking the Jugg
+  0.00 ms, 2604166.67 tok/s,    0.00 GB/s, 0/18461 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<\nTaking the Juggern
+25363.16 ms,   0.04 tok/s,    0.85 GB/s, 21499/18461 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<\nTaking the Juggernern
+ 33.69 ms,  29.68 tok/s,  634.02 GB/s, 21361/18461 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<\nTaking the Juggernern 
+ 35.07 ms,  28.51 tok/s,  609.09 GB/s, 21361/18461 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<\nTaking the Juggernern 现实
+ 34.87 ms,  28.68 tok/s,  612.58 GB/s, 21361/18461 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<\nTaking the Juggernern 现实 
+ 34.80 ms,  28.74 tok/s,  613.86 GB/s, 21361/18461 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<\nTaking the Juggernern 现实 4
+  0.00 ms, 1203369.43 tok/s,    0.00 GB/s, 0/18461 MB  --  <|endoftext|>给这些负面文字灵魂\n与现实的相关\n400 g\nTaking the Juggernern\nGiven\n这些\nNone\n<\nTaking the Juggernern 现实 40
+40 tokens in 122466.9 ms: 0.33 tok/s (mtp accepted 9/32 drafts)

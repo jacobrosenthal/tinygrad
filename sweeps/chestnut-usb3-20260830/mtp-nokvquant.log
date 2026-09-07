@@ -1,0 +1,113 @@
+using model "Qwen3.8-27B" with 31,638,889,216 bytes and 65,975,247,360 params, max context 98304 on AMD
+24594.55 ms,   0.04 tok/s,    0.30 GB/s, 7405/25017 MB  --  <|endoftext|>
+Traceback (most recent call last):
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 230, in alloc
+    try: return self._alloc(size, options if options is not None else self.default_buffer_spec)
+                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 656, in _alloc
+    return self.dev.iface.alloc(size, host=options.host, uncached=options.uncached, cpu_access=options.cpu_access or not self.dev.has_sdma_queue)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 998, in alloc
+    return super().alloc(size, host=False, uncached=uncached, cpu_access=cpu_access, contiguous=contiguous, force_devmem=True, zero=zero, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/system.py", line 279, in alloc
+    mapping = self.dev_impl.mm.valloc(size:=round_up(size, 0x1000), uncached=uncached, contiguous=cpu_access, zero=zero)
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/memory.py", line 250, in valloc
+    paddr = self.palloc(size:=round_up(size, 0x1000), align, zero=False)
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/memory.py", line 286, in palloc
+    paddr = allocator.alloc(round_up(size, 0x1000), align)
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/memory.py", line 112, in alloc
+    raise MemoryError(f"Can't allocate {req_size} bytes")
+MemoryError: Can't allocate 807403520 bytes
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 260, in alloc
+    try: return super().alloc(size, options)
+                ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 231, in alloc
+    except (RuntimeError, MemoryError) as e: raise MemoryError(f"Allocation of {size_to_str(size)} failed on {self.dev.device}. "
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                                               f"Used: {size_to_str(GlobalCounters.mem_used_per_device[self.dev.device])}") from e
+                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MemoryError: Allocation of 768.06 MB failed on AMD. Used: 23.30 GB
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 230, in alloc
+    try: return self._alloc(size, options if options is not None else self.default_buffer_spec)
+                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 656, in _alloc
+    return self.dev.iface.alloc(size, host=options.host, uncached=options.uncached, cpu_access=options.cpu_access or not self.dev.has_sdma_queue)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 998, in alloc
+    return super().alloc(size, host=False, uncached=uncached, cpu_access=cpu_access, contiguous=contiguous, force_devmem=True, zero=zero, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/system.py", line 279, in alloc
+    mapping = self.dev_impl.mm.valloc(size:=round_up(size, 0x1000), uncached=uncached, contiguous=cpu_access, zero=zero)
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/memory.py", line 250, in valloc
+    paddr = self.palloc(size:=round_up(size, 0x1000), align, zero=False)
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/memory.py", line 286, in palloc
+    paddr = allocator.alloc(round_up(size, 0x1000), align)
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/memory.py", line 112, in alloc
+    raise MemoryError(f"Can't allocate {req_size} bytes")
+MemoryError: Can't allocate 807403520 bytes
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/jacob/z/tinygrad/tinygrad/llm/cli.py", line 308, in <module>
+    if __name__ == "__main__": main()
+                               ~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/cli.py", line 286, in main
+    else: next(gen)
+          ~~~~^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 1061, in generate
+    yield from self._generate_spec(tokens, chunk_T, temperature, spans, start_pos)
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 1134, in _generate_spec
+    res, cands = run(t[:, sp:sp + chunk_T], p, nt, nt, emb, window)
+                 ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 1119, in run
+    res, *cands = self._spec_jit(int(chunk.shape[1]))(chunk, v_start_pos.bind(start_pos), temp, n_tok, n_keep, **kw)
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/contextlib.py", line 85, in inner
+    return func(*args, **kwds)
+  File "/home/jacob/z/tinygrad/tinygrad/engine/jit.py", line 243, in __call__
+    if len(params:=get_parameters(ret)): Tensor.realize(*params)
+                                         ~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/tensor.py", line 764, in _wrapper
+    ret = fn(*args, **kwargs)
+  File "/usr/lib/python3.13/contextlib.py", line 85, in inner
+    return func(*args, **kwds)
+  File "/home/jacob/z/tinygrad/tinygrad/tensor.py", line 421, in realize
+    run_linear(*Tensor.linear_with_vars(*to_realize), update_stats=do_update_stats)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/engine/realize.py", line 324, in run_linear
+    for call in linear.src: track_stats(ctx, call, perf_counter_us(), pm_exec.rewrite(call, ctx))
+                                                                      ~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/uop/ops.py", line 1497, in rewrite
+    if (ret:=match(uop, ctx)) is not None and ret is not uop: return ret
+             ~~~~~^^^^^^^^^^
+  File "<string>", line 3, in compiled_match
+  File "/home/jacob/z/tinygrad/tinygrad/engine/realize.py", line 191, in exec_kernel
+    prg_bufs = [b.ensure_allocated() for b in bufs]
+                ~~~~~~~~~~~~~~~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 143, in ensure_allocated
+    def ensure_allocated(self) -> Buffer: return self.allocate() if not self.is_initialized() else self
+                                                 ~~~~~~~~~~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 157, in allocate
+    self._bufs[self.device] = opaque if opaque is not None else self.allocator.alloc(self.nbytes, self.options)
+                                                                ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 263, in alloc
+    return super().alloc(size, options)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 231, in alloc
+    except (RuntimeError, MemoryError) as e: raise MemoryError(f"Allocation of {size_to_str(size)} failed on {self.dev.device}. "
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                                               f"Used: {size_to_str(GlobalCounters.mem_used_per_device[self.dev.device])}") from e
+                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MemoryError: Allocation of 768.06 MB failed on AMD. Used: 23.30 GB

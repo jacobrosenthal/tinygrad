@@ -1,0 +1,5 @@
+graph captured with scratch 0x7b3af3a40000 (48 MiB), tmpring 0x41200
+after a kernel with a larger private segment: scratch 0x7b3adb980000 (384 MiB), tmpring 0x201200
+the graph still dispatches with COMPUTE_DISPATCH_SCRATCH_BASE=0x7b3af3a40000, which _ensure_has_local_memory freed
+replaying the graph (expect GCVM_L2_PROTECTION_FAULT / device hang) ...
+replay returned: [0, 2, 4, 6]

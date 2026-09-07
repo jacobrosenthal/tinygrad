@@ -1,0 +1,6 @@
+req  submits  control   bulk  out tok/step  steps xfers/step gen tok/s
+  0    90403        0      0  300     3.31     91      997.4        83
+  1    56319        0      0  300     2.92    103      548.2        76
+  2    58678        0      0  300     2.75    109      537.9        71
+  3    57270        0      0  300     2.78    108      530.7        73
+note: request counts include the prefill and the response copyouts; the decode share = (xfers/step) x steps, compare requests of different lengths

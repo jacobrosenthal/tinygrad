@@ -1,0 +1,12 @@
+02:12:27 chain3 start: waiting for pid 646224
+05:29:28 chain2 exited
+05:29:28 1/1 USB transfers per step (mtp-k3)
+/home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/usb-transfers-20260906/scripts/count_transfers.sh: line 14: 702418 Killed                  env ${EXTRA:-MTP_K=3} PYTHONPATH=$TREE LIBUSB_DEBUG=4 LLM_CACHE=1 DEV=USB+AMD:LLVM MAX_T=12 ATTN_QT=8 NGRAM_DRAFT=0 PYTHONUNBUFFERED=1 "$PY" -m tinygrad.llm.cli --model "$MODEL" --mmproj none --repeat-penalty 1.15 --max_context 8192 --host 127.0.0.1 --serve 8082 >> "$LOG" 2>&1
+req  submits  control   bulk  out tok/step  steps xfers/step gen tok/s
+  0    90403        0      0  300     3.31     91      997.4        83
+  1    56319        0      0  300     2.92    103      548.2        76
+  2    58678        0      0  300     2.75    109      537.9        71
+  3    57270        0      0  300     2.78    108      530.7        73
+note: request counts include the prefill and the response copyouts; the decode share = (xfers/step) x steps, compare requests of different lengths
+05:37:31 1/1 done: /home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/usb-transfers-20260906/logs/20260906-052928-usbdebug-mtp-k3.log.summary.txt
+05:37:31 CHAIN3 DONE

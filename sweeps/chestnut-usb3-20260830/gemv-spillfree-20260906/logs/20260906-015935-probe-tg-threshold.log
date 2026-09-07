@@ -1,0 +1,39 @@
+--- GEMV_TG=16
+gemv_q5k_5120_6144_t4_r2_u2_w128_g640_res_xp0        vgpr=202 spill=  0 scratch=   0B sgpr= 36 lds=0B
+gemv_q5k_5120_6144_t5_r2_u2_w128_g640_res_xp0        vgpr=228 spill=  0 scratch=   0B sgpr= 42 lds=0B
+gemv_q5k_5120_6144_t6_r2_u2_w128_g640_res_xp0        vgpr=255 spill=  0 scratch=   0B sgpr= 48 lds=0B
+gemv_q5k_5120_6144_t7_r2_u2_w128_g640_res_xp0        vgpr=256 spill= 31 scratch= 112B sgpr= 56 lds=0B
+gemv_q4k_5120_6144_t4_r2_u2_w128_g640_res_xp0        vgpr=177 spill=  0 scratch=   0B sgpr= 33 lds=0B
+gemv_q4k_5120_6144_t5_r2_u2_w128_g640_res_xp0        vgpr=202 spill=  0 scratch=   0B sgpr= 40 lds=0B
+gemv_q4k_5120_6144_t6_r2_u2_w128_g640_res_xp0        vgpr=231 spill=  0 scratch=   0B sgpr= 46 lds=0B
+gemv_q4k_5120_6144_t7_r2_u2_w128_g640_res_xp0        vgpr=253 spill=  0 scratch=   0B sgpr= 54 lds=0B
+gemv_q5k_5120_17408_t4_r2_u2_w128_g640_res_xp0       vgpr=132 spill=  0 scratch=   0B sgpr= 46 lds=0B
+gemv_q5k_5120_17408_t5_r2_u2_w128_g640_res_xp0       vgpr=145 spill=  0 scratch=   0B sgpr= 54 lds=0B
+gemv_q5k_5120_17408_t6_r2_u2_w128_g640_res_xp0       vgpr=159 spill=  0 scratch=   0B sgpr= 62 lds=0B
+gemv_q5k_5120_17408_t7_r2_u2_w128_g640_res_xp0       vgpr=173 spill=  0 scratch=   0B sgpr= 70 lds=0B
+--- GEMV_TG=4
+gemv_q5k_5120_6144_t4_r2_u2_w128_g640_res_xp0        vgpr=202 spill=  0 scratch=   0B sgpr= 36 lds=0B
+gemv_q5k_5120_6144_t5_r2_u2_w128_g640_res_xp0        vgpr=191 spill=  0 scratch=   0B sgpr= 42 lds=0B
+gemv_q5k_5120_6144_t6_r2_u2_w128_g640_res_xp0        vgpr=183 spill=  0 scratch=   0B sgpr= 48 lds=0B
+gemv_q5k_5120_6144_t7_r2_u2_w128_g640_res_xp0        vgpr=201 spill=  0 scratch=   0B sgpr= 56 lds=0B
+gemv_q4k_5120_6144_t4_r2_u2_w128_g640_res_xp0        vgpr=177 spill=  0 scratch=   0B sgpr= 33 lds=0B
+gemv_q4k_5120_6144_t5_r2_u2_w128_g640_res_xp0        vgpr=165 spill=  0 scratch=   0B sgpr= 40 lds=0B
+gemv_q4k_5120_6144_t6_r2_u2_w128_g640_res_xp0        vgpr=163 spill=  0 scratch=   0B sgpr= 46 lds=0B
+gemv_q4k_5120_6144_t7_r2_u2_w128_g640_res_xp0        vgpr=185 spill=  0 scratch=   0B sgpr= 54 lds=0B
+gemv_q5k_5120_17408_t4_r2_u2_w128_g640_res_xp0       vgpr=132 spill=  0 scratch=   0B sgpr= 46 lds=0B
+gemv_q5k_5120_17408_t5_r2_u2_w128_g640_res_xp0       vgpr=144 spill=  0 scratch=   0B sgpr= 54 lds=0B
+gemv_q5k_5120_17408_t6_r2_u2_w128_g640_res_xp0       vgpr=154 spill=  0 scratch=   0B sgpr= 66 lds=0B
+gemv_q5k_5120_17408_t7_r2_u2_w128_g640_res_xp0       vgpr=144 spill=  0 scratch=   0B sgpr= 73 lds=0B
+--- GEMV_TG=2
+gemv_q5k_5120_6144_t4_r2_u2_w128_g640_res_xp0        vgpr=155 spill=  0 scratch=   0B sgpr= 36 lds=0B
+gemv_q5k_5120_6144_t5_r2_u2_w128_g640_res_xp0        vgpr=192 spill=  0 scratch=   0B sgpr= 42 lds=0B
+gemv_q5k_5120_6144_t6_r2_u2_w128_g640_res_xp0        vgpr=183 spill=  0 scratch=   0B sgpr= 48 lds=0B
+gemv_q5k_5120_6144_t7_r2_u2_w128_g640_res_xp0        vgpr=199 spill=  0 scratch=   0B sgpr= 56 lds=0B
+gemv_q4k_5120_6144_t4_r2_u2_w128_g640_res_xp0        vgpr=133 spill=  0 scratch=   0B sgpr= 33 lds=0B
+gemv_q4k_5120_6144_t5_r2_u2_w128_g640_res_xp0        vgpr=162 spill=  0 scratch=   0B sgpr= 40 lds=0B
+gemv_q4k_5120_6144_t6_r2_u2_w128_g640_res_xp0        vgpr=165 spill=  0 scratch=   0B sgpr= 46 lds=0B
+gemv_q4k_5120_6144_t7_r2_u2_w128_g640_res_xp0        vgpr=186 spill=  0 scratch=   0B sgpr= 54 lds=0B
+gemv_q5k_5120_17408_t4_r2_u2_w128_g640_res_xp0       vgpr=126 spill=  0 scratch=   0B sgpr= 48 lds=0B
+gemv_q5k_5120_17408_t5_r2_u2_w128_g640_res_xp0       vgpr=124 spill=  0 scratch=   0B sgpr= 55 lds=0B
+gemv_q5k_5120_17408_t6_r2_u2_w128_g640_res_xp0       vgpr=122 spill=  0 scratch=   0B sgpr= 62 lds=0B
+gemv_q5k_5120_17408_t7_r2_u2_w128_g640_res_xp0       vgpr=118 spill=  0 scratch=   0B sgpr= 71 lds=0B

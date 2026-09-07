@@ -1,0 +1,6 @@
+bitexact 05:10:52: fw=tiny custom ed4e39b7-CLEAN tree=321fd040f reqs=8 outputs=/home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/bitexact-20260906/logs/outputs-20260906-051052
+plain: server did not come up
+mtp-k3 (warmup, startup 383s): 87 tok/s 79 tok/s 75 tok/s 81 tok/s 75 tok/s 74 tok/s 80 tok/s 70 tok/s
+dflash-b6 (warmup, startup 559s): 78 tok/s 70 tok/s 67 tok/s 65 tok/s 68 tok/s 66 tok/s 70 tok/s 59 tok/s
+DONE 05:29:05
+no plain outputs

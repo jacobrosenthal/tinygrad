@@ -1,0 +1,13 @@
+--- GEMV_TG=16 (old: all T slices live)
+gemv_q5k_5120_6144_t8_r2_u2_w128_g640_res_xp0        vgpr=256 spill= 67 scratch= 220B sgpr= 65 lds=0B
+gemv_q5k_5120_6144_t10_r2_u2_w128_g640_res_xp0       vgpr=256 spill=145 scratch= 424B sgpr= 80 lds=0B
+gemv_q5k_5120_6144_t12_r2_u2_w128_g640_res_xp0       vgpr=256 spill=201 scratch= 644B sgpr= 96 lds=0B
+gemv_q4k_5120_17408_t8_r2_u2_w128_g640_res_xp0       vgpr=166 spill=  0 scratch=   0B sgpr= 78 lds=0B
+gemv_q4k_5120_17408_t10_r2_u2_w128_g640_res_xp0      vgpr=193 spill=  0 scratch=   0B sgpr= 94 lds=0B
+gemv_q4k_5120_17408_t12_r2_u2_w128_g640_res_xp0      vgpr=224 spill=  0 scratch=   0B sgpr=107 lds=0B
+gemv_q6k_5120_6144_t8_r2_u2_w128_g640_res_xp0        vgpr=223 spill=  0 scratch=   0B sgpr= 69 lds=0B
+gemv_q6k_5120_6144_t10_r2_u2_w128_g640_res_xp0       vgpr=256 spill=  0 scratch=   0B sgpr= 85 lds=0B
+gemv_q6k_5120_6144_t12_r2_u2_w128_g640_res_xp0       vgpr=256 spill= 29 scratch= 104B sgpr=100 lds=0B
+gemv_q6k_5120_10240_t8_r2_u2_w128_g640_xp0           vgpr=223 spill=  0 scratch=   0B sgpr= 73 lds=0B
+gemv_q6k_5120_10240_t10_r2_u2_w128_g640_xp0          vgpr=255 spill=  0 scratch=   0B sgpr= 89 lds=0B
+gemv_q6k_5120_10240_t12_r2_u2_w128_g640_xp0          vgpr=256 spill= 29 scratch= 104B sgpr=104 lds=0B

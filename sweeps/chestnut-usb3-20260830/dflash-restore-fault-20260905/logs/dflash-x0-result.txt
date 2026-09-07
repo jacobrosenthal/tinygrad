@@ -1,0 +1,7 @@
+dflash-serve XCTX=0: branch=1f3d594dc ctx=8192 gov=performance 17:00:55
+SERVED 17:02:55
+REQUEST PARSE FAIL: Expecting value: line 2 column 1 (char 1)
+--- server perf line ---
+/v1/chat/completions  --  prep:    0 ms  --  in:    0 +   29  --  prefill:  10 tok/s  --  === hang report for AMD: Wait timeout: 30000 ms! (the signal is not set to 38092, but 38091)
+faultmap_events=139
+DONE 17:03:28

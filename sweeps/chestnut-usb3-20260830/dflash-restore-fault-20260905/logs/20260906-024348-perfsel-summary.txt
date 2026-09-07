@@ -1,0 +1,14 @@
+perf sweep 02:43:48: fw=tiny custom ed4e39b7-CLEAN tinygrad=1e86de0db restores=2 reqs=8
+=== dflash-b8-sel: DFLASH=/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf DFLASH_BLOCK=8 DFLASH_EAGER_SEL=1 DFLASH_XCTX=0 ===
+dflash-b8-sel run 0: server did not come up
+dflash-b8-sel run 1: server did not come up
+dflash-b8-sel run 2: server did not come up
+=== dflash-b6-sel: DFLASH=/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf DFLASH_BLOCK=6 DFLASH_EAGER_SEL=1 DFLASH_XCTX=0 ===
+dflash-b6-sel run 0 (warmup, startup 1335s): faults=0 | 5 tok/s    accept: 0.40 (3.01 tok/step) 5 tok/s    accept: 0.28 (2.38 tok/step) 5 tok/s    accept: 0.31 (2.57 tok/step) 5 tok/s    accept: 0.30 (2.49 tok/step) 5 tok/s    accept: 0.34 (2.68 tok/step) 5 tok/s    accept: 0.28 (2.41 tok/step) 5 tok/s    accept: 0.29 (2.46 tok/step) 4 tok/s    accept: 0.25 (2.25 tok/step)
+dflash-b6-sel run 1 (restore, startup 952s): faults=0 | 5 tok/s    accept: 0.40 (3.01 tok/step) 5 tok/s    accept: 0.28 (2.38 tok/step) 5 tok/s    accept: 0.31 (2.57 tok/step) 5 tok/s    accept: 0.30 (2.49 tok/step) 5 tok/s    accept: 0.34 (2.68 tok/step) 5 tok/s    accept: 0.28 (2.41 tok/step) 5 tok/s    accept: 0.29 (2.46 tok/step) 4 tok/s    accept: 0.25 (2.25 tok/step)
+dflash-b6-sel run 2 (restore, startup 953s): faults=0 | 5 tok/s    accept: 0.40 (3.01 tok/step) 5 tok/s    accept: 0.28 (2.38 tok/step) 5 tok/s    accept: 0.31 (2.57 tok/step) 5 tok/s    accept: 0.30 (2.49 tok/step) 5 tok/s    accept: 0.34 (2.68 tok/step) 5 tok/s    accept: 0.28 (2.41 tok/step) 5 tok/s    accept: 0.29 (2.46 tok/step) 4 tok/s    accept: 0.25 (2.25 tok/step)
+=== dflash-b8-nosel: DFLASH=/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf DFLASH_BLOCK=8 DFLASH_EAGER_SEL=0 DFLASH_XCTX=0 ===
+dflash-b8-nosel run 0: server did not come up
+dflash-b8-nosel run 1: server did not come up
+dflash-b8-nosel run 2: server did not come up
+DONE 03:45:41

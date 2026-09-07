@@ -1,0 +1,882 @@
+am usb:2-9: product string: 'custom ed4e39b7-CLEAN'
+opened device CPU from pid:442877
+am usb:2-9: Malformed state. Issuing a full reset.
+am usb:2-9: mode1 reset
+am usb:2-9: AM_SOC initialized
+am usb:2-9: AM_GMC initialized
+am usb:2-9: AM_IH initialized
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_KDB
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_KDB
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_SYS_DRV
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_SOS
+am usb:2-9: loading fw: GFX_FW_TYPE_SMU
+am usb:2-9: loading fw: GFX_FW_TYPE_SDMA_UCODE_TH1
+am usb:2-9: loading fw: GFX_FW_TYPE_SDMA_UCODE_TH0
+am usb:2-9: loading fw: GFX_FW_TYPE_RS64_MEC
+am usb:2-9: loading fw: GFX_FW_TYPE_RS64_MEC_P0_STACK
+am usb:2-9: loading fw: GFX_FW_TYPE_IMU_I
+am usb:2-9: loading fw: GFX_FW_TYPE_IMU_D
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_IRAM
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_DRAM_BOOT
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_P
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_V
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_G
+am usb:2-9: AM_PSP initialized
+am usb:2-9: AM_SMU initialized
+am usb:2-9: AM_GFX initialized
+am usb:2-9: AM_SDMA initialized
+am usb:2-9: boot done
+AMDDevice: opening 0 with target (11, 0, 0) arch gfx1100
+opened device AMD from pid:442877
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:442877
+[32m*** AMD        1[0m [33mcopy   16.34 GB,     AMD <- DISK:/h[0m            arg  2 mem  17.55 GB tm [33m    45.98s [0m/ 45984.08ms (      0 GFLOPS    0|0      GB/s)
+opened device DISK:/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf from pid:442877
+[32m*** AMD        2[0m [33mcopy    1.05 GB,     AMD <- DISK:/h[0m            arg  2 mem  18.68 GB tm [33m  2965.55ms[0m/ 48949.63ms (      0 GFLOPS    0|0      GB/s)
+llm cache: uploaded weights in 50686.50 ms
+opened device PYTHON from pid:442877
+llm cache: unpickled model in 8472.68 ms
+scheduled   192 kernels in   153.33 ms | CACHE MISS 66da3371 |   53789 uops in cache | <frozen runpy>:88
+compiling:   0%|                                          | 0/4 [00:00<?, ?it/s]compiling E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                             :  25%|▎| 1/4 [00:00<00:00,  3.26it/s]compiling E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                             :  50%|▌| 2/4 [00:00<00:00,  5.64it/s]compiling E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                              :  75%|▊| 3/4 [00:00<00:00,  8.21it/s]compiling E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                              : 100%|█| 4/4 [00:00<00:00, 10.60it/s]compiling E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                              : 100%|█| 4/4 [00:00<00:00, 10.59it/s]
+[32m*** AMD        3[0m E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  18.98 GB tm      4.68us/ 48949.63ms (      0 GFLOPS   26|26     GB/s)
+[32m*** AMD        4[0m E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  18.99 GB tm      3.88us/ 48949.63ms (      0 GFLOPS  811|811    GB/s)
+*** AMD        5 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  18.99 GB tm      3.20us/ 48949.64ms (      0 GFLOPS   38|38     GB/s)
+*** AMD        6 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  18.99 GB tm      4.04us/ 48949.64ms (      0 GFLOPS  779|779    GB/s)
+*** AMD        7 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  18.99 GB tm      3.24us/ 48949.64ms (      0 GFLOPS   38|38     GB/s)
+*** AMD        8 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  18.99 GB tm      4.16us/ 48949.65ms (      0 GFLOPS  756|756    GB/s)
+*** AMD        9 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  18.99 GB tm      3.24us/ 48949.65ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       10 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.00 GB tm      4.08us/ 48949.66ms (      0 GFLOPS  771|771    GB/s)
+*** AMD       11 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.00 GB tm      3.24us/ 48949.66ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       12 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.00 GB tm      4.16us/ 48949.66ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       13 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.00 GB tm      3.40us/ 48949.67ms (      0 GFLOPS   36|36     GB/s)
+*** AMD       14 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.00 GB tm      4.00us/ 48949.67ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       15 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.00 GB tm      3.24us/ 48949.67ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       16 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.01 GB tm      4.16us/ 48949.68ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       17 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.01 GB tm      3.20us/ 48949.68ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       18 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.01 GB tm      4.08us/ 48949.69ms (      0 GFLOPS  771|771    GB/s)
+*** AMD       19 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.01 GB tm      3.24us/ 48949.69ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       20 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.01 GB tm      4.08us/ 48949.69ms (      0 GFLOPS  771|771    GB/s)
+*** AMD       21 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.01 GB tm      3.24us/ 48949.70ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       22 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.02 GB tm      4.00us/ 48949.70ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       23 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.02 GB tm      3.16us/ 48949.70ms (      0 GFLOPS   39|39     GB/s)
+*** AMD       24 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.02 GB tm      4.24us/ 48949.71ms (      0 GFLOPS  742|742    GB/s)
+*** AMD       25 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.02 GB tm      3.24us/ 48949.71ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       26 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.02 GB tm      4.04us/ 48949.72ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       27 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.02 GB tm      3.24us/ 48949.72ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       28 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.03 GB tm      4.12us/ 48949.72ms (      0 GFLOPS  764|764    GB/s)
+*** AMD       29 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.03 GB tm      3.24us/ 48949.73ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       30 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.03 GB tm      4.00us/ 48949.73ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       31 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.03 GB tm      3.20us/ 48949.73ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       32 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.03 GB tm      4.12us/ 48949.74ms (      0 GFLOPS  764|764    GB/s)
+*** AMD       33 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.03 GB tm      3.24us/ 48949.74ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       34 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.04 GB tm      4.04us/ 48949.74ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       35 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.04 GB tm      3.28us/ 48949.75ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       36 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.04 GB tm      4.20us/ 48949.75ms (      0 GFLOPS  749|749    GB/s)
+*** AMD       37 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.04 GB tm      3.24us/ 48949.76ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       38 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.04 GB tm      4.04us/ 48949.76ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       39 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.04 GB tm      3.24us/ 48949.76ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       40 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.05 GB tm      4.16us/ 48949.77ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       41 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.05 GB tm      3.28us/ 48949.77ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       42 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.05 GB tm      4.04us/ 48949.77ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       43 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.05 GB tm      3.28us/ 48949.78ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       44 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.05 GB tm      4.16us/ 48949.78ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       45 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.05 GB tm      3.24us/ 48949.78ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       46 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.06 GB tm      4.04us/ 48949.79ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       47 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.06 GB tm      3.20us/ 48949.79ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       48 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.06 GB tm      4.16us/ 48949.80ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       49 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.06 GB tm      3.28us/ 48949.80ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       50 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.06 GB tm      4.04us/ 48949.80ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       51 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.06 GB tm      3.24us/ 48949.81ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       52 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.07 GB tm      4.20us/ 48949.81ms (      0 GFLOPS  749|749    GB/s)
+*** AMD       53 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.07 GB tm      3.24us/ 48949.81ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       54 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.07 GB tm      4.04us/ 48949.82ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       55 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.07 GB tm      3.28us/ 48949.82ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       56 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.07 GB tm      4.16us/ 48949.83ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       57 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.07 GB tm      3.28us/ 48949.83ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       58 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.08 GB tm      4.08us/ 48949.83ms (      0 GFLOPS  771|771    GB/s)
+*** AMD       59 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.08 GB tm      3.28us/ 48949.84ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       60 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.08 GB tm      4.16us/ 48949.84ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       61 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.08 GB tm      3.28us/ 48949.84ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       62 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.08 GB tm      4.00us/ 48949.85ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       63 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.08 GB tm      3.24us/ 48949.85ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       64 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.09 GB tm      4.16us/ 48949.85ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       65 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.09 GB tm      3.28us/ 48949.86ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       66 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.09 GB tm      4.00us/ 48949.86ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       67 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.09 GB tm      3.24us/ 48949.87ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       68 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.09 GB tm      4.16us/ 48949.87ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       69 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.09 GB tm      3.28us/ 48949.87ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       70 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.10 GB tm      4.00us/ 48949.88ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       71 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.10 GB tm      3.32us/ 48949.88ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       72 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.10 GB tm      4.16us/ 48949.88ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       73 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.10 GB tm      3.28us/ 48949.89ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       74 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.10 GB tm      4.04us/ 48949.89ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       75 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.10 GB tm      3.24us/ 48949.89ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       76 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.11 GB tm      4.16us/ 48949.90ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       77 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.11 GB tm      3.24us/ 48949.90ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       78 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.11 GB tm      4.00us/ 48949.91ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       79 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.11 GB tm      3.28us/ 48949.91ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       80 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.11 GB tm      4.16us/ 48949.91ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       81 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.11 GB tm      3.24us/ 48949.92ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       82 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.12 GB tm      4.00us/ 48949.92ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       83 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.12 GB tm      3.28us/ 48949.92ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       84 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.12 GB tm      4.08us/ 48949.93ms (      0 GFLOPS  771|771    GB/s)
+*** AMD       85 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.12 GB tm      3.24us/ 48949.93ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       86 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.12 GB tm      4.00us/ 48949.94ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       87 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.12 GB tm      3.24us/ 48949.94ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       88 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.13 GB tm      4.16us/ 48949.94ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       89 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.13 GB tm      3.28us/ 48949.95ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       90 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.13 GB tm      4.08us/ 48949.95ms (      0 GFLOPS  771|771    GB/s)
+*** AMD       91 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.13 GB tm      3.28us/ 48949.95ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       92 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.13 GB tm      4.20us/ 48949.96ms (      0 GFLOPS  749|749    GB/s)
+*** AMD       93 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.13 GB tm      3.28us/ 48949.96ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       94 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.14 GB tm      4.00us/ 48949.97ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       95 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.14 GB tm      3.32us/ 48949.97ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       96 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.14 GB tm      4.08us/ 48949.97ms (      0 GFLOPS  771|771    GB/s)
+*** AMD       97 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.14 GB tm      3.28us/ 48949.98ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       98 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.14 GB tm      4.08us/ 48949.98ms (      0 GFLOPS  771|771    GB/s)
+[32m*** AMD       99[0m E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.14 GB tm      3.68us/ 48949.98ms (      0 GFLOPS   67|67     GB/s)
+[32m*** AMD      100[0m E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.14 GB tm      9.16us/ 48949.99ms (      0 GFLOPS  687|687    GB/s)
+*** AMD      101 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.14 GB tm      3.68us/ 48950.00ms (      0 GFLOPS   67|67     GB/s)
+*** AMD      102 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.15 GB tm      8.80us/ 48950.01ms (      0 GFLOPS  715|715    GB/s)
+*** AMD      103 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.15 GB tm      3.80us/ 48950.01ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      104 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.15 GB tm      9.20us/ 48950.02ms (      0 GFLOPS  684|684    GB/s)
+*** AMD      105 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.15 GB tm      3.76us/ 48950.02ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      106 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.15 GB tm      9.08us/ 48950.03ms (      0 GFLOPS  693|693    GB/s)
+*** AMD      107 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.15 GB tm      3.84us/ 48950.03ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      108 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.16 GB tm     10.16us/ 48950.05ms (      0 GFLOPS  619|619    GB/s)
+*** AMD      109 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.16 GB tm      3.84us/ 48950.05ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      110 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.16 GB tm      8.96us/ 48950.06ms (      0 GFLOPS  702|702    GB/s)
+*** AMD      111 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.16 GB tm      3.88us/ 48950.06ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      112 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.16 GB tm     10.72us/ 48950.07ms (      0 GFLOPS  587|587    GB/s)
+*** AMD      113 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.16 GB tm      3.84us/ 48950.08ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      114 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.17 GB tm      9.84us/ 48950.09ms (      0 GFLOPS  639|639    GB/s)
+*** AMD      115 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.17 GB tm      3.84us/ 48950.09ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      116 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.17 GB tm      9.00us/ 48950.10ms (      0 GFLOPS  699|699    GB/s)
+*** AMD      117 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.17 GB tm      3.80us/ 48950.10ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      118 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.17 GB tm     10.64us/ 48950.11ms (      0 GFLOPS  591|591    GB/s)
+*** AMD      119 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.17 GB tm      3.84us/ 48950.12ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      120 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.18 GB tm     10.56us/ 48950.13ms (      0 GFLOPS  596|596    GB/s)
+*** AMD      121 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.18 GB tm      3.76us/ 48950.13ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      122 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.18 GB tm      9.32us/ 48950.14ms (      0 GFLOPS  675|675    GB/s)
+*** AMD      123 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.18 GB tm      3.96us/ 48950.14ms (      0 GFLOPS   62|62     GB/s)
+*** AMD      124 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.18 GB tm     10.08us/ 48950.15ms (      0 GFLOPS  624|624    GB/s)
+*** AMD      125 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.18 GB tm      4.04us/ 48950.16ms (      0 GFLOPS   61|61     GB/s)
+*** AMD      126 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.19 GB tm      8.92us/ 48950.17ms (      0 GFLOPS  705|705    GB/s)
+*** AMD      127 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.19 GB tm      3.80us/ 48950.17ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      128 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.19 GB tm     10.84us/ 48950.18ms (      0 GFLOPS  580|580    GB/s)
+*** AMD      129 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.19 GB tm      3.96us/ 48950.19ms (      0 GFLOPS   62|62     GB/s)
+*** AMD      130 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.19 GB tm      7.68us/ 48950.19ms (      0 GFLOPS  819|819    GB/s)
+*** AMD      131 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.19 GB tm      3.92us/ 48950.20ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      132 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.20 GB tm      8.64us/ 48950.21ms (      0 GFLOPS  728|728    GB/s)
+*** AMD      133 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.20 GB tm      3.80us/ 48950.21ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      134 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.20 GB tm     10.40us/ 48950.22ms (      0 GFLOPS  605|605    GB/s)
+*** AMD      135 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.20 GB tm      3.92us/ 48950.22ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      136 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.20 GB tm     14.32us/ 48950.24ms (      0 GFLOPS  439|439    GB/s)
+*** AMD      137 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.20 GB tm      3.88us/ 48950.24ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      138 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.21 GB tm      8.20us/ 48950.25ms (      0 GFLOPS  767|767    GB/s)
+*** AMD      139 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.21 GB tm      3.84us/ 48950.26ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      140 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.21 GB tm      8.64us/ 48950.26ms (      0 GFLOPS  728|728    GB/s)
+*** AMD      141 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.21 GB tm      3.88us/ 48950.27ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      142 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.21 GB tm      8.36us/ 48950.28ms (      0 GFLOPS  753|753    GB/s)
+*** AMD      143 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.21 GB tm      3.84us/ 48950.28ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      144 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.22 GB tm      8.88us/ 48950.29ms (      0 GFLOPS  708|708    GB/s)
+*** AMD      145 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.22 GB tm      3.88us/ 48950.29ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      146 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.22 GB tm      8.68us/ 48950.30ms (      0 GFLOPS  725|725    GB/s)
+*** AMD      147 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.22 GB tm      3.88us/ 48950.31ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      148 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.22 GB tm      8.56us/ 48950.31ms (      0 GFLOPS  735|735    GB/s)
+*** AMD      149 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.22 GB tm      3.88us/ 48950.32ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      150 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.23 GB tm      7.92us/ 48950.33ms (      0 GFLOPS  794|794    GB/s)
+*** AMD      151 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.23 GB tm      4.00us/ 48950.33ms (      0 GFLOPS   61|61     GB/s)
+*** AMD      152 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.23 GB tm      8.64us/ 48950.34ms (      0 GFLOPS  728|728    GB/s)
+*** AMD      153 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.23 GB tm      3.88us/ 48950.34ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      154 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.23 GB tm      8.24us/ 48950.35ms (      0 GFLOPS  764|764    GB/s)
+*** AMD      155 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.23 GB tm      3.88us/ 48950.35ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      156 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.24 GB tm      8.08us/ 48950.36ms (      0 GFLOPS  779|779    GB/s)
+*** AMD      157 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.24 GB tm      4.04us/ 48950.37ms (      0 GFLOPS   61|61     GB/s)
+*** AMD      158 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.24 GB tm      8.84us/ 48950.38ms (      0 GFLOPS  712|712    GB/s)
+*** AMD      159 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.24 GB tm      3.88us/ 48950.38ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      160 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.24 GB tm      8.12us/ 48950.39ms (      0 GFLOPS  775|775    GB/s)
+*** AMD      161 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.24 GB tm      4.00us/ 48950.39ms (      0 GFLOPS   61|61     GB/s)
+*** AMD      162 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.25 GB tm      7.84us/ 48950.40ms (      0 GFLOPS  802|802    GB/s)
+*** AMD      163 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.25 GB tm      3.84us/ 48950.40ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      164 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.25 GB tm      8.60us/ 48950.41ms (      0 GFLOPS  732|732    GB/s)
+*** AMD      165 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.25 GB tm      3.88us/ 48950.42ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      166 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.25 GB tm      8.08us/ 48950.42ms (      0 GFLOPS  779|779    GB/s)
+*** AMD      167 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.25 GB tm      3.88us/ 48950.43ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      168 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.26 GB tm      8.32us/ 48950.44ms (      0 GFLOPS  756|756    GB/s)
+*** AMD      169 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.26 GB tm      3.84us/ 48950.44ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      170 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.26 GB tm      8.96us/ 48950.45ms (      0 GFLOPS  702|702    GB/s)
+*** AMD      171 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.26 GB tm      3.88us/ 48950.45ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      172 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.26 GB tm      8.32us/ 48950.46ms (      0 GFLOPS  756|756    GB/s)
+*** AMD      173 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.26 GB tm      3.80us/ 48950.46ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      174 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.27 GB tm      9.24us/ 48950.47ms (      0 GFLOPS  681|681    GB/s)
+*** AMD      175 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.27 GB tm      3.80us/ 48950.48ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      176 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.27 GB tm      8.40us/ 48950.49ms (      0 GFLOPS  749|749    GB/s)
+*** AMD      177 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.27 GB tm      3.80us/ 48950.49ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      178 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.27 GB tm      8.92us/ 48950.50ms (      0 GFLOPS  705|705    GB/s)
+*** AMD      179 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.27 GB tm      3.92us/ 48950.50ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      180 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.28 GB tm      8.12us/ 48950.51ms (      0 GFLOPS  775|775    GB/s)
+*** AMD      181 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.28 GB tm      3.80us/ 48950.51ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      182 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.28 GB tm      8.60us/ 48950.52ms (      0 GFLOPS  732|732    GB/s)
+*** AMD      183 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.28 GB tm      3.80us/ 48950.53ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      184 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.28 GB tm      8.56us/ 48950.54ms (      0 GFLOPS  735|735    GB/s)
+*** AMD      185 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.28 GB tm      3.80us/ 48950.54ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      186 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.29 GB tm      8.64us/ 48950.55ms (      0 GFLOPS  728|728    GB/s)
+*** AMD      187 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.29 GB tm      3.88us/ 48950.55ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      188 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.29 GB tm      8.32us/ 48950.56ms (      0 GFLOPS  756|756    GB/s)
+*** AMD      189 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.29 GB tm      3.88us/ 48950.56ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      190 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.29 GB tm      8.68us/ 48950.57ms (      0 GFLOPS  725|725    GB/s)
+*** AMD      191 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.29 GB tm      3.80us/ 48950.58ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      192 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.30 GB tm      8.56us/ 48950.58ms (      0 GFLOPS  735|735    GB/s)
+*** AMD      193 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.30 GB tm      3.84us/ 48950.59ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      194 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.30 GB tm      8.32us/ 48950.60ms (      0 GFLOPS  756|756    GB/s)
+llm cache: loaded warmed-up model from /home/jacob/.cache/tinygrad/llm/f520608d0b15e154.pkl
+using model "Qwen3.8-27B" with 19,106,770,556 bytes and 66,752,064,783 params, max context 8192 on AMD
+scheduled     2 kernels in     3.66 ms | CACHE MISS c4dbb478 |   53397 uops in cache | <frozen runpy>:88
+*** started server on http://127.0.0.1:8080 at 121.30 s
+/v1/chat/completions  [90m--[0m  prep:    0 ms  [90m--[0m  in:[32m    0[0m +   24  [90m--[0m  prefill:   9 tok/s  [90m--[0m  === hang report for AMD: Wait timeout: 30000 ms! (the signal is not set to 37976, but 37972)
+timeline: expected 37976, completed 37972
+  compute_queue: read_ptr=1364 write_ptr=25952 put_value=25952
+  sdma_queue: read_ptr=2856600 write_ptr=2856600 put_value=2856600
+  pending timeline 37973: graph of 64 calls, var_vals={'start_pos': 25}
+    (start with HANG_DEBUG=1 to record which kernel of the graph did not finish)
+  pending timeline 37974: graph of 128 calls, var_vals={'start_pos': 25}
+    (start with HANG_DEBUG=1 to record which kernel of the graph did not finish)
+  pending timeline 37975: graph of 256 calls, var_vals={'start_pos': 25}
+    (start with HANG_DEBUG=1 to record which kernel of the graph did not finish)
+  pending timeline 37976: graph of 323 calls, var_vals={'start_pos': 25}
+    (start with HANG_DEBUG=1 to record which kernel of the graph did not finish)
+am usb:2-9: IH (0x8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1448, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 1, 'walker_error': 0, 'permission_faults': 1, 'mapping_error': 0, 'cid': 8, 'rw': 1, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x2000b1448000
+am usb:2-9: FAULTMAP fault_va=0x2000b1448000 n_used_blocks=1894
+am usb:2-9: FAULTMAP  overrun-src va=0x2000aa000000 size=0xa00000(10.49MB) end=0x2000aaa00000 (fault +0x6a48000 past end)
+am usb:2-9: FAULTMAP  next-above va=0x2000bc000000 size=0x6400000(104.86MB) (gap 0xabb8000)
+am usb:2-9: IH (0x10/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1e5c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x18/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1402, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x20/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1e11, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x28/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0002, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x30/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0a43, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x38/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1443, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x40/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1e57, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x48/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0a07, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x50/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1407, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x58/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1e07, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x60/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0061, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x68/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0a4d, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x70/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb144d, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x78/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1e61, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x80/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0007, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x88/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb322a, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x90/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb140c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x98/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1e0c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xa0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb282f, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xa8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0ade, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xb0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb14de, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xb8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1ea2, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xc0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb00f2, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xc8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb3234, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xd0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb14a2, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xd8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1ef2, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xe0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0011, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xe8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0a11, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xf0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb14e8, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xf8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1eb1, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x100/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb2834, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x108/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0aa2, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x110/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1411, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x118/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1efc, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x120/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb00fc, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x128/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb322f, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x130/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb14e3, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x138/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1ef7, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x140/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb00a2, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x148/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0ae8, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x150/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb14a7, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x158/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1ea7, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x160/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb28ca, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x168/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0ae3, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x170/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb14ed, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x178/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1f01, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x180/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb00f7, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x188/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0a0c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x190/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb14b1, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x198/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1eac, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1a0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb2802, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1a8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb3202, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1b0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb157e, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1b8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1f92, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1c0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb000c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1c8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb3239, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1d0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1542, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1d8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1f42, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1e0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb2839, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1e8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0aa7, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1f0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1588, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1f8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1f9c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x200/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0101, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x208/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0aed, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x210/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb14ac, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x218/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1f51, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x220/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb2807, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x228/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb32ca, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x230/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1583, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x238/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1f97, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x240/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb00a7, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x248/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb3207, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x250/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1547, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x258/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1f47, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x260/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb28cf, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x268/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0b7e, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x270/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb158d, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x278/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1fa1, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x280/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0192, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x288/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb32d9, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x290/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1551, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x298/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1f4c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2a0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb280c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2a8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0aac, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2b0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb154c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2b8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb00ac, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2c0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb320c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2c8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb28d4, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2d0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0b88, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2d8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb019c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2e0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0b42, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2e8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb28a2, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2f0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb32cf, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2f8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0142, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x300/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb32a2, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x308/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb296f, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x310/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0ab1, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x318/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0197, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x320/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0b83, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x328/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb2811, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x330/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb3211, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x338/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb00b1, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x340/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb32d4, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x348/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb28d9, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x350/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0b47, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x358/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb01a1, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x360/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb336f, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x368/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb28a7, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x370/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0b8d, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x378/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0147, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x380/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb32a7, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x388/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb296a, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x390/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0b4c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x398/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0151, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x3a0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb3374, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x3a8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb28ac, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x3b0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb32ac, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x3b8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1e52, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x3c0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0052, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x3c8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0a3e, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x3d0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb143e, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x3d8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1e02, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x3e0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb005c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x3e8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0a48, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x3f0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1452, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x3f8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1fe2, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x400/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0057, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x408/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0a02, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x410/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb014c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x418/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0b51, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x420/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0c23, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x428/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1628, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x430/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb2974, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x438/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb3342, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x440/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb282a, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x448/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb145c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x450/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1ff1, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x458/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb2942, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x460/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb336a, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x468/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1416, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x470/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1e6b, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x478/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb2979, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x480/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb32b1, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x488/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1425, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x490/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1e16, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x498/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb28b1, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x4a0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb3379, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x4a8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb0cc3, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x4b0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1623, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x4b8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb2947, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x4c0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb3347, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x4c8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1457, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x4d0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb1e75, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x4d8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb294c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x4e0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb334c, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x4e8/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb340f, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x4f0/0xa590) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb16c8, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+/usr/lib/python3.13/multiprocessing/resource_tracker.py:301: UserWarning: resource_tracker: There appear to be 6 leaked semaphore objects to clean up at shutdown: {'/mp-9pu8ay8h', '/mp-b8o1j1ar', '/mp-__uf862m', '/mp-taokvhn7', '/mp-styrtdds', '/mp-za1obhny'}
+  warnings.warn(

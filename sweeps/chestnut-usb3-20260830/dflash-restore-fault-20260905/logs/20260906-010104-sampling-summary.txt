@@ -1,0 +1,23 @@
+sampling sweep 01:01:04: fw=tiny custom ed4e39b7-CLEAN tinygrad=a28eb6ff2 restores=1 reqs=6
+=== mtp-t0.6-rp1.15-prod: env[MTP_K=3] flags[--repeat-penalty 1.15] temperature=0.6 ===
+mtp-t0.6-rp1.15-prod run 0: server did not come up
+mtp-t0.6-rp1.15-prod run 1: server did not come up
+=== mtp-t0.6-rp1.0: env[MTP_K=3] flags[--repeat-penalty 1.0] temperature=0.6 ===
+mtp-t0.6-rp1.0 run 0: server did not come up
+mtp-t0.6-rp1.0 run 1: server did not come up
+=== mtp-t1.0-official: env[MTP_K=3] flags[--repeat-penalty 1.0 --top-p 0.95 --top-k 20] temperature=1.0 ===
+mtp-t1.0-official run 0: server did not come up
+mtp-t1.0-official run 1 (warmup, startup 418s): faults=0 | 73 tok/s    accept: 0.75 (3.26 tok/step) 59 tok/s    accept: 0.53 (2.58 tok/step) 63 tok/s    accept: 0.58 (2.75 tok/step) 60 tok/s    accept: 0.53 (2.60 tok/step) 49 tok/s    accept: 0.36 (2.08 tok/step) 64 tok/s    accept: 0.59 (2.77 tok/step)
+=== mtp-t0.6-p95k20: env[MTP_K=3] flags[--repeat-penalty 1.0 --top-p 0.95 --top-k 20] temperature=0.6 ===
+mtp-t0.6-p95k20 run 0 (restore, startup 165s): faults=0 | 72 tok/s    accept: 0.73 (3.20 tok/step) 69 tok/s    accept: 0.67 (3.02 tok/step) 71 tok/s    accept: 0.72 (3.15 tok/step) 59 tok/s    accept: 0.50 (2.51 tok/step) 54 tok/s    accept: 0.43 (2.29 tok/step) 70 tok/s    accept: 0.68 (3.04 tok/step)
+mtp-t0.6-p95k20 run 1 (restore, startup 165s): faults=0 | 72 tok/s    accept: 0.73 (3.20 tok/step) 69 tok/s    accept: 0.67 (3.02 tok/step) 71 tok/s    accept: 0.72 (3.15 tok/step) 59 tok/s    accept: 0.50 (2.51 tok/step) 54 tok/s    accept: 0.43 (2.29 tok/step) 70 tok/s    accept: 0.68 (3.04 tok/step)
+=== mtp-t0.7-instruct: env[MTP_K=3] flags[--repeat-penalty 1.0 --top-p 0.8 --top-k 20 --presence-penalty 1.5] temperature=0.7 ===
+mtp-t0.7-instruct run 0 (warmup, startup 417s): faults=0 | 67 tok/s    accept: 0.68 (3.05 tok/step) 67 tok/s    accept: 0.66 (2.97 tok/step) 65 tok/s    accept: 0.64 (2.92 tok/step) 59 tok/s    accept: 0.53 (2.60 tok/step) 53 tok/s    accept: 0.44 (2.31 tok/step) 66 tok/s    accept: 0.65 (2.94 tok/step)
+mtp-t0.7-instruct run 1 (restore, startup 168s): faults=0 | 68 tok/s    accept: 0.71 (3.14 tok/step) 65 tok/s    accept: 0.63 (2.90 tok/step) 65 tok/s    accept: 0.64 (2.92 tok/step) 59 tok/s    accept: 0.54 (2.62 tok/step) 54 tok/s    accept: 0.45 (2.34 tok/step) 61 tok/s    accept: 0.58 (2.73 tok/step)
+=== dflash-t0.6-rp1.0: env[DFLASH=/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf DFLASH_BLOCK=6 DFLASH_NOSEL=1 DFLASH_XCTX=0] flags[--repeat-penalty 1.0] temperature=0.6 ===
+dflash-t0.6-rp1.0 run 0 (warmup, startup 556s): faults=0 | 80 tok/s    accept: 0.47 (3.35 tok/step) 68 tok/s    accept: 0.34 (2.68 tok/step) 64 tok/s    accept: 0.29 (2.46 tok/step) 58 tok/s    accept: 0.24 (2.18 tok/step) 54 tok/s    accept: 0.20 (2.00 tok/step) 66 tok/s    accept: 0.31 (2.56 tok/step)
+dflash-t0.6-rp1.0 run 1 (restore, startup 174s): faults=0 | 76 tok/s    accept: 0.44 (3.19 tok/step) 70 tok/s    accept: 0.36 (2.79 tok/step) 69 tok/s    accept: 0.34 (2.70 tok/step) 63 tok/s    accept: 0.28 (2.39 tok/step) 54 tok/s    accept: 0.20 (2.00 tok/step) 66 tok/s    accept: 0.31 (2.53 tok/step)
+=== dflash-t1.0-official: env[DFLASH=/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf DFLASH_BLOCK=6 DFLASH_NOSEL=1 DFLASH_XCTX=0] flags[--repeat-penalty 1.0 --top-p 0.95 --top-k 20] temperature=1.0 ===
+dflash-t1.0-official run 0 (warmup, startup 569s): faults=0 | 63 tok/s    accept: 0.32 (2.60 tok/step) 67 tok/s    accept: 0.36 (2.79 tok/step) 57 tok/s    accept: 0.26 (2.29 tok/step) 56 tok/s    accept: 0.25 (2.24 tok/step) 52 tok/s    accept: 0.21 (2.05 tok/step) 63 tok/s    accept: 0.31 (2.56 tok/step)
+dflash-t1.0-official run 1 (restore, startup 178s): faults=0 | 70 tok/s    accept: 0.40 (3.00 tok/step) 59 tok/s    accept: 0.27 (2.37 tok/step) 57 tok/s    accept: 0.26 (2.28 tok/step) 60 tok/s    accept: 0.28 (2.39 tok/step) 53 tok/s    accept: 0.22 (2.09 tok/step) 67 tok/s    accept: 0.35 (2.76 tok/step)
+DONE 01:49:36

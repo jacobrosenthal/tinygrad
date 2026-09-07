@@ -1,0 +1,23 @@
+sampling sweep 00:44:01: fw=tiny custom ed4e39b7-CLEAN tinygrad=17d3fcaac restores=1 reqs=6
+=== mtp-t0.6-rp1.15-prod: env[MTP_K=3] flags[--repeat-penalty 1.15] temperature=0.6 ===
+mtp-t0.6-rp1.15-prod run 0 (warmup, startup 1s): faults=0 |      
+mtp-t0.6-rp1.15-prod run 1 (warmup, startup 0s): faults=0 |      
+=== mtp-t0.6-rp1.0: env[MTP_K=3] flags[--repeat-penalty 1.0] temperature=0.6 ===
+mtp-t0.6-rp1.0 run 0 (warmup, startup 0s): faults=0 |      
+mtp-t0.6-rp1.0 run 1 (warmup, startup 1s): faults=0 |      
+=== mtp-t1.0-official: env[MTP_K=3] flags[--repeat-penalty 1.0 --top-p 0.95 --top-k 20] temperature=1.0 ===
+mtp-t1.0-official run 0 (warmup, startup 0s): faults=0 |      
+mtp-t1.0-official run 1 (warmup, startup 0s): faults=0 |      
+=== mtp-t0.6-p95k20: env[MTP_K=3] flags[--repeat-penalty 1.0 --top-p 0.95 --top-k 20] temperature=0.6 ===
+mtp-t0.6-p95k20 run 0 (warmup, startup 1s): faults=0 |      
+mtp-t0.6-p95k20 run 1 (warmup, startup 0s): faults=0 |      
+=== mtp-t0.7-instruct: env[MTP_K=3] flags[--repeat-penalty 1.0 --top-p 0.8 --top-k 20 --presence-penalty 1.5] temperature=0.7 ===
+mtp-t0.7-instruct run 0 (warmup, startup 0s): faults=0 |      
+mtp-t0.7-instruct run 1 (warmup, startup 0s): faults=0 |      
+=== dflash-t0.6-rp1.0: env[DFLASH=/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf DFLASH_BLOCK=6 DFLASH_NOSEL=1 DFLASH_XCTX=0] flags[--repeat-penalty 1.0] temperature=0.6 ===
+dflash-t0.6-rp1.0 run 0 (warmup, startup 0s): faults=0 |      
+dflash-t0.6-rp1.0 run 1 (warmup, startup 0s): faults=0 |      
+=== dflash-t1.0-official: env[DFLASH=/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf DFLASH_BLOCK=6 DFLASH_NOSEL=1 DFLASH_XCTX=0] flags[--repeat-penalty 1.0 --top-p 0.95 --top-k 20] temperature=1.0 ===
+dflash-t1.0-official run 0 (warmup, startup 0s): faults=0 |      
+dflash-t1.0-official run 1 (warmup, startup 0s): faults=0 |      
+DONE 00:44:53

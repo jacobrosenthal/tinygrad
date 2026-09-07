@@ -1,0 +1,240 @@
+am usb:2-26: product string: 'custom ed4e39b7-CLEAN'
+opened device CPU from pid:69957
+am usb:2-26: AM_SOC initialized
+am usb:2-26: AM_GMC initialized
+am usb:2-26: AM_IH initialized
+am usb:2-26: loading sos component: PSP_FW_TYPE_PSP_KDB
+am usb:2-26: loading sos component: PSP_FW_TYPE_PSP_KDB
+am usb:2-26: loading sos component: PSP_FW_TYPE_PSP_SYS_DRV
+am usb:2-26: loading sos component: PSP_FW_TYPE_PSP_SOS
+am usb:2-26: loading fw: GFX_FW_TYPE_SMU
+am usb:2-26: loading fw: GFX_FW_TYPE_SDMA_UCODE_TH1
+am usb:2-26: loading fw: GFX_FW_TYPE_SDMA_UCODE_TH0
+am usb:2-26: loading fw: GFX_FW_TYPE_RS64_MEC
+am usb:2-26: loading fw: GFX_FW_TYPE_RS64_MEC_P0_STACK
+am usb:2-26: loading fw: GFX_FW_TYPE_IMU_I
+am usb:2-26: loading fw: GFX_FW_TYPE_IMU_D
+am usb:2-26: loading fw: GFX_FW_TYPE_RLC_IRAM
+am usb:2-26: loading fw: GFX_FW_TYPE_RLC_DRAM_BOOT
+am usb:2-26: loading fw: GFX_FW_TYPE_RLC_P
+am usb:2-26: loading fw: GFX_FW_TYPE_RLC_V
+am usb:2-26: loading fw: GFX_FW_TYPE_RLC_G
+am usb:2-26: AM_PSP initialized
+am usb:2-26: AM_SMU initialized
+am usb:2-26: AM_GFX initialized
+am usb:2-26: AM_SDMA initialized
+am usb:2-26: boot done
+AMDDevice: opening 0 with target (11, 0, 0) arch gfx1100
+opened device AMD from pid:69957
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:69957
+[32m*** AMD        1[0m [33mcopy   16.34 GB,     AMD <- DISK:/h[0m            arg  2 mem  17.55 GB tm [33m    50.52s [0m/ 50515.29ms (      0 GFLOPS    0|0      GB/s)
+llm cache: uploaded weights in 50787.97 ms
+opened device PYTHON from pid:69957
+llm cache: unpickled model in 1371.79 ms
+scheduled   192 kernels in   166.32 ms | CACHE MISS 66da3371 |   38668 uops in cache | <frozen runpy>:88
+compiling:   0%|                                          | 0/4 [00:00<?, ?it/s]compiling E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                             :  25%|▎| 1/4 [00:00<00:01,  2.72it/s]compiling E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                              :  50%|▌| 2/4 [00:00<00:00,  5.34it/s]compiling E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                              :  75%|▊| 3/4 [00:00<00:00,  7.81it/s]compiling E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                             : 100%|█| 4/4 [00:00<00:00, 10.02it/s]compiling E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                             : 100%|█| 4/4 [00:00<00:00, 10.01it/s]
+[32m*** AMD        2[0m E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.66 GB tm      4.64us/ 50515.29ms (      0 GFLOPS   26|26     GB/s)
+[32m*** AMD        3[0m E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.67 GB tm      3.12us/ 50515.29ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD        4 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.67 GB tm      2.36us/ 50515.30ms (      0 GFLOPS   52|52     GB/s)
+*** AMD        5 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.67 GB tm      2.96us/ 50515.30ms (      0 GFLOPS 1063|1063   GB/s)
+*** AMD        6 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.67 GB tm      2.32us/ 50515.30ms (      0 GFLOPS   53|53     GB/s)
+*** AMD        7 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.67 GB tm      3.12us/ 50515.31ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD        8 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.67 GB tm      2.36us/ 50515.31ms (      0 GFLOPS   52|52     GB/s)
+*** AMD        9 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.68 GB tm      3.00us/ 50515.31ms (      0 GFLOPS 1049|1049   GB/s)
+*** AMD       10 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.68 GB tm      2.36us/ 50515.31ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       11 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.68 GB tm      3.12us/ 50515.32ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       12 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.68 GB tm      2.40us/ 50515.32ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       13 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.68 GB tm      2.96us/ 50515.32ms (      0 GFLOPS 1063|1063   GB/s)
+*** AMD       14 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.68 GB tm      2.36us/ 50515.32ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       15 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.69 GB tm      3.24us/ 50515.33ms (      0 GFLOPS  971|971    GB/s)
+*** AMD       16 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.69 GB tm      2.36us/ 50515.33ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       17 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.69 GB tm      3.00us/ 50515.33ms (      0 GFLOPS 1049|1049   GB/s)
+*** AMD       18 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.69 GB tm      2.36us/ 50515.34ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       19 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.69 GB tm      3.12us/ 50515.34ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       20 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.69 GB tm      2.40us/ 50515.34ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       21 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.70 GB tm      2.96us/ 50515.34ms (      0 GFLOPS 1063|1063   GB/s)
+*** AMD       22 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.70 GB tm      2.36us/ 50515.35ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       23 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.70 GB tm      3.12us/ 50515.35ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       24 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.70 GB tm      2.36us/ 50515.35ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       25 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.70 GB tm      3.00us/ 50515.35ms (      0 GFLOPS 1049|1049   GB/s)
+*** AMD       26 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.70 GB tm      2.40us/ 50515.36ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       27 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.71 GB tm      3.16us/ 50515.36ms (      0 GFLOPS  995|995    GB/s)
+*** AMD       28 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.71 GB tm      2.40us/ 50515.36ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       29 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.71 GB tm      2.96us/ 50515.37ms (      0 GFLOPS 1063|1063   GB/s)
+*** AMD       30 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.71 GB tm      2.40us/ 50515.37ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       31 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.71 GB tm      3.16us/ 50515.37ms (      0 GFLOPS  995|995    GB/s)
+*** AMD       32 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.71 GB tm      2.36us/ 50515.37ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       33 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.72 GB tm      3.00us/ 50515.38ms (      0 GFLOPS 1049|1049   GB/s)
+*** AMD       34 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.72 GB tm      2.40us/ 50515.38ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       35 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.72 GB tm      3.12us/ 50515.38ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       36 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.72 GB tm      2.32us/ 50515.38ms (      0 GFLOPS   53|53     GB/s)
+*** AMD       37 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.72 GB tm      3.32us/ 50515.39ms (      0 GFLOPS  948|948    GB/s)
+*** AMD       38 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.72 GB tm      2.36us/ 50515.39ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       39 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.73 GB tm      3.12us/ 50515.39ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       40 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.73 GB tm      2.36us/ 50515.40ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       41 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.73 GB tm      3.00us/ 50515.40ms (      0 GFLOPS 1049|1049   GB/s)
+*** AMD       42 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.73 GB tm      2.36us/ 50515.40ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       43 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.73 GB tm      3.16us/ 50515.40ms (      0 GFLOPS  995|995    GB/s)
+*** AMD       44 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.73 GB tm      2.40us/ 50515.41ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       45 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.74 GB tm      3.04us/ 50515.41ms (      0 GFLOPS 1035|1035   GB/s)
+*** AMD       46 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.74 GB tm      2.36us/ 50515.41ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       47 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.74 GB tm      3.16us/ 50515.41ms (      0 GFLOPS  995|995    GB/s)
+*** AMD       48 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.74 GB tm      2.36us/ 50515.42ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       49 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.74 GB tm      3.00us/ 50515.42ms (      0 GFLOPS 1049|1049   GB/s)
+*** AMD       50 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.74 GB tm      2.36us/ 50515.42ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       51 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.74 GB tm      3.16us/ 50515.43ms (      0 GFLOPS  995|995    GB/s)
+*** AMD       52 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.74 GB tm      2.32us/ 50515.43ms (      0 GFLOPS   53|53     GB/s)
+*** AMD       53 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.75 GB tm      3.00us/ 50515.43ms (      0 GFLOPS 1049|1049   GB/s)
+*** AMD       54 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.75 GB tm      2.36us/ 50515.43ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       55 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.75 GB tm      3.12us/ 50515.44ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       56 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.75 GB tm      2.36us/ 50515.44ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       57 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.75 GB tm      3.16us/ 50515.44ms (      0 GFLOPS  995|995    GB/s)
+*** AMD       58 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.75 GB tm      2.40us/ 50515.44ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       59 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.76 GB tm      3.16us/ 50515.45ms (      0 GFLOPS  995|995    GB/s)
+*** AMD       60 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.76 GB tm      2.36us/ 50515.45ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       61 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.76 GB tm      3.00us/ 50515.45ms (      0 GFLOPS 1049|1049   GB/s)
+*** AMD       62 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.76 GB tm      2.36us/ 50515.46ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       63 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.76 GB tm      3.12us/ 50515.46ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       64 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.76 GB tm      2.36us/ 50515.46ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       65 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.77 GB tm      3.00us/ 50515.46ms (      0 GFLOPS 1049|1049   GB/s)
+*** AMD       66 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.77 GB tm      2.44us/ 50515.47ms (      0 GFLOPS   50|50     GB/s)
+*** AMD       67 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.77 GB tm      3.20us/ 50515.47ms (      0 GFLOPS  983|983    GB/s)
+*** AMD       68 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.77 GB tm      2.40us/ 50515.47ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       69 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.77 GB tm      3.08us/ 50515.47ms (      0 GFLOPS 1021|1021   GB/s)
+*** AMD       70 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.77 GB tm      2.40us/ 50515.48ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       71 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.78 GB tm      3.12us/ 50515.48ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       72 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.78 GB tm      2.36us/ 50515.48ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       73 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.78 GB tm      3.04us/ 50515.49ms (      0 GFLOPS 1035|1035   GB/s)
+*** AMD       74 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.78 GB tm      2.40us/ 50515.49ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       75 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.78 GB tm      3.12us/ 50515.49ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       76 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.78 GB tm      2.44us/ 50515.49ms (      0 GFLOPS   50|50     GB/s)
+*** AMD       77 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.79 GB tm      3.12us/ 50515.50ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       78 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.79 GB tm      2.40us/ 50515.50ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       79 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.79 GB tm      3.12us/ 50515.50ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       80 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.79 GB tm      2.36us/ 50515.50ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       81 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.79 GB tm      3.00us/ 50515.51ms (      0 GFLOPS 1049|1049   GB/s)
+*** AMD       82 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.79 GB tm      2.32us/ 50515.51ms (      0 GFLOPS   53|53     GB/s)
+*** AMD       83 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.80 GB tm      3.12us/ 50515.51ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       84 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.80 GB tm      2.40us/ 50515.52ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       85 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.80 GB tm      3.08us/ 50515.52ms (      0 GFLOPS 1021|1021   GB/s)
+*** AMD       86 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.80 GB tm      2.40us/ 50515.52ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       87 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.80 GB tm      3.12us/ 50515.52ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD       88 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.80 GB tm      2.36us/ 50515.53ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       89 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.81 GB tm      3.04us/ 50515.53ms (      0 GFLOPS 1035|1035   GB/s)
+*** AMD       90 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.81 GB tm      2.40us/ 50515.53ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       91 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.81 GB tm      3.16us/ 50515.54ms (      0 GFLOPS  995|995    GB/s)
+*** AMD       92 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.81 GB tm      2.40us/ 50515.54ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       93 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.81 GB tm      3.04us/ 50515.54ms (      0 GFLOPS 1035|1035   GB/s)
+*** AMD       94 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.81 GB tm      2.36us/ 50515.54ms (      0 GFLOPS   52|52     GB/s)
+*** AMD       95 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.82 GB tm      3.16us/ 50515.55ms (      0 GFLOPS  995|995    GB/s)
+*** AMD       96 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  17.82 GB tm      2.40us/ 50515.55ms (      0 GFLOPS   51|51     GB/s)
+*** AMD       97 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  17.82 GB tm      3.08us/ 50515.55ms (      0 GFLOPS 1021|1021   GB/s)
+[32m*** AMD       98[0m E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.82 GB tm      2.80us/ 50515.55ms (      0 GFLOPS   88|88     GB/s)
+[32m*** AMD       99[0m E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.82 GB tm      8.28us/ 50515.56ms (      0 GFLOPS  760|760    GB/s)
+*** AMD      100 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.82 GB tm      2.72us/ 50515.57ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      101 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.83 GB tm      7.96us/ 50515.57ms (      0 GFLOPS  790|790    GB/s)
+*** AMD      102 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.83 GB tm      2.80us/ 50515.58ms (      0 GFLOPS   88|88     GB/s)
+*** AMD      103 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.83 GB tm      8.24us/ 50515.58ms (      0 GFLOPS  764|764    GB/s)
+*** AMD      104 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.83 GB tm      2.92us/ 50515.59ms (      0 GFLOPS   84|84     GB/s)
+*** AMD      105 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.83 GB tm      8.08us/ 50515.60ms (      0 GFLOPS  779|779    GB/s)
+*** AMD      106 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.83 GB tm      2.72us/ 50515.60ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      107 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.84 GB tm      7.96us/ 50515.61ms (      0 GFLOPS  790|790    GB/s)
+*** AMD      108 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.84 GB tm      2.92us/ 50515.61ms (      0 GFLOPS   84|84     GB/s)
+*** AMD      109 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.84 GB tm      8.04us/ 50515.62ms (      0 GFLOPS  783|783    GB/s)
+*** AMD      110 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.84 GB tm      2.72us/ 50515.62ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      111 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.84 GB tm      8.12us/ 50515.63ms (      0 GFLOPS  775|775    GB/s)
+*** AMD      112 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.84 GB tm      2.84us/ 50515.63ms (      0 GFLOPS   87|87     GB/s)
+*** AMD      113 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.85 GB tm      8.92us/ 50515.64ms (      0 GFLOPS  705|705    GB/s)
+*** AMD      114 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.85 GB tm      2.88us/ 50515.64ms (      0 GFLOPS   85|85     GB/s)
+*** AMD      115 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.85 GB tm      9.92us/ 50515.65ms (      0 GFLOPS  634|634    GB/s)
+*** AMD      116 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.85 GB tm      2.88us/ 50515.66ms (      0 GFLOPS   85|85     GB/s)
+*** AMD      117 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.85 GB tm      9.84us/ 50515.67ms (      0 GFLOPS  639|639    GB/s)
+*** AMD      118 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.85 GB tm      2.88us/ 50515.67ms (      0 GFLOPS   85|85     GB/s)
+*** AMD      119 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.86 GB tm      9.76us/ 50515.68ms (      0 GFLOPS  645|645    GB/s)
+*** AMD      120 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.86 GB tm      2.88us/ 50515.68ms (      0 GFLOPS   85|85     GB/s)
+*** AMD      121 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.86 GB tm     10.32us/ 50515.69ms (      0 GFLOPS  610|610    GB/s)
+*** AMD      122 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.86 GB tm      2.88us/ 50515.69ms (      0 GFLOPS   85|85     GB/s)
+*** AMD      123 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.86 GB tm      9.92us/ 50515.70ms (      0 GFLOPS  634|634    GB/s)
+*** AMD      124 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.86 GB tm      2.92us/ 50515.71ms (      0 GFLOPS   84|84     GB/s)
+*** AMD      125 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.87 GB tm      9.60us/ 50515.72ms (      0 GFLOPS  655|655    GB/s)
+*** AMD      126 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.87 GB tm      2.88us/ 50515.72ms (      0 GFLOPS   85|85     GB/s)
+*** AMD      127 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.87 GB tm     10.00us/ 50515.73ms (      0 GFLOPS  629|629    GB/s)
+*** AMD      128 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.87 GB tm      2.88us/ 50515.73ms (      0 GFLOPS   85|85     GB/s)
+*** AMD      129 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.87 GB tm      7.56us/ 50515.74ms (      0 GFLOPS  832|832    GB/s)
+*** AMD      130 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.87 GB tm      2.72us/ 50515.74ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      131 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.88 GB tm      6.64us/ 50515.75ms (      0 GFLOPS  948|948    GB/s)
+*** AMD      132 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.88 GB tm      2.72us/ 50515.75ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      133 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.88 GB tm      6.76us/ 50515.76ms (      0 GFLOPS  931|931    GB/s)
+*** AMD      134 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.88 GB tm      2.72us/ 50515.76ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      135 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.88 GB tm      6.32us/ 50515.77ms (      0 GFLOPS  995|995    GB/s)
+*** AMD      136 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.88 GB tm      2.88us/ 50515.77ms (      0 GFLOPS   85|85     GB/s)
+*** AMD      137 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.89 GB tm      6.68us/ 50515.78ms (      0 GFLOPS  942|942    GB/s)
+*** AMD      138 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.89 GB tm      2.84us/ 50515.78ms (      0 GFLOPS   87|87     GB/s)
+*** AMD      139 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.89 GB tm      6.56us/ 50515.79ms (      0 GFLOPS  959|959    GB/s)
+*** AMD      140 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.89 GB tm      2.72us/ 50515.79ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      141 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.89 GB tm      6.56us/ 50515.80ms (      0 GFLOPS  959|959    GB/s)
+*** AMD      142 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.89 GB tm      2.72us/ 50515.80ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      143 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.90 GB tm      7.16us/ 50515.81ms (      0 GFLOPS  879|879    GB/s)
+*** AMD      144 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.90 GB tm      2.80us/ 50515.81ms (      0 GFLOPS   88|88     GB/s)
+*** AMD      145 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.90 GB tm      6.36us/ 50515.81ms (      0 GFLOPS  989|989    GB/s)
+*** AMD      146 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.90 GB tm      2.72us/ 50515.82ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      147 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.90 GB tm      6.80us/ 50515.82ms (      0 GFLOPS  925|925    GB/s)
+*** AMD      148 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.90 GB tm      2.84us/ 50515.83ms (      0 GFLOPS   87|87     GB/s)
+*** AMD      149 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.91 GB tm      7.04us/ 50515.83ms (      0 GFLOPS  894|894    GB/s)
+*** AMD      150 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.91 GB tm      2.72us/ 50515.84ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      151 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.91 GB tm      7.64us/ 50515.84ms (      0 GFLOPS  823|823    GB/s)
+*** AMD      152 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.91 GB tm      2.72us/ 50515.85ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      153 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.91 GB tm      6.16us/ 50515.85ms (      0 GFLOPS 1021|1021   GB/s)
+*** AMD      154 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.91 GB tm      2.72us/ 50515.86ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      155 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.91 GB tm      6.84us/ 50515.86ms (      0 GFLOPS  920|920    GB/s)
+*** AMD      156 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.91 GB tm      2.72us/ 50515.87ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      157 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.92 GB tm      6.32us/ 50515.87ms (      0 GFLOPS  995|995    GB/s)
+*** AMD      158 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.92 GB tm      2.72us/ 50515.87ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      159 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.92 GB tm      8.24us/ 50515.88ms (      0 GFLOPS  764|764    GB/s)
+*** AMD      160 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.92 GB tm      2.72us/ 50515.89ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      161 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.92 GB tm      6.16us/ 50515.89ms (      0 GFLOPS 1021|1021   GB/s)
+*** AMD      162 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.92 GB tm      2.76us/ 50515.89ms (      0 GFLOPS   89|89     GB/s)
+*** AMD      163 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.93 GB tm      7.12us/ 50515.90ms (      0 GFLOPS  884|884    GB/s)
+*** AMD      164 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.93 GB tm      2.84us/ 50515.90ms (      0 GFLOPS   87|87     GB/s)
+*** AMD      165 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.93 GB tm      6.24us/ 50515.91ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD      166 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.93 GB tm      2.72us/ 50515.91ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      167 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.93 GB tm      6.48us/ 50515.92ms (      0 GFLOPS  971|971    GB/s)
+*** AMD      168 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.93 GB tm      2.68us/ 50515.92ms (      0 GFLOPS   92|92     GB/s)
+*** AMD      169 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.94 GB tm      6.08us/ 50515.93ms (      0 GFLOPS 1035|1035   GB/s)
+*** AMD      170 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.94 GB tm      2.72us/ 50515.93ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      171 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.94 GB tm      7.40us/ 50515.94ms (      0 GFLOPS  850|850    GB/s)
+*** AMD      172 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.94 GB tm      2.80us/ 50515.94ms (      0 GFLOPS   88|88     GB/s)
+*** AMD      173 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.94 GB tm      6.24us/ 50515.95ms (      0 GFLOPS 1008|1008   GB/s)
+*** AMD      174 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.94 GB tm      2.80us/ 50515.95ms (      0 GFLOPS   88|88     GB/s)
+*** AMD      175 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.95 GB tm      7.60us/ 50515.96ms (      0 GFLOPS  828|828    GB/s)
+*** AMD      176 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.95 GB tm      2.72us/ 50515.96ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      177 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.95 GB tm      6.32us/ 50515.97ms (      0 GFLOPS  995|995    GB/s)
+*** AMD      178 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.95 GB tm      2.68us/ 50515.97ms (      0 GFLOPS   92|92     GB/s)
+*** AMD      179 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.95 GB tm      6.52us/ 50515.98ms (      0 GFLOPS  965|965    GB/s)
+*** AMD      180 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.95 GB tm      2.72us/ 50515.98ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      181 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.96 GB tm      6.20us/ 50515.99ms (      0 GFLOPS 1015|1015   GB/s)
+*** AMD      182 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.96 GB tm      2.84us/ 50515.99ms (      0 GFLOPS   87|87     GB/s)
+*** AMD      183 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.96 GB tm      7.36us/ 50516.00ms (      0 GFLOPS  855|855    GB/s)
+*** AMD      184 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.96 GB tm      2.84us/ 50516.00ms (      0 GFLOPS   87|87     GB/s)
+*** AMD      185 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.96 GB tm      6.56us/ 50516.01ms (      0 GFLOPS  959|959    GB/s)
+*** AMD      186 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.96 GB tm      2.68us/ 50516.01ms (      0 GFLOPS   92|92     GB/s)
+*** AMD      187 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.97 GB tm      6.80us/ 50516.01ms (      0 GFLOPS  925|925    GB/s)
+*** AMD      188 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.97 GB tm      2.68us/ 50516.02ms (      0 GFLOPS   92|92     GB/s)
+*** AMD      189 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.97 GB tm      6.64us/ 50516.02ms (      0 GFLOPS  948|948    GB/s)
+*** AMD      190 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.97 GB tm      2.72us/ 50516.03ms (      0 GFLOPS   90|90     GB/s)
+*** AMD      191 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.97 GB tm      6.48us/ 50516.03ms (      0 GFLOPS  971|971    GB/s)
+*** AMD      192 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  17.97 GB tm      2.68us/ 50516.04ms (      0 GFLOPS   92|92     GB/s)
+*** AMD      193 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  17.98 GB tm      6.44us/ 50516.04ms (      0 GFLOPS  977|977    GB/s)
+llm cache: loaded warmed-up model from /home/jacob/.cache/tinygrad/llm/3a1f9fbca9f31d7e.pkl
+using model "Qwen3.8-27B" with 19,796,669,320 bytes and 64,558,089,282 params, max context 98304 on AMD
+scheduled     2 kernels in     3.97 ms | CACHE MISS 0e9565f2 |   37897 uops in cache | <frozen runpy>:88
+*** started server on http://127.0.0.1:8080 at 80.20 s
+/v1/chat/completions  [90m--[0m  prep:    0 ms  [90m--[0m  in:[32m    0[0m +   57  [90m--[0m  prefill:  48 tok/s  [90m--[0m  gen:  75 tok/s  [90m--[0m  accept: 0.78 (3.33 tok/step)  [90m--[0m  out:    8  [90m--[0m  total:  1.29s
+/v1/chat/completions  [90m--[0m  prep:    0 ms  [90m--[0m  in:[32m   56[0m +    1  [90m--[0m  prefill:   4 tok/s  [90m--[0m  gen:  56 tok/s  [90m--[0m  accept: 0.34 (2.03 tok/step)  [90m--[0m  out:  800  [90m--[0m  total: 14.55s
+/v1/chat/completions  [90m--[0m  prep:    0 ms  [90m--[0m  in:[32m    0[0m +   72  [90m--[0m  [33mmiss: live@3/395 ckpt@3/56[0m  [90m--[0m  prefill:  63 tok/s  [90m--[0m  gen:  75 tok/s  [90m--[0m  accept: 0.63 (2.88 tok/step)  [90m--[0m  out:  800  [90m--[0m  total: 11.77s
+/v1/chat/completions  [90m--[0m  prep:    0 ms  [90m--[0m  in:[32m    0[0m +   57  [90m--[0m  [33mmiss: live@3/508 ckpt@3/71[0m  [90m--[0m  prefill:  50 tok/s  [90m--[0m  gen:  58 tok/s  [90m--[0m  accept: 0.37 (2.11 tok/step)  [90m--[0m  out:  800  [90m--[0m  total: 14.97s
+/v1/chat/completions  [90m--[0m  prep:    0 ms  [90m--[0m  in:[32m    0[0m +   72  [90m--[0m  [33mmiss: live@3/426 ckpt@3/56[0m  [90m--[0m  prefill:  63 tok/s  [90m--[0m  gen:  76 tok/s  [90m--[0m  accept: 0.62 (2.87 tok/step)  [90m--[0m  out:  800  [90m--[0m  total: 11.69s
+/v1/chat/completions  [90m--[0m  prep:    0 ms  [90m--[0m  in:[32m    0[0m +   57  [90m--[0m  [33mmiss: live@3/520 ckpt@3/71[0m  [90m--[0m  prefill:  51 tok/s  [90m--[0m  gen:  54 tok/s  [90m--[0m  accept: 0.32 (1.95 tok/step)  [90m--[0m  out:  800  [90m--[0m  total: 16.02s
+/v1/chat/completions  [90m--[0m  prep:    0 ms  [90m--[0m  in:[32m    0[0m +   72  [90m--[0m  [33mmiss: live@3/61 ckpt@3/56[0m  [90m--[0m  prefill:  63 tok/s  [90m--[0m  gen:  84 tok/s  [90m--[0m  accept: 0.74 (3.21 tok/step)  [90m--[0m  out:  800  [90m--[0m  total: 10.71s
+/usr/lib/python3.13/multiprocessing/resource_tracker.py:301: UserWarning: resource_tracker: There appear to be 6 leaked semaphore objects to clean up at shutdown: {'/mp-msxomig0', '/mp-iuvr9174', '/mp-ezaw0ha2', '/mp-779cbtz8', '/mp-i64gnygk', '/mp-werzc_3l'}
+  warnings.warn(

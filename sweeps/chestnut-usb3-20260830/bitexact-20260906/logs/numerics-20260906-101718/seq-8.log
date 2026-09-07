@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/bitexact-20260906/scripts/chunk_numerics.py", line 21, in <module>
+    assert len(teacher) == N, (len(teacher), N)
+           ^^^^^^^^^^^^^^^^^
+AssertionError: (7, 8)

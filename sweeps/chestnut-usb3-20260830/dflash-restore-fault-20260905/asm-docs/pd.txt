@@ -1,0 +1,1707 @@
+                            al
+                          ti
+                     en
+   ASM2464PD Data Sheet
+                   id
+USB4/Thunderbolt to PCIe Gen4 x4 NVMe
+              nf
+          Bridge Controller
+            Co
+       i a
+    ed
+  M
+AS
+Copyright Notice:
+Copyright © 2022, ASMedia TECHNOLOGY INC. All Rights Reserved.
+
+INFORMATION IN THIS DOCUMENT IS PROVIDED IN CONNECTION WITH PRODUCTS OF ASMEDIA TECHNOLOGY INC. NO
+LICENSE, EXPRESS OR IMPLIED, BY ESTOPPEL OR OTHERWISE, TO ANY INTELLECTUAL PROPERTY RIGHTS IS GRANTED BY
+THIS DOCUMENT. EXCEPT AS PROVIDED IN ASMEDIA’S TERMS AND CONDITIONS OF SALE FOR SUCH PRODUCTS, ASMEDIA
+ASSUMES NO LIABILITY WHATSOEVER, AND ASMEDIA DISCLAIMS ANY EXPRESS OR IMPLIED WARRANTY, RELATING TO SALE
+AND/OR USE OF ASMEDIA PRODUCTS INCLUDING LIABILITY OR WARRANTIES RELATING TO FITNESS FOR A PARTICULAR
+PURPOSE, MERCHANTABILITY, OR INFRINGEMENT OF ANY PATENT, COPYRIGHT OR OTHER INTELLECTUAL PROPERTY
+RIGHT.
+
+Products of ASMEDIA TECHNOLOGY INC. are not intended for use in medical, life-saving, life-sustaining, critical control or safety
+systems, or nuclear facility applications.
+
+ASMedia may make changes to specifications and product descriptions at any time, without notice.
+ASMedia TECHNOLOGY INC. may have patents or pending patent applications, trademarks, copyrights, or other intellectual
+
+
+
+
+                                                                                                      l
+property rights that relate to the presented subject matter. The furnishing of documents and other materials and information
+
+
+
+
+                                                                                             ia
+does not provide any license, express or implied, by estoppel or otherwise, to any such patents, trademarks, copyrights, or other
+intellectual property rights.
+
+
+
+
+                                                                                   nt
+Contact your local ASMedia sales office or your agent to obtain the latest specifications and before placing your product order.
+Copies of documents which have an order number and are referenced in this document, or other ASMedia literature may be
+obtained by calling +886-2-22196088 or by visiting ASMedia’s website at www.asmedia.com.tw.
+ASMedia and ASMedia logo are trademarks or registered trademarks of ASMedia TECHNOLOGY INC. in Taiwan and other
+
+
+
+
+                                                                       e
+countries.
+
+
+
+© 2022 祥碩科技股份有限公司，著作權所有，並保留一切權利
+                                                                    id
+                                                          nf
+本文資料為與祥碩科技股份有限公司之產品相關。本文並未明示或默示授權任何智慧財產權予第三人。除在祥碩科技股份有限公
+司對該產品提供的買賣條款及條件以外，祥碩科技股份有限公司免於擔負任何責任，且不對產品的買賣及使用做任何明示或默示
+的保證，包含產品適於特殊使用目的、以及產品不侵害任何專利權、著作權或其他智慧財產權。祥碩科技股份有限公司之產品不
+                                              Co
+
+用於醫療的、救助生命的、生命維持的、安全控管系統或核子設施等用途之上。
+祥碩科技股份有限公司可隨時不經通知，逕行增訂或修改產品規格及描述。
+本文之相關專利權、申請中之專利權、商標權、著作權及其餘智慧財產權均屬祥碩科技股份有限公司所有。本文及其他資訊並未
+明示或默示的提供任何專利、商標、著作權及其餘智慧財產權之授權。
+請於下產品訂單前先聯絡當地的祥碩科技銷售處或代理商以取得最新的產品規格書。
+                                     a
+
+
+
+本文提及之有訂單號碼之文件或其他詳細資料可參閱祥碩科技網站 www.asmedia.com.tw 或撥打+886-2-22196088
+ASMEDIA 和 ASMEDIA 商標均為祥碩科技股份有限公司在台灣和其他國家的註冊商標或商標。
+                         i
+                      ed
+
+
+
+
+Office:
+ASMedia Technology, Inc.
+6F, No.115, Minquan Rd., Xindian City, Taipei County 231, Taiwan, R.O.C.
+              M
+
+
+
+
+http://www.asmedia.com.tw
+Tel: 886-2-2219-6088
+Fax: 886-2-2219-6080
+ AS
+
+
+
+
+     Environmentally hazardous materials are not used in this product.
+                                                                         ASM2464PD Datasheet
+
+
+
+Revision History
+  Rev.        Date         Description
+   0.1     May 23, 2022    Initial Release
+   0.2   August 10, 2022   Updated List of Acronyms
+                           Updated Introduction
+                           Updated Recommended Operating Conditions and Chip Temperature
+                           Calculation
+
+
+
+
+                                                                           l
+                                                                    ia
+                                                    e       nt
+                                                 id
+                                             nf
+                                  Co
+                 i         a
+              ed
+         M
+AS
+
+
+
+
+                                                                                           iii
+                                                                                                                             ASM2464PD Datasheet
+
+
+Table of Contents
+Revision History ............................................................................................................................................. iii
+Table of Contents ........................................................................................................................................... iv
+List of Figures ................................................................................................................................................. v
+List of Acronyms ............................................................................................................................................ vi
+1. Introduction................................................................................................................................................ 8
+2. Features ..................................................................................................................................................... 9
+     2.1 Package Type ..................................................................................................................................... 9
+3. Block Diagram .......................................................................................................................................... 10
+4. Pinout Diagram ......................................................................................................................................... 11
+
+
+
+
+                                                                                                                                 l
+                                                                                                                      ia
+5. Pin Description .......................................................................................................................................... 12
+     5.1 Strapping Information ....................................................................................................................... 14
+6 Electrical Characteristics ............................................................................................................................. 15
+
+
+
+
+                                                                                                         nt
+   6.1 Absolute Maximum Ratings ................................................................................................................... 15
+   6.2 Recommended Operating Conditions ..................................................................................................... 15
+     6.2.1 Chip Temperature (TJ, TC) Calculation ............................................................................................. 15
+   6.3 AC/DC Characteristics ........................................................................................................................... 16
+
+
+
+
+                                                                                         e
+     6.3.1 PCI Express Electrical Specification ................................................................................................. 16
+
+
+                                                                                      id
+     6.3.2 USB4 Electrical Specification ........................................................................................................... 16
+     6.3.3 USB Type-C Specification ............................................................................................................... 16
+     6.3.4 USB Power Delivery Specification .................................................................................................... 16
+                                                                          nf
+     6.3.5 USB2.0 Electrical Specification ........................................................................................................ 16
+     6.3.6 DC Electrical Characteristics for Digital Pins ..................................................................................... 16
+     6.3.7 DC Electrical Characteristics for RST# Pin ........................................................................................ 17
+     6.3.8 External Crystal Electrical Specification ........................................................................................... 17
+                                                          Co
+
+     6.3.9 Differential Clock Oscillator Electrical Specification ........................................................................... 17
+     6.3.10 PCI Express 100MHz Output Clock Electrical Specification .............................................................. 18
+     6.3.11 Internal Linear Regulator Electrical Specification ............................................................................ 18
+     6.3.12 Power Consumption Specification ................................................................................................. 18
+7. Power on Sequence ................................................................................................................................... 19
+                                               a
+
+
+
+8. Recommended PCB Layout ........................................................................................................................ 20
+                               i
+
+
+
+
+9. Package Information ................................................................................................................................. 21
+                            ed
+
+
+
+
+10. Top Marking Information.......................................................................................................................... 23
+                  M
+ AS
+
+
+
+
+                                                                                                                                                               iv
+                                                                                                                    ASM2464PD Datasheet
+
+
+
+List of Figures
+Figure 1   ASM2464PD Block Diagram ............................................................................................................ 10
+Figure 2   ASM2464PD Pinout Diagram ........................................................................................................... 11
+Figure 3   Differential Crystal Design .............................................................................................................. 17
+Figure 4   Waveform of Power on Sequence ................................................................................................... 19
+Figure 5   Pads for ASM2464PD Outer Rows ................................................................................................... 20
+Figure 6   Pad AA1 Implementaion ................................................................................................................. 20
+Figure 7   Mechanical Specification ................................................................................................................ 22
+
+
+
+
+                                                                                                                       l
+                                                                                                             ia
+                                                                                  e              nt
+                                                                               id
+                                                                   nf
+                                                    Co
+                           i              a
+                        ed
+              M
+ AS
+
+
+
+
+                                                                                                                                                     v
+                                                                       ASM2464PD Datasheet
+
+
+
+List of Acronyms
+No.   Acronyms                                           Description
+ 1      BMC      Bi-phase Mark Coding
+ 2      BOT      Bulk Only Transport
+ 3       CC      Configuration Channel
+ 4     FCCSP     Flip Chip-Chip Scale Package
+ 5      GPIO     General Purpose Input Output
+
+
+
+
+                                                                        l
+ 6      I2C      Inter-Integrated Circuit
+
+
+
+
+                                                                       ia
+ 7     NVMe      Non-Volatile Memory Express
+ 8      P2P      PCIe Peer-to-Peer
+ 9      PCIe     Peripheral Component Interconnect Express
+
+
+
+
+                                                                 nt
+10      PHY      Physical Layer
+11      RoHS     Reduction of Hazardous Substances
+12      RAM      Random Access Memory
+
+
+
+
+                                                        e
+13      ROM      Read-Only Memory
+14
+15
+16
+        SCSI
+        SPI
+        SSC
+                 Small Computer System Interface
+                 Serial Peripheral Interface
+                 Spread Spectrum Clock
+                                                     id
+                                                nf
+17      SSD      Solid State Drive
+18      TBT      Thunderbolt
+19      TMU      Time Measurement Unit
+                                     Co
+
+20      UART     Universal Asynchronous Receiver Transmitter
+21      UAS      USB Attached SCSI
+22      UFP      Upstream Facing Port
+23     UNMAP     SCSI Command
+                         a
+
+
+
+24      USB      Universal Serial Bus
+                  i
+               ed
+       M
+AS
+
+
+
+
+                                                                                        vi
+                                                 ASM2464PD Datasheet
+
+This page is intentionally left blank.
+
+
+
+
+                                                  l
+                                              ia
+                                             ent
+                                          id
+                                         nf
+                                         Co
+                        i          a
+                     ed
+             M
+ AS
+
+
+
+
+                                                                 vii
+                                                                                       ASM2464PD Datasheet
+
+
+
+1. Introduction
+     ASM2464PD, a new generation of USB4/Thunderbolt to PCIe/NVMe Accessory controller which is built on
+ASMedia in-house designed PHYs. USB4/Thunderbolt technology enables PCIe and USB protocols to be encapsulated
+into the USB4/Thunderbolt fabric and tunneled across USB4/Thunderbolt domains. ASM2464PD can be implemented
+in various types of storage devices such as portable SSD, SSD enclosure, and any other PCIe based storage products
+that can be used to expand storage capacity with high speed data transfers.
+
+     The ASM2464PD USB connection is able to provide data rate at a speed of USB4/Thunderbolt 20Gbps x2 and is
+also compatible with existing legacy USB 3.2 interfaces, as well as Thunderbolt 3. In addition, the downstream port
+
+
+
+
+                                                                                         l
+link of ASM2464PD is also upgraded to PCIe Gen4 x4 to support various NVM Express based M.2, CFexpress, and U.2
+
+
+
+
+                                                                                 ia
+form factors.
+
+     ASM2464PD integrates USB4/Thunderbolt Gen3 x2, and PCI Express Gen4 with 1.8V and 1.05V voltage power
+
+
+
+
+                                                                         nt
+source. A USB Type-C CC logic circuit and BMC PHY are integrated for supporting cable orientation, flipping, and PD
+Sink mode with the capability to communicate via PD protocols including USB4/TBT3 Discovery and Entry with host.
+ASM2464PD is driven by local 25MHz crystal in a compact RoHS Green compact package with the support of multiple
+
+
+
+
+                                                               e
+GPIO pins for customization.
+
+
+
+                                                            id
+      The ASM2464PD is also designed to be compliant with the Thunderbolt 4 specification and ASMedia is targeting
+the Thunderbolt certification by the end of Q3 2022. Once the certification has been granted, end-product devices
+utilizing the ASM2464PD would also be eligible for Thunderbolt certification testing.
+                                                   nf
+                                            Co
+                         i          a
+                      ed
+             M
+ AS
+
+
+
+
+* Contents are subject to change without notice                                                                8
+                                                                                        ASM2464PD Datasheet
+
+
+
+2. Features
+     General Features
+          USB4/Thunderbolt to PCI Express NVMe SSD Bridge.
+          Integrated two USB 20Gbps PHYs.
+          Integrated UFP CC Logic for USB Type-C cable orientation and detection.
+          Integrated BMC PHY for PD fixed 5V UFP/Sink mode.
+          3.3V/1.8V/1.05V Power Supply.
+          Support SPI interface with External ROM for Customized RAM Code.
+
+
+
+
+                                                                                           l
+           Support I2C and GPIOs and UART Interface.
+
+
+
+
+                                                                                   ia
+     
+          Local 25MHz Crystal.
+
+
+
+
+                                                                          nt
+     Universal Serial Bus Features
+          Support up to USB4/Thunderbolt Gen3 x2 with USB 3.2 and USB 2.0 (backward compatibility).
+
+
+
+
+                                                                e
+          Support BOT and UAS Protocol.
+          Support USB Link Power Management.
+     
+     
+           Support USB Hot Plug.
+           Support Spread Spectrum Clock Control.            id
+                                                    nf
+          Support UNMAP Command Set.
+          Support SCSI Vendor Specific Command Set.
+          Compliant with Universal Serial Bus 4 (USB4™) Specification Rev. 1.0 (including Interoperability with
+                                            Co
+
+           Thunderbolt™ 3 (TBT3) Systems)
+          Compliant with Universal Serial Bus Type-C Cable and Connector Specification Revision 2.1
+          Compliant with Universal Serial Bus Power Delivery Specification Revision 3.1 Version 1.3
+                                    a
+
+
+
+     PCI Express Features
+                         i
+
+
+
+
+          Support up to PCI Express Gen4 x4.
+                      ed
+
+
+
+
+          Support PCI Express NVMe SSD.
+          Support Spread Spectrum Clock Control.
+          100MHz Differential Reference Clock Output.
+             M
+
+
+
+
+          Support Various Types of PCI Express Socket including M.2, U.2, and CFexpress.
+          Support PCI Express Link Power Management.
+           Compliant with PCI Express Base Specification Rev. 4.0
+ AS
+
+
+
+
+     
+          Compliant with PCIe M.2 Specification Rev. 1.1
+
+
+     NVM Express Features
+          Support NVMe Power Management.
+          Support NVMe: SCSI Translation Reference Rev. 1.5
+          Support NVMe Error Reporting & Recovery.
+          S.M.A.R.T Drive Monitoring.
+          Compliant with NVM Express Base Specification Rev. 1.4c
+
+
+
+ 2.1 Package Type
+          Green Package 10x10 mm2 FCCSP (Pb-free).
+          RoHS Compliance.
+
+* Contents are subject to change without notice                                                                    9
+                                                                                                                   ASM2464PD Datasheet
+
+
+
+3. Block Diagram
+
+                                            USB2                                                 SPI         1st I2C   2nd I2C
+                                                                                       GPIO                                       UART
+                                           Device                                               Master       Master    Master
+ Type-C       USB2                        Controller     Virtual
+                                                                      Protocol
+Connector     PHY                                      NVMe Host
+                                           USB3.2                     Converter
+                                                        System                                   CPU                   2nd I2C
+                                           Device                                                           I2C FIFO               MISC
+                                          Controller                                            (8051)                  Slave
+
+
+                                                                                                    XDATA              Program   Program
+                                                                                                                        RAM       ROM
+
+
+
+
+                                                                                                                       l
+ Type-C                      PD Sink                                                              XDATA
+               Type-C                                                                           Shared with
+                            BMC PHY
+
+
+
+
+                                                                                                          ia
+Connector
+                                                                                                 Program
+                                                                                                   RAM
+                                                 USB3 UP                                                                          SSCG
+                                                                             Control
+                                                  Adapter
+
+
+
+
+                                                                                              nt
+                                                                             Adapter
+
+
+
+                                                                              TMU
+
+
+
+
+                                                                                   e
+              USB4        USB4                              Device Router
+              PHY        /USB3.2                 Lane
+ Type-C                                                                                   PCIe
+Connector
+              Gen3
+               x2
+                           PCS                  Adapter
+
+                                                                                id      Upstream
+                                                                                       P2P Bridge
+                                                                                                                  PCIe
+                                                                                                               Downstream
+                                                                                                               P2P Bridge
+                                                                                                                                  PCIe
+                                                                                                                                 Gen4 x4
+                                                                                                                                  PHY
+                                                                                                                                           PCIe
+                                                                                                                                           Gen4
+                                                                                                                                           Port
+                                                                    nf
+                                                                            PCIe UP
+                                                                            Adapter
+                                                       Co
+
+            ASM2464PD USB4 Device Controller
+                                                                                                     PCIe Switch
+
+
+                                                       Figure 1 ASM2464PD Block Diagram
+                           i               a
+                        ed
+             M
+ AS
+
+
+
+
+* Contents are subject to change without notice                                                                                            10
+                                                                                                                              ASM2464PD Datasheet
+
+
+
+4. Pinout Diagram
+        1       2       3       4      5       6       7       8      9     10    11     12     13      14     15      16     17      18     19       20      21
+                    SPI__D                                                                                                                           UART_R
+  A   GPIO3 SPI_CS#           SPI_DI SPI_CLK GPIO15 GPIO16 GPIO17 GPIO18 GPIO19 GPIO20 GPIO21 GPIO22 GPIO23 GPIO24 GPIO25 GPIO26 GPIO27 GPIO8 GPIO14                  A
+                       O                                                                                                                               X
+                                                                                                                                                     UART_T
+  B   GPIO2   NC/B2   NC/B3   NC/B4 NC/B5 NC/B6 NC/B7 NC/B8 NC/B9 NC/B10 NC/B11 NC/B12 NC/B13 NC/B14 NC/B15 NC/B16 NC/B17 NC/B18 NC/B19 NC/B20                        B
+                                                                                                                                                       X
+  C   GPIO1   NC/C2                                                                                                                                 NC/C20 HDDPC      C
+
+  D   GPIO0   NC/D2           GND     GND     VCCH            VCCH   VCCH         GND          VCCH    VDD            VDD    GND     GND            NC/D20 NC/D21     D
+      I2C_CLK
+  E           NC/E2           GND     GND     VCCH            VCCH   VCCH         VDD          VCCH    VDD            VDD    GND     GND            NC/E20 NC/E21     E
+         _P
+       I2C_DA
+  F           NC/F2           GND     GND     VCCH            GND    VDD          VDD          VCCH    VDD            VDD    GND     GND            NC/F20 NC/F21     F
+
+
+
+
+                                                                                                                                     l
+        TA_P
+                                                                                                                                                           PERST0
+  G    VBUS   NC/G2                                                                                                                                 NC/G20            G
+
+
+
+
+                                                                                                                       ia
+                                                                                                                                                              #
+                                                                                                                                                           TEST_E
+  H    RST#   NC/H2           GND    VCCA33   VCCH            GND    VDD          VDD          VDD     VDD            VDD    GND     GND            NC/H20            H
+                                                                                                                                                             N
+  J    SBU2   NC/J2           GND     GND     GND             VDD    VDD          GND          VDD     VDD            VDD    VDD     VDD             VDD     VDD      J
+
+
+
+
+                                                                                                         nt
+  K    SBU1   GND                                                                                                                                    VDD     VDD      K
+
+  L   GNDA    GNDA            GNDA   GNDA     VCCL            VDD    GND          VDD          GND     VDD            VCCL   VCCL    VCCL            VCCL    VCCL     L
+
+  M    UDP    UDM                                                                                                                                   GNDA     GNDA     M
+
+
+
+
+                                                                                           e
+  N   GNDA    GNDA            GNDA   GNDA     VCCL            VDD    GND          GND          GND     VDD            VCCL   GNDA    GNDA           PRXN0    PRXP0    N
+
+  P
+
+  R
+
+  T
+      URXP0 URXN0
+
+      GNDA
+
+      UTXP0
+              GNDA
+
+              UTXN0
+                              GNDA
+
+
+
+                              GNDA
+                                     GNDA
+
+
+
+                                     GNDA
+                                              VCCL
+
+
+
+                                              VCCL
+                                                              VDD
+
+
+
+                                                              VDD
+                                                                     GND
+
+
+
+                                                                     VDD
+                                                                                  GND
+
+
+
+                                                                                  VDD
+                                                                                        id     VDD
+
+
+
+                                                                                               VDD
+                                                                                                       VDD
+
+
+
+                                                                                                       VDD
+                                                                                                                      VCCL
+
+
+
+                                                                                                                      VCCL
+                                                                                                                             GNDA
+
+
+
+                                                                                                                             GNDA
+                                                                                                                                     GNDA
+
+
+
+                                                                                                                                     GNDA
+                                                                                                                                                    GNDA
+
+                                                                                                                                                    PTXP0
+
+                                                                                                                                                    GNDA
+                                                                                                                                                             GNDA
+
+                                                                                                                                                             PTXN0
+
+                                                                                                                                                             GNDA
+                                                                                                                                                                      P
+
+                                                                                                                                                                      R
+
+                                                                                                                                                                      T
+                                                                            nf
+  U   GNDA    GNDA            GNDA   GNDA     VCCL            VDD    VDD         VCCL          VCCL    VCCL           VCCL   GNDA    GNDA           PTXP1    PTXN1    U
+
+  V   UTXN1 UTXP1             GNDA   GNDA     GNDA            GNDA   GNDA        GNDA          GNDA    GNDA           GNDA   GNDA    GNDA           GNDA     GNDA     V
+                                                             Co
+
+  W   GNDA    GNDA                                                                                                                                  PRXN1    PRXP1    W
+                                                            REFCLK
+  Y   URXN1 URXP1     GNDA     XO    GNDA     CC2    NC/Y7           GNDA NC/Y10 NC/Y11 GNDA   PRXN3   GNDA   PTXP3   GNDA   PTXP2   GNDA   PRXP2   GNDA     GNDA     Y
+                                                              N0
+                                                            REFCLK        NC/AA1 NC/AA1
+ AA   GNDA    GNDA    REXT     XI    GNDA     CC1    NC/AA7          GNDA               GNDA   PRXP3   GNDA   PTXN3   GNDA   PTXN2   GNDA   PRXN2   GNDA     GNDA     AA
+                                                              P0            0      1
+        1       2       3       4      5       6       7       8      9     10    11     12     13      14     15      16     17      18     19       20      21
+                                                   a
+
+
+
+                                                             Figure 2 ASM2464PD Pinout Diagram
+                                 i
+                              ed
+                M
+ AS
+
+
+
+
+* Contents are subject to change without notice                                                                                                                      11
+                                                                                               ASM2464PD Datasheet
+
+
+
+5. Pin Description
+This section provides a detailed description of each signal. The following notations are used to describe the signal
+type.
+
+  I/O Type                    Definition
+      I          Input pin
+     O           Output pin
+      B          Bi-directional pin
+     Di          Differential pin
+
+
+
+
+                                                                                                  l
+      P          Power pin
+
+
+
+
+                                                                                          ia
+      G          Ground pin
+     OD          Open Drain
+
+
+
+
+                                                                               nt
+  Pin Name       Pin No.       TYPE        Power                                  Description
+     UDP            M1           IO         VCC    Positive Signal of USB2.0 on Type-C.
+     UDM            M2           IO         VCC    Negative Signal of USB2.0 on Type-C.
+
+
+
+
+                                                                   e
+                                                   Positive Signal of SuperSpeed USB Lane 0 Transmitter for Type-C
+    UTXP0           T1          Di O       VCCL
+                                                   Configuration Channel 1.
+    UTXN0
+
+    UTXP1
+                    T2
+
+                    V2
+                                Di O
+
+                                Di O
+                                           VCCL
+
+                                           VCCL
+                                                                id
+                                                   Negative Signal of SuperSpeed USB Lane 0 Transmitter for Type-C
+                                                   Configuration Channel 1.
+                                                   Positive Signal of SuperSpeed USB Lane 1 Transmitter for Type-C
+                                                     nf
+                                                   Configuration Channel 2.
+                                                   Negative Signal of SuperSpeed USB Lane 1 Transmitter for Type-C
+    UTXN1           V1          Di O       VCCL
+                                                   Configuration Channel 2.
+                                                   Positive Signal of SuperSpeed USB Lane 0 Receiver for Type-C
+                                            Co
+
+    URXP0           P1          Di I       VCCL
+                                                   Configuration Channel 1.
+                                                   Negative Signal of SuperSpeed USB Lane 0 Receiver for Type-C
+    URXN0           P2          Di I       VCCL
+                                                   Configuration Channel 1.
+                                                   Positive Signal of SuperSpeed USB Lane 1 Receiver for Type-C
+    URXP1           Y2          Di I       VCCL
+                                                   Configuration Channel 2.
+                                       a
+
+
+
+                                                   Negative Signal of SuperSpeed USB Lane 1 Receiver for Type-C
+    URXN1           Y1          Di I       VCCL
+                                                   Configuration Channel 2.
+                         i
+
+
+
+
+     VBUS           G1           I         VCCH    USB VBUS input. This is a 5V tolerant pin.
+                      ed
+
+
+
+
+     CC1           AA6           IO        VCCH    USB Type-C Configuration Channel 1 with built-in 5.1K-ohm Rd resistor.
+     CC2            Y6           IO        VCCH    USB Type-C Configuration Channel 2 with built-in 5.1K-ohm Rd resistor.
+     SBU1           K1           IO        VCCH    Side Band Use 1.
+             M
+
+
+
+
+     SBU2           J1           IO        VCCH    Side Band Use 2.
+  REFCLKN0          Y8          Di O       VCCL    Negative Signal of PCI Express Differential Clock 0.
+ AS
+
+
+
+
+  REFCLKP0         AA8          Di O       VCCL    Positive Signal of PCI Express Differential Clock 0.
+    PRXN1          W20          Di I       VCCL    Negative Signal of PCI Express Lane 1 Receiver.
+    PRXP1          W21          Di I       VCCL    Positive Signal of PCI Express Lane 1 Receiver.
+    PRXN0          N20          Di I       VCCL    Negative Signal of PCI Express Lane 0 Receiver.
+    PRXP0          N21          Di I       VCCL    Positive Signal of PCI Express Lane 0 Receiver.
+    PTXN1          U21          Di O       VCCL    Negative Signal of PCI Express Lane 1 Transmitter.
+    PTXP1          U20          Di O       VCCL    Positive Signal of PCI Express Lane 1 Transmitter.
+    PTXN0          R21          Di O       VCCL    Negative Signal of PCI Express Lane 0 Transmitter.
+    PTXP0          R20          Di O       VCCL    Positive Signal of PCI Express Lane 0 Transmitter.
+    PRXN3          Y13          Di I       VCCL    Negative Signal of PCI Express Lane 3 Receiver.
+    PRXP3          AA13         Di I       VCCL    Positive Signal of PCI Express Lane 3 Receiver.
+    PRXN2          AA19         Di I       VCCL    Negative Signal of PCI Express Lane 2 Receiver.
+    PRXP2          Y19          Di I       VCCL    Positive Signal of PCI Express Lane 2 Receiver.
+    PTXN3          AA15         Di O       VCCL    Negative Signal of PCI Express Lane 3 Transmitter.
+
+
+* Contents are subject to change without notice                                                                      12
+                                                                                              ASM2464PD Datasheet
+  Pin Name       Pin No.       TYPE       Power                                  Description
+    PTXP3          Y15         Di O        VCCL   Positive Signal of PCI Express Lane 3 Transmitter.
+    PTXN2          AA17        Di O        VCCL   Negative Signal of PCI Express Lane 2 Transmitter.
+    PTXP2          Y17         Di O        VCCL   Positive Signal of PCI Express Lane 2 Transmitter.
+   PERST0#         G21           O         VCCH   Reset Signal for PCI Express interface 0.
+    RST#            H1           I         VCCH   Power on Reset.
+   TEST_EN         H21           I         VCCH   Test enable pin, internal weak pull down.
+                                                  I2C data, internal weak pull high. (This I2C interface can be configured to
+ I2C_DATA_P         F1          IO         VCCH
+                                                  be either master or slave mode)
+                                                  I2C clock, internal weak pull high. (This I2C interface can be configured to
+  I2C_CLK_P         E1          IO         VCCH
+                                                  be either master or slave mode)
+
+
+
+
+                                                                                                 l
+    GPIO0           D1          IO         VCCH   GPIO0, internal weak pull high.
+
+
+
+
+                                                                                        ia
+    GPIO1           C1          IO         VCCH   GPIO1, internal weak pull high, I2C_INT for PDC.
+    GPIO2           B1          IO         VCCH   GPIO2, internal weak pull high.
+
+
+
+
+                                                                              nt
+    GPIO3           A1          IO         VCCH   GPIO3, internal weak pull high.
+   SPI_CS#          A2          IO         VCCH   GPIO4, SPI Chip Select for external SPI Flash, internal weak pull high.
+                                                  GPIO5, SPI data output for external SPI Flash, internal weak pull high.
+   SPI_DO           A3          IO         VCCH   This is also the strapping pin for “SKT_DET” when power on. Please refer
+
+
+
+
+                                                                  e
+                                                  to strapping information for more details.
+                                                  GPIO6, SPI clock output for external SPI Flash, I2C_CLK, internal weak
+   SPI_CLK
+
+    SPI_DI
+                    A5
+
+                    A4
+                                IO
+
+                                IO
+                                           VCCH
+
+                                           VCCH                id
+                                                  pull high. (This I2C interface supports master mode only)
+                                                  GPIO7, SPI data input for external SPI Flash, I2C_DATA, internal weak
+                                                  pull high. (This I2C interface supports master mode only)
+                                                    nf
+    GPIO8          A19          IO         VCCH   GPIO8, CLKREQ#, internal weak pull high.
+   GPIO14          A20          IO         VCCH   GPIO14, internal weak pull high.
+   GPIO15           A6          IO         VCCH   GPIO15, internal weak pull high.
+                                            Co
+
+   GPIO16           A7          IO         VCCH   GPIO16, internal weak pull high.
+   GPIO17           A8          IO         VCCH   GPIO17, internal weak pull high.
+   GPIO18           A9          IO         VCCH   GPIO18, internal weak pull high.
+   GPIO19          A10          IO         VCCH   GPIO19, internal weak pull high.
+                                      a
+
+
+
+   GPIO20          A11          IO         VCCH   GPIO20, internal weak pull high.
+                         i
+
+
+
+
+   GPIO21          A12          IO         VCCH   GPIO21, internal weak pull high.
+                      ed
+
+
+
+
+   GPIO22          A13          IO         VCCH   GPIO22, internal weak pull high.
+   GPIO23          A14          IO         VCCH   GPIO23, internal weak pull high.
+   GPIO24          A15          IO         VCCH   GPIO24, internal weak pull high.
+              M
+
+
+
+
+   GPIO25          A16          IO         VCCH   GPIO25, internal weak pull high.
+   GPIO26          A17          IO         VCCH   GPIO26, internal weak pull high.
+   GPIO27          A18          IO         VCCH   GPIO27, internal weak pull high.
+ AS
+
+
+
+
+                                                  UART transmitter, internal weak pull high. This is also the strapping pin
+   UART_TX         B21           O         VCCH
+                                                  for “MEMREPAIR” when power on.
+   UART_RX         A21           I         VCCH   UART receiver, internal weak pull high.
+    HDDPC          C21           O         VCCH   Power control for NVMe SSD, internal weak pull high.
+
+
+
+
+* Contents are subject to change without notice                                                                         13
+                                                                                            ASM2464PD Datasheet
+
+  Pin Name                              Pin No.                            TYPE   Power             Description
+                 J2, H2, G2, F2, E2, D2, C2, B2, B3, B4, B5, B6, B7, B8,
+                 B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19,
+      NC                                                                    IO    VCCH     No Connections.
+                   B20, C20, D20, E20, F20, G20, H20, Y7, AA7, Y10,
+                            AA10, Y11, AA11, D21, E21, F21
+     REXT                                 AA3                               I     VCCH     External resistor 12.1 kΩ+/-1%.
+      XI                                  AA4                               I     VCCH     Crystal Input.
+      XO                                   Y4                               O     VCCH     Crystal Output.
+                 J21, J20, K21, K20, J18, J17, J16, H16, F16, E16, D16,
+                 J14, J13, H14, H13, F14, E14, D14, L11, L14, N14, P14,
+     VDD                                                                    P      VDD     Core power supply input.
+                 T14, P13, T13, E11, F11, H11, T11, F9, H9, J9, J8, L8,
+
+
+
+
+                                                                                               l
+                                 N8, P8, T9, T8, U9, U8,
+
+
+
+
+                                                                                          ia
+                   L21, L20, L18, L17, L16, N16, P16, T16, U16, U14,
+     VCCL                                                                   P      VCCL    Low voltage VCC power.
+                             U13, U11, U6, T6, P6, N6, L6,
+    VCCH             D13, E13, F13, D9, E9, D8, E8, D6, E6, F6, H6,         P     VCCH     High voltage VCC power.
+
+
+
+
+                                                                                  nt
+   VCCA33                                  H5                               P     VCCA33   Analog high voltage VCC power.
+                  M21, M20, P21, P20, T21, T20, V21, V20, Y21, Y20,
+                  AA21, AA20, Y18, Y16, Y14, Y12, Y9, Y5, Y3, AA18,
+
+
+
+
+                                                                      e
+                  AA16, AA14, AA12, AA9, AA5, N18, N17, P18, P17,
+    GNDA                                                                    G              Analog Ground.
+                 T18, T17, U18, U17, V18, V17, V16, V14, V13, V11, V9,
+
+
+
+     GND
+                  AA1, AA2, W1, W2, U1, U2, R1, R2, N1, N2, L1, L2,
+                                                                   id
+                 V8, V6, L5, L4, N5, N4, P5, P4, T5, T4, U5, U4, V5, V4,
+
+                 K2, D4, E4, F4, H4, J4, D5, E5, F5, J5, J6, F8, H8, L9,
+                 N9, P9, D11, J11, N11, P11, L13, N13, D17, E17, F17,       G              Digital Ground.
+                                                         nf
+                               H17, D18, E18, F18, H18,
+                                             Co
+
+5.1 Strapping Information
+The GPIO5 pin was used to support the PCIe hot-plug function. The function is enabled if GPIO5 is strapped to high.
+The UART_TX pin was used to support the internal memory repair function. The function is enabled if UART_TX is
+strapped to high.
+                                    a
+
+
+
+Function control for PCIe hot-plug support
+                         i
+
+
+
+
+        GPIO5                    SKT_DET
+                      ed
+
+
+
+
+          H               Support
+          L               No support
+
+Function control for internal memory repair
+             M
+
+
+
+
+       UART_TX                  MEMREPAIR
+          H               Enable
+          L               Disable
+ AS
+
+
+
+
+* Contents are subject to change without notice                                                                       14
+                                                                                                 ASM2464PD Datasheet
+
+
+
+6 Electrical Characteristics
+6.1 Absolute Maximum Ratings
+Absolute maximum ratings are conditions that should never be exceeded, even momentarily. Supplying a voltage over
+the maximum rating and/or using in environments outside of the temperature range may cause deterioration of IC
+characteristics or even damage.
+
+The following stress parameters are references for stress ratings only. The operating device which functions beyond
+these recommended parameter range or conditions will not be implied. Recommend using a clamping circuit to
+
+
+
+
+                                                                                                  l
+protect the device when abnormal voltage spikes are encountered while power is switched on or off.
+
+
+
+
+                                                                                          ia
+        Parameter                      Range              Unit
+ Power Supply                     -0.5 ~ VCC+0.5           V
+
+
+
+
+                                                                                   nt
+ DC Input Voltage                 -0.5 ~ VCC+0.5            V
+ Output Voltage                   -0.5 ~ VCC+0.5            V
+ Storage Temperature               JEDEC J-STD-033B MSL 3
+
+
+
+
+                                                                       e
+6.2 Recommended Operating Conditions
+        Symbol                           Parameter                  id       Min.         Typ.         Max.     Unit
+                                                         nf
+          VCCH          High voltage VCC power supply                        3.0           3.3          3.6      V
+          VCCL          Low voltage VCC power supply                         1.7           1.8          1.9      V
+          VDD           Core power supply                                    1.0          1.05          1.1      V
+                                            Co
+
+           TT           Top Center Temperature                                0            25           90      ºC
+           TJ           Silicon Junction Temperature                          0            25           90      ºC
+          HBM           Human Body Mode                                                   TBD                   KV
+          CDM           Charged Device Mode                                               TBD                    V
+                                    a
+
+
+
+ 6.2.1 Chip Temperature (TJ, TT) Calculation
+                         i
+
+
+
+
+          Symbol                            Parameter                                 Method of Calculation
+                      ed
+
+
+
+
+                TA           Ambient temperature                          Measure temperature around the chip
+                TJ           Operating junction temperature               TJ =ΘJA * Power + TA
+                TT           Operating top center temperature             TT = TJ -ΨJT * Power
+                M
+
+
+
+
+             ΘJA             Junction to ambient thermal resistance       21 (provided by package vendor)
+             ΘJB             Junction to board thermal resistance         7.45 (provided by package vendor)
+ AS
+
+
+
+
+             ΘJC             Junction to case thermal resistance          0.38 (provided by package vendor)
+             ΨJT             Junction to top thermal characterization     0.3 (provided by package vendor)
+             ΨJB             Junction to board thermal characterization   7.43 (provided by package vendor)
+           Power             Chip power consumption                       Measure chip power consumption
+
+  Thermal test board condition, please refer to JEDEC JESD51-5
+  Thermal test method environmental conditions refer to JESD51-2
+  Example: If the chip power consumption is 2.8W; TA= 30 0C
+   TJ = 21 * 2.8 + TA = 88.8 0C < 900C
+   TT = 88.8 – 0.3 * 2.8 = 87.96 0C < 900C
+
+Note: It is recommended to implement an appropriate heatsink or thermal solution for heat dissipation of chip.
+
+
+
+
+* Contents are subject to change without notice                                                                      15
+                                                                                                  ASM2464PD Datasheet
+6.3 AC/DC Characteristics
+ 6.3.1 PCI Express Electrical Specification
+ (Refer to PCI Express Base Specification Rev. 4.0)
+
+ 6.3.2 USB4 Electrical Specification
+ (Refer to Universal Serial Bus 4 Specification Rev. 1.0)
+
+ 6.3.3 USB Type-C Specification
+ (Refer to Universal Serial Bus Type-C Cable and Connector Specification Rev. 2.1)
+
+
+
+
+                                                                                                    l
+ 6.3.4 USB Power Delivery Specification
+
+
+
+
+                                                                                              ia
+ (Refer to Universal Serial Bus Power Delivery Specification Rev. 3.1)
+
+
+
+
+                                                                                     nt
+ 6.3.5 USB2.0 Electrical Specification
+ (Refer to Universal Serial Bus Specification Rev. 2.0)
+
+
+
+
+                                                                         e
+ 6.3.6 DC Electrical Characteristics for Digital Pins
+ (For VBUS, and I2C)
+
+    Symbol                                    Parameter               id                   Min.   Typ.    Max.    Unit
+                                                            nf
+       VIH       Input High Voltage Level                                                  2.0             3.6     V
+       VIL       Input Low Voltage Level                                                   -0.3            0.8     V
+      VHYS       Input Hysteresis                                                          0.47    0.48   0.49     V
+                                              Co
+
+     VTH-L2H     Threshold of Schmitt Trigger low to high                                  1.58    1.71   1.86     V
+     VTH-H2L     Threshold of Schmitt Trigger high to low                                  1.11    1.23   1.37     V
+       VOH       Output High Voltage Level                                                 2.4                     V
+       VOL       Output Low Voltage Level                                                                  0.4     V
+                                     a
+
+
+
+       IOH       Output Driving Current while VOH                                          12                     mA
+       IOL       Output Driving Current while VOL                                          12                     mA
+                         i
+
+
+
+
+       RUP       Internal Pull-up resistance while VIN=0V                                  51      75     116     KΩ
+                      ed
+
+
+
+
+       RDN       Internal Pull-down resistance while VIN=VCC                               54      84     145     KΩ
+                 Input pull-up leakage current after VIN is read, RUP is off & IIL < 1µA
+                                                                                                          +/-10   µA
+                 when VIN=0
+       IIL
+               M
+
+
+
+
+                 Input pull-up leakage current after VIN is read, RUP is off & IIL < 1µA
+                                                                                                          +/-10   µA
+                 when VIN=VCC/2
+ AS
+
+
+
+
+ (For PERST, UART, HDDPC, and GPIOs)
+
+    Symbol                                    Parameter                                    Min.    Typ.   Max.    Unit
+       VIH      Input High Voltage Level                                                   2.0             3.6     V
+       VIL      Input Low Voltage Level                                                    -0.3            0.8     V
+      VHYS      Input Hysteresis                                                           0.57    0.57   0.58     V
+     VTH-L2H    Threshold of Schmitt Trigger low to high                                   1.66    1.77   1.92     V
+     VTH-H2L    Threshold of Schmitt Trigger high to low                                   1.08    1.2    1.34     V
+      VOH       Output High Voltage Level                                                  2.4                     V
+      VOL       Output Low Voltage Level                                                                   0.4     V
+       IOH      Output Driving Current while VOH                                            12                    mA
+       IOL      Output Driving Current while VOL                                            12                    mA
+      RUP       Internal Pull-up resistance while VIN=0V                                    57      83     129    KΩ
+      RDN       Internal Pull-down resistance while VIN=VCC                                 59      92     159    KΩ
+
+
+* Contents are subject to change without notice                                                                     16
+                                                                                                       ASM2464PD Datasheet
+    Symbol                                        Parameter                                    Min.     Typ.   Max.    Unit
+                       Input pull-up leakage current after VIN is read, RUP is off & IIL <
+      IIL-UP                                                                                                   +/-10    µA
+                       1µA when VIN=0
+                       Input pull-down leakage current after VIN is read, RDN is off & IIL <
+      IIL-DN                                                                                                   +/-10    µA
+                       1µA when VIN=VCC
+
+
+
+ (For SBU1, and SBU2, Please refer to Table 3.1 SBTX and SBRX specification in Universal Serial Bus 4 Specification
+ Rev. 1.0)
+
+ 6.3.7 DC Electrical Characteristics for RST# Pin
+         Symbol                                          Parameter                             Min.     Typ.   Max.    Unit
+
+
+
+
+                                                                                                        l
+                VIH             Input High Voltage Level                                        2.0                     V
+
+
+
+
+                                                                                                     ia
+                VIL             Input Low Voltage Level                                                         0.8     V
+               VHYS             Input Hysteresis                                                0.32    0.37    0.4     mV
+
+
+
+
+                                                                                          nt
+           VTH-L2H              Threshold of Schmitt Trigger low to high                        1.58    1.71    1.86    V
+           VTH-H2L              Threshold of Schmitt Trigger high to low                        1.11    1.23    1.37    V
+           Input                Input pull-up leakage current while VIN=0V                                       1      µA
+
+
+
+
+                                                                              e
+ 6.3.8 External Crystal Electrical Specification
+          Symbol
+               fXTAL             Frequency
+                                                         Parameter
+                                                                           id                  Min.     Typ.
+                                                                                                        25
+                                                                                                               Max.    Unit
+                                                                                                                       MHz
+                                                                 nf
+           △fXTAL                Long Term Stability (at 250C)                                  -30             30     ppm
+                 tC              Temperature Stability                                          -30             30     ppm
+                 FA              Aging                                                           -5              5     ppm
+                                                    Co
+
+                 CL              Load Capacitance (Single-end mode)                                     16              pF
+                 C0              Shunt Capacitance                                               1       3       7      pF
+                               i            a
+
+
+
+                                                                ASM2464PD
+                            ed
+
+
+
+
+                                                                 XI         XO
+
+                                                                      CX
+                  M
+ AS
+
+
+
+
+                                                    Figure 3 Differential Crystal Design
+
+
+
+ 6.3.9 Differential Clock Oscillator Electrical Specification
+ The following table describes the specification of clock with external 25MHz crystal. Please refer to Figure 3.
+         Symbol                                        Parameter                               Min.    Typ.    Max.    Unit
+               fXTAL            Frequency                                                               25             MHz
+          △fXTAL                Long Term Stability (at 250C)                                  -150            150     ppm
+                CX              External Load Capacitance (Differential mode)                           10             pF
+                                Total external equivalent Capacitance from XI pin to XO
+          CTOTAL                                                                                9       11      15     pF
+                                pin (Differential mode)
+                                Total external equivalent Series Resistance from XI pin to
+          RTOTAL                                                                                                60      Ω
+                                XO pin (Differential mode)
+
+
+
+* Contents are subject to change without notice                                                                             17
+                                                                                 ASM2464PD Datasheet
+ 6.3.10 PCI Express 100MHz Output Clock Electrical Specification
+        Symbol                                  Parameter                 Min.   Typ.      Max.     Unit
+           VOH          Differential Output High Voltage                  150                       mV
+           VOL          Differential Output Low Voltage                                    -150     mV
+         VCROSS         Absolute crossing point voltage                   250              550      mV
+       tCROSS_DELTA     Variation of VCROSS over all rising clock edges                    140      mV
+       tPERIOD_AVG      Average clock period accuracy                     -300             300      ppm
+           tCCJ         Cycle to Cycle Jitter                                              150       Ps
+           tDC          Reference Duty Cycle                              40                60       %
+        RTRISING        Rising Edge Rate                                  0.6              4.0      V/ns
+
+
+
+
+                                                                                  l
+        RTFALLING       Falling Edge Rate                                 -4.0             -0.6     V/ns
+
+
+
+
+                                                                                ia
+ 6.3.11 Internal Linear Regulator Electrical Specification
+
+
+
+
+                                                                          nt
+ TBD
+
+ 6.3.12 Power Consumption Specification
+
+
+
+
+                                                                        e
+        Symbol                                        Parameter                    Max.           Unit
+     ICCHMAX (Note 1)   Maximum Current consumption of VCCH                        9.45           mA
+         ICCLMAX
+         IDDMAX
+                        Maximum Current consumption of VCCL
+                        Maximum Current consumption of VDD
+Note 1: The number could very depending on the use of GPIO pins
+                                                                     id            455.7
+                                                                                  1812.3
+                                                                                                  mA
+                                                                                                  mA
+                                                           nf
+                                                Co
+                           i         a
+                        ed
+                  M
+ AS
+
+
+
+
+* Contents are subject to change without notice                                                          18
+                                                                                                     ASM2464PD Datasheet
+
+
+
+7. Power on Sequence
+
+
+               VBUS or 5V                     t5V2VCCH
+
+                  VCCH
+                                                         tVCCH2VCCL
+
+
+
+
+                                                                                                      l
+                  VCCL
+
+
+
+
+                                                                                             ia
+                                                             tVCCH2VDD
+
+                  VDD
+
+
+
+
+                                                                                         nt
+                                                                      tRST
+
+
+                  RST#
+
+
+
+
+                                                                            e
+                                                                             t25CLKOUT
+
+
+               25MHz Clock
+                                                                         id              tPECLKOUT
+                                                           nf
+                  PECLK
+                                                                                                         tPERST
+                                              Co
+
+                 PE_RST#
+                                          Figure 4 Waveform of Power on Sequence
+
+
+  Symbol                                     Parameter                                      Min.       Typ.       Max.   Unit
+                                     a
+
+
+
+   t5V2VCCH      VCCH (90%) available after the presence of 5V or VBUS (90%)                            3          6     ms
+                            i
+
+
+
+  tVCCH2VCCL     VCCL (90%) available after the presence of VCCH (90%)                        0         5          10    ms
+                         ed
+
+
+
+
+  tVCCH2VDD      VDD (90%) available after the presence of VCCH (90%)                                              90    ms
+     tRST        RST (90%) ready after the presence of VCCH (90%)                             0                          ms
+   t25CLKOUT     25MHz clock available after the presence of RST#(90%) assertion                                   10    ms
+                 PCI Express Reference Clock output after the presence of RST#(90%)
+               M
+
+
+
+
+   tPECLKOUT                                                                                 100                         ms
+                 assertion
+                 PCI Express Reset (90%) assertion after the presence of PCI Express
+    tPERST                                                                                   100                          µs
+                 Reference Clock output
+ AS
+
+
+
+
+* Contents are subject to change without notice                                                                          19
+                                                                                             ASM2464PD Datasheet
+
+
+
+8. Recommended PCB Layout
+It is recommended to use 7 X 13 mil oblong pads as the footprint for outer rows of ASM2464PD Package.
+
+
+
+
+                                                                                                l
+                                                                                        ia
+                                                                   e          nt
+                                                                id
+                                                       nf
+                                            Co
+                                    a
+
+
+
+                                        Figure 5 Pads for ASM2464PD Outer Rows
+                         i
+
+
+
+
+Beware of the direction of AA1 pad for ensuring the USB trace can be routed from the inner row pad.
+                      ed
+             M
+ AS
+
+
+
+
+                                             Figure 6 Pad AA1 Implementaion
+
+
+* Contents are subject to change without notice                                                              20
+                                                         ASM2464PD Datasheet
+
+
+
+  9. Package Information
+
+
+
+
+                                                          l
+                                                       ia
+                                                    nt
+                                                     e
+                                                  id
+                                                  nf
+                                            Co
+                         i          a
+                      ed
+             M
+ AS
+
+
+
+
+* Contents are subject to change without notice                          21
+                                                                                         ASM2464PD Datasheet
+
+
+
+
+                                                                                           l
+                                                                                      ia
+                                                                  e           nt
+                                                               id
+                                                      nf
+                                          Figure 7 Mechanical Specification
+                                            Co
+
+
+                                                                                   Common Dimensions (mm)
+                                                            Symbol
+                                                                              MIN.          NOM.        MAX.
+                                    a
+
+
+
+Package :                                                                                  FC CSP
+                             i
+
+
+
+
+                                                  X            E                           10.000
+                          ed
+
+
+
+
+Body Size :
+                                                  Y            D                           10.000
+Ball Pitch :                                                   e                            0.460
+Total Thickness :                                              A               －              －             0.982
+                M
+
+
+
+
+Mold Thickness :                                               M                          0.480 Ref.
+Substrate Thickness :                                          S                          0.272 Ref.
+ AS
+
+
+
+
+Ball Diameter :                                                                             0.230
+Stand Off :                                                    A1             0.120           －             0.200
+Ball Width :                                                   b              0.170           －             0.270
+Package Edge Tolerance :                                      aaa                           0.100
+Mold Parallelism :                                            ccc                           0.200
+Coplanarity :                                                 ddd                           0.150
+Ball Offset (Package) :                                       eee                           0.150
+Ball Offset (Ball) :                                           fff                          0.050
+Ball Count :                                                   n                             273
+                                                  X            E1                           9.200
+Edge Ball Center to Center :
+                                                  Y           D1                            9.200
+
+
+
+
+* Contents are subject to change without notice                                                                22
+                                                         ASM2464PD Datasheet
+
+
+
+10. Top Marking Information
+
+
+
+
+                                                          l
+                                                       ia
+                                                    nt
+                                                     e
+                                                  id
+                                                  nf
+                                            Co
+
+
+           1. asmedia: ASMedia Logo
+                         i          a
+
+
+
+           2. ASM2464PD: Product Name
+                      ed
+
+
+
+
+           3. B: Version of ASMedia Marking Rule
+             M
+
+
+
+
+           4. XXXXXXXXX: Serial No. Reserved for Vendor
+ AS
+
+
+
+
+           5. YYWW: Date Code
+
+
+
+
+* Contents are subject to change without notice                          23
+

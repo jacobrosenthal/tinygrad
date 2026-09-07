@@ -1,0 +1,14 @@
+10:01:28 chainK4 start: waiting for pid 13598
+10:34:40 run a-fork-keepold0-assert: tree=/home/jacob/z/tinygrad env[AMD_SCRATCH_KEEP_OLD=0] args[]
+10:34:45   rc=0  graph captured with scratch 0x75b507e40000 (48 MiB), tmpring 0x41200 after a kernel with a larger private segment: scratch 0x75b4efd80000 (384 MiB), tmpring 0x201200 
+10:34:45 run b-fork-keepold0-fault: tree=/home/jacob/z/tinygrad env[AMD_SCRATCH_KEEP_OLD=0] args[--fault]
+10:34:48   rc=0  graph captured with scratch 0x723531740000 (48 MiB), tmpring 0x41200 after a kernel with a larger private segment: scratch 0x723519680000 (384 MiB), tmpring 0x201200 replaying the graph (expect GCVM_L2_PROTECTION_FAULT / device hang) ... replay returned: [0, 2, 4, 6] 
+10:34:48 run c-fork-keepold1-fault: tree=/home/jacob/z/tinygrad env[AMD_SCRATCH_KEEP_OLD=1] args[--fault]
+10:34:52   rc=0  graph captured with scratch 0x753194740000 (48 MiB), tmpring 0x41200 after a kernel with a larger private segment: scratch 0x75317c680000 (384 MiB), tmpring 0x201200 replaying the graph (expect GCVM_L2_PROTECTION_FAULT / device hang) ... replay returned: [0, 2, 4, 6] 
+10:34:52 run d-master-fault: tree=/home/jacob/z/tinygrad-master env[] args[--fault]
+10:34:56   rc=0  graph captured with scratch 0x77de2c740000 (48 MiB), tmpring 0x41200 after a kernel with a larger private segment: scratch 0x77de14680000 (384 MiB), tmpring 0x201200 replaying the graph (expect GCVM_L2_PROTECTION_FAULT / device hang) ... replay returned: [0, 2, 4, 6] 
+10:34:56 run unittest-fixed: d1a6e5321 amd: keep the old scratch mapped on regr
+10:35:00   rc=0  test_graph_survives_scratch_regrowth (test.test_scratch_regrow.TestScratchRegrow.test_graph_survives_scratch_regrowth) ... ok Ran 1 test in 0.104s OK 
+10:35:00 run unittest-reverted: 479e077ec hotfix: fix am_smi + tell agents to not 
+10:35:04   rc=0  test_graph_survives_scratch_regrowth (test.test_scratch_regrow.TestScratchRegrow.test_graph_survives_scratch_regrowth) ... ok Ran 1 test in 0.255s OK 
+10:35:04 CHAINK4 DONE

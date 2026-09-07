@@ -1,0 +1,2 @@
+DROP DETECTOR (unfixed firmware, serialize OFF, spin 0, USB_VERIFY_WRITES=2) 22:22:29
+=== RESTART 1 22:22:29 ===

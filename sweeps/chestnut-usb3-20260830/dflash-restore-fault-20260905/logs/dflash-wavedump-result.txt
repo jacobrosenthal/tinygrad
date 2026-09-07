@@ -1,0 +1,12 @@
+dflash WAVEDUMP XCTX=0 (loop until fault) 19:46:19
+SERVED 19:54:50
+req 1 19:54:50
+req 2 19:55:01
+req 3 19:55:13
+req 4 19:55:24
+req 5 19:55:35
+req 6 19:55:47
+req 7 19:55:58
+req 8 19:56:09
+=== WAVEDUMP + FAULTMAP + hang report ===
+DONE 19:58:52

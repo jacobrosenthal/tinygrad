@@ -1,0 +1,96 @@
+llm cache: stale (model file, env, or llm sources changed), reloading
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:620546
+opened device PYTHON from pid:620546
+am usb:2-9: product string: 'custom ed4e39b7-CLEAN'
+opened device CPU from pid:620546
+am usb:2-9: Malformed state. Issuing a full reset.
+am usb:2-9: mode1 reset
+am usb:2-9: AM_SOC initialized
+am usb:2-9: AM_GMC initialized
+am usb:2-9: AM_IH initialized
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_KDB
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_KDB
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_SYS_DRV
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_SOS
+am usb:2-9: loading fw: GFX_FW_TYPE_SMU
+am usb:2-9: loading fw: GFX_FW_TYPE_SDMA_UCODE_TH1
+am usb:2-9: loading fw: GFX_FW_TYPE_SDMA_UCODE_TH0
+am usb:2-9: loading fw: GFX_FW_TYPE_RS64_MEC
+am usb:2-9: loading fw: GFX_FW_TYPE_RS64_MEC_P0_STACK
+am usb:2-9: loading fw: GFX_FW_TYPE_IMU_I
+am usb:2-9: loading fw: GFX_FW_TYPE_IMU_D
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_IRAM
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_DRAM_BOOT
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_P
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_V
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_G
+am usb:2-9: AM_PSP initialized
+am usb:2-9: AM_SMU initialized
+am usb:2-9: AM_GFX initialized
+am usb:2-9: AM_SDMA initialized
+am usb:2-9: boot done
+AMDDevice: opening 0 with target (11, 0, 0) arch gfx1100
+llm cache: stale (model file, env, or llm sources changed), reloading
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:622560
+opened device PYTHON from pid:622560
+am usb:2-9: product string: 'custom ed4e39b7-CLEAN'
+opened device CPU from pid:622560
+am usb:2-9: Malformed state. Issuing a full reset.
+am usb:2-9: mode1 reset
+am usb:2-9: AM_SOC initialized
+am usb:2-9: AM_GMC initialized
+am usb:2-9: AM_IH initialized
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_KDB
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_KDB
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_SYS_DRV
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_SOS
+am usb:2-9: loading fw: GFX_FW_TYPE_SMU
+am usb:2-9: loading fw: GFX_FW_TYPE_SDMA_UCODE_TH1
+am usb:2-9: loading fw: GFX_FW_TYPE_SDMA_UCODE_TH0
+am usb:2-9: loading fw: GFX_FW_TYPE_RS64_MEC
+am usb:2-9: loading fw: GFX_FW_TYPE_RS64_MEC_P0_STACK
+am usb:2-9: loading fw: GFX_FW_TYPE_IMU_I
+am usb:2-9: loading fw: GFX_FW_TYPE_IMU_D
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_IRAM
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_DRAM_BOOT
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_P
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_V
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_G
+am usb:2-9: AM_PSP initialized
+am usb:2-9: AM_SMU initialized
+am usb:2-9: AM_GFX initialized
+am usb:2-9: AM_SDMA initialized
+am usb:2-9: boot done
+AMDDevice: opening 0 with target (11, 0, 0) arch gfx1100
+llm cache: stale (model file, env, or llm sources changed), reloading
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:624589
+opened device PYTHON from pid:624589
+am usb:2-9: product string: 'custom ed4e39b7-CLEAN'
+opened device CPU from pid:624589
+am usb:2-9: Malformed state. Issuing a full reset.
+am usb:2-9: mode1 reset
+am usb:2-9: AM_SOC initialized
+am usb:2-9: AM_GMC initialized
+am usb:2-9: AM_IH initialized
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_KDB
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_KDB
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_SYS_DRV
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_SOS
+am usb:2-9: loading fw: GFX_FW_TYPE_SMU
+am usb:2-9: loading fw: GFX_FW_TYPE_SDMA_UCODE_TH1
+am usb:2-9: loading fw: GFX_FW_TYPE_SDMA_UCODE_TH0
+am usb:2-9: loading fw: GFX_FW_TYPE_RS64_MEC
+am usb:2-9: loading fw: GFX_FW_TYPE_RS64_MEC_P0_STACK
+am usb:2-9: loading fw: GFX_FW_TYPE_IMU_I
+am usb:2-9: loading fw: GFX_FW_TYPE_IMU_D
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_IRAM
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_DRAM_BOOT
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_P
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_V
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_G
+am usb:2-9: AM_PSP initialized
+am usb:2-9: AM_SMU initialized
+am usb:2-9: AM_GFX initialized
+am usb:2-9: AM_SDMA initialized
+am usb:2-9: boot done
+AMDDevice: opening 0 with target (11, 0, 0) arch gfx1100

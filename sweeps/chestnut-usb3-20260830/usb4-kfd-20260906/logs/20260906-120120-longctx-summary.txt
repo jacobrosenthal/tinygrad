@@ -1,0 +1,8 @@
+longctx 12:02:23: ATTN_QT=8 CH=512 server up in 60s
+words=20 wall=4s | in:    0 +   74    prefill: 152 tok/s    gen:  81 tok/s    accept: 0.56 (2.69 tok/step)
+words=1500 wall=6s | in:    0 + 1766    miss: live@50/115 ckpt@50/73    prefill: 861 tok/s    gen:  81 tok/s    accept: 0.57 (2.70 tok/step)
+words=6000 wall=13s | in:    0 + 6936    miss: live@1742/1880 ckpt@1742/1765    prefill: 820 tok/s    gen:  76 tok/s    accept: 0.53 (2.58 tok/step)
+words=24000 wall=47s | in: 4096 +23473    prefill: 557 tok/s    gen:  61 tok/s    accept: 0.54 (2.63 tok/step)
+words=48000 wall=121s | in:12288 +42776    prefill: 372 tok/s    gen:  53 tok/s    accept: 0.57 (2.71 tok/step)
+words=90000 wall=362s | in:12288 +90951    prefill: 257 tok/s    gen:  39 tok/s    accept: 0.57 (2.70 tok/step)
+DONE 12:11:36

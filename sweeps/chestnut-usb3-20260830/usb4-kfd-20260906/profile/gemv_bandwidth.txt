@@ -1,0 +1,47 @@
+gemv total 29.28 ms/step, 20.65 GB/step, 705 GB/s average
+
+ ms/step   GB/s  share  variant (all T)
+   4.820    865  16.5%  gemv_q6k_248320_5120_tX_r2_u2_w128_g31040
+   3.062    700  10.5%  gemv_q5k_5120_17408_tX_r2_u2_w128_g640_res
+   2.923    755  10.0%  gemv_multi_q5k17408_q5k17408_5120_tX_r2u2g1088_r2u2g1088
+   2.232    679   7.6%  gemv_multi_iq4xs17408_iq4xs17408_5120_tX_r2u2g1088_r2u2g1088
+   2.046    423   7.0%  gemv_q5k_5120_6144_tX_r2_u2_w128_g640_res
+   1.207    628   4.1%  gemv_iq4xs_5120_17408_tX_r2_u2_w128_g640_res
+   1.189    685   4.1%  gemv_multi_q5k10240_q5k6144_q8_048_q8_048_5120_tX_r2u2g640_r2u2g384_r2u2g3_r2u2g3
+   1.087    665   3.7%  gemv_multi_q4k10240_q5k6144_q8_048_q8_048_5120_tX_r2u2g640_r2u2g384_r2u2g3_r2u2g3
+   1.051    742   3.6%  gemv_multi_q4k17408_q5k17408_5120_tX_r2u2g1088_r2u2g1088
+   0.939    604   3.2%  gemv_q6k_5120_6144_tX_r2_u2_w128_g640_res
+   0.925    791   3.2%  gemv_multi_q6k17408_q6k17408_5120_tX_r2u2g1088_r2u2g1088
+   0.635    691   2.2%  gemv_q6k_5120_17408_tX_r2_u2_w128_g640_res
+   0.611    711   2.1%  gemv_multi_iq4xs17408_q5k17408_5120_tX_r2u2g1088_r2u2g1088
+   0.575    664   2.0%  gemv_multi_q4k10240_q4k6144_q8_048_q8_048_5120_tX_r2u2g640_r2u2g384_r2u2g3_r2u2g3
+   0.426    687   1.5%  gemv_multi_iq4xs17408_q4k17408_5120_tX_r2u2g1088_r2u2g1088
+   0.415    705   1.4%  gemv_multi_q4k17408_iq4xs17408_5120_tX_r2u2g1088_r2u2g1088
+   0.414    726   1.4%  gemv_multi_q4k17408_q4k17408_5120_tX_r2u2g1088_r2u2g1088
+   0.387    686   1.3%  gemv_multi_q5k12288_q6k1024_q8_01024_5120_tX_r2u2g768_r2u2g64_r2u2g64
+   0.380    660   1.3%  gemv_q4k_5120_17408_tX_r2_u2_w128_g640_res
+   0.367    733   1.3%  gemv_multi_q6k17408_q5k17408_5120_tX_r2u2g1088_r2u2g1088
+   0.320    678   1.1%  gemv_multi_q5k10240_q4k6144_q8_048_q8_048_5120_tX_r2u2g640_r2u2g384_r2u2g3_r2u2g3
+   0.280    612   1.0%  gemv_multi_iq4xs17408_q3k17408_5120_tX_r2u2g1088_r2u2g1088
+   0.180    813   0.6%  gemv_q6k_5120_17408_tX_r1_u2_w128_g1280_res
+   0.167    640   0.6%  gemv_multi_q5k10240_iq4xs6144_q8_048_q8_048_5120_tX_r2u2g640_r2u2g384_r2u2g3_r2u2g3
+   0.163    614   0.6%  gemv_multi_iq4xs10240_q5k6144_q8_048_q8_048_5120_tX_r2u2g640_r2u2g384_r2u2g3_r2u2g3
+   0.157    638   0.5%  gemv_iq4nl_5120_17408_tX_r2_u2_w128_g640_res
+   0.153    729   0.5%  gemv_multi_iq4nl17408_q5k17408_5120_tX_r2u2g1088_r2u2g1088
+   0.152    825   0.5%  gemv_multi_q6k12288_q8_01024_q8_01024_5120_tX_r2u2g768_r1u2g128_r1u2g128
+   0.152    732   0.5%  gemv_multi_q5k17408_iq4nl17408_5120_tX_r2u2g1088_r2u2g1088
+   0.140    698   0.5%  gemv_multi_iq4nl17408_iq4xs17408_5120_tX_r2u2g1088_r2u2g1088
+
+slowest variants by GB/s (>=0.2 ms/step):
+    267 GB/s  0.979 ms x12.07  gemv_q5k_5120_6144_t7_r2_u2_w128_g640_res
+    533 GB/s  0.294 ms x 7.24  gemv_q5k_5120_6144_t6_r2_u2_w128_g640_res
+    563 GB/s  0.252 ms x 6.55  gemv_q5k_5120_6144_t5_r2_u2_w128_g640_res
+    564 GB/s  0.304 ms x 6.64  gemv_q6k_5120_6144_t7_r2_u2_w128_g640_res
+    583 GB/s  0.392 ms x 4.83  gemv_iq4xs_5120_17408_t7_r2_u2_w128_g640_res
+    587 GB/s  0.521 ms x14.14  gemv_q5k_5120_6144_t4_r2_u2_w128_g640_res
+    603 GB/s  0.227 ms x 2.90  gemv_iq4xs_5120_17408_t6_r2_u2_w128_g640_res
+    634 GB/s  0.209 ms x 1.81  gemv_q6k_5120_17408_t7_r2_u2_w128_g640_res
+    635 GB/s  0.344 ms x 4.22  gemv_multi_q4k10240_q5k6144_q8_048_q8_048_5120_t7_r2u2g640_r2u2g384_r2u2g3_r2u2g3
+    636 GB/s  0.718 ms x 4.83  gemv_multi_iq4xs17408_iq4xs17408_5120_t7_r2u2g1088_r2u2g1088
+    648 GB/s  0.423 ms x 2.90  gemv_multi_iq4xs17408_iq4xs17408_5120_t6_r2u2g1088_r2u2g1088
+    657 GB/s  0.374 ms x 4.22  gemv_multi_q5k10240_q5k6144_q8_048_q8_048_5120_t7_r2u2g640_r2u2g384_r2u2g3_r2u2g3

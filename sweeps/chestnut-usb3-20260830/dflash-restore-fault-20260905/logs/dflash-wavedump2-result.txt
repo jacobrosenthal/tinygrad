@@ -1,0 +1,137 @@
+FAULT-PRONE WAVEDUMP hunt (serialize OFF, spin 0) 20:00:40
+=== RESTART 1 20:00:40 ===
+SERVED run 1 20:09:04
+run 1 req 1 20:09:04
+run 1 req 2 20:09:13
+run 1 req 3 20:09:23
+run 1 req 4 20:09:32
+run 1 req 5 20:09:41
+run 1 req 6 20:09:50
+run 1 req 7 20:09:59
+run 1 req 8 20:10:09
+=== RESTART 2 20:13:18 ===
+SERVED run 2 20:15:22
+run 2 req 1 20:15:22
+FAULT+WAVEDUMP run 2 req 1
+=== CAPTURE (run above) ===
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=1894
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+DONE 20:16:07

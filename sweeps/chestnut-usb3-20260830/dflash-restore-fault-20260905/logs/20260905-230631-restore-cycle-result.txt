@@ -1,0 +1,14 @@
+restore cycle 20260905-230631: RUNS=2 REQS=4 fw=tiny custom ed4e39b7-CLEAN tinygrad=360bbf197 dirty=3
+env: WAVEDUMP=1 USB_VERIFY_WRITES=2 HCQ_USB_SERIALIZE=0 AMD_USB_SPIN_MS=0 LLM_CACHE=1 DFLASH_XCTX=0 DFLASH_BLOCK=6 DFLASH_NOSEL=1
+=== RESTART 1 23:06:31 ===
+SERVED run 1 kind=warmup startup=591s 23:16:25
+run 1 (warmup) req 1 23:16:35 drops=0 gen:  70 tok/s
+run 1 (warmup) req 2 23:16:44 drops=0 gen:  60 tok/s
+run 1 (warmup) req 3 23:16:54 drops=0 gen:  61 tok/s
+run 1 (warmup) req 4 23:17:04 drops=0 gen:  58 tok/s
+=== RESTART 2 23:17:04 ===
+SERVED run 2 kind=restore startup=150s 23:19:37
+run 2 (restore) req 1 23:20:24 drops=0 gen:  58 tok/s
+FAULT run 2 (restore) req 1
+=== SUMMARY ===
+DONE 23:21:55

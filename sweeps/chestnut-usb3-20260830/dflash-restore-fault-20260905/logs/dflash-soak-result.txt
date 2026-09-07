@@ -1,0 +1,8 @@
+DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+SERVED 19:05:28
+  ...25 done, 25 ok, no fault 19:06:06
+  ...50 done, 50 ok, no fault 19:06:43
+  ...75 done, 75 ok, no fault 19:07:20
+  ...100 done, 100 ok, no fault 19:07:56
+SOAK RESULT: good=100 fault=0 (fault=0 across 100 => core fix validated)
+DONE 19:07:57

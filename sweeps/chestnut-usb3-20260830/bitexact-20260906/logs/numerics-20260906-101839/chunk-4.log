@@ -1,0 +1,109 @@
+prompt 23 tokens, teacher [760, 1156, 6587, 728], prefill chunk 256, blocks 64, gdn blocks 48
+Traceback (most recent call last):
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 855, in alloc
+    try: mem = kfd.AMDKFD_IOC_ALLOC_MEMORY_OF_GPU(self.kfd, va_addr=addr, size=size, gpu_id=self.gpu_id, flags=flags, mmap_offset=buf)
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/c.py", line 11, in _do_ioctl
+    if (rc:=ioctl((__idir<<30)|(ctypes.sizeof(out:=(__payload or __struct(*args, **kwargs)))<<16)|(__base<<8)|__nr, out)):
+            ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/hcq.py", line 24, in ioctl
+    def ioctl(self, request, arg): return fcntl.ioctl(self.fd, request, arg)
+                                          ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 12] Cannot allocate memory
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 221, in alloc
+    try: return self._alloc(size, options if options is not None else self.default_buffer_spec)
+                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 669, in _alloc
+    return self.dev.iface.alloc(size, host=options.host, uncached=options.uncached, cpu_access=options.cpu_access or not self.dev.has_sdma_queue)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 859, in alloc
+    if e.errno == errno.ENOMEM: raise MemoryError(f"Cannot allocate {size} bytes: no memory is available.") from e
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MemoryError: Cannot allocate 10485760 bytes: no memory is available.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 251, in alloc
+    try: return super().alloc(size, options)
+                ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 222, in alloc
+    except (RuntimeError, MemoryError) as e: raise MemoryError(f"Allocation of {size_to_str(size)} failed on {self.dev.device}. "
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                                               f"Used: {size_to_str(GlobalCounters.mem_used_per_device[self.dev.device])}") from e
+                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MemoryError: Allocation of 10.00 MB failed on AMD. Used: 23.85 GB
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 855, in alloc
+    try: mem = kfd.AMDKFD_IOC_ALLOC_MEMORY_OF_GPU(self.kfd, va_addr=addr, size=size, gpu_id=self.gpu_id, flags=flags, mmap_offset=buf)
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/c.py", line 11, in _do_ioctl
+    if (rc:=ioctl((__idir<<30)|(ctypes.sizeof(out:=(__payload or __struct(*args, **kwargs)))<<16)|(__base<<8)|__nr, out)):
+            ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/hcq.py", line 24, in ioctl
+    def ioctl(self, request, arg): return fcntl.ioctl(self.fd, request, arg)
+                                          ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 12] Cannot allocate memory
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 221, in alloc
+    try: return self._alloc(size, options if options is not None else self.default_buffer_spec)
+                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 669, in _alloc
+    return self.dev.iface.alloc(size, host=options.host, uncached=options.uncached, cpu_access=options.cpu_access or not self.dev.has_sdma_queue)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 859, in alloc
+    if e.errno == errno.ENOMEM: raise MemoryError(f"Cannot allocate {size} bytes: no memory is available.") from e
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MemoryError: Cannot allocate 10485760 bytes: no memory is available.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/bitexact-20260906/scripts/chunk_numerics.py", line 31, in <module>
+    model.forward(t[:, sp:sp + CT], sp, temp, n_tok=nt).realize()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/tensor.py", line 769, in _wrapper
+    ret = fn(*args, **kwargs)
+  File "/usr/lib/python3.13/contextlib.py", line 85, in inner
+    return func(*args, **kwds)
+  File "/home/jacob/z/tinygrad/tinygrad/tensor.py", line 415, in realize
+    run_linear(*Tensor.linear_with_vars(*to_realize), update_stats=do_update_stats)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/engine/realize.py", line 293, in run_linear
+    for call in linear.src: track_stats(ctx, call.without_after, perf_counter_us(), pm_exec.rewrite(call.without_after, ctx))
+                                                                                    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/uop/ops.py", line 1532, in rewrite
+    if (ret:=match(uop, ctx)) is not None and ret is not uop: return ret
+             ~~~~~^^^^^^^^^^
+  File "<string>", line 3, in compiled_match
+  File "/home/jacob/z/tinygrad/tinygrad/engine/realize.py", line 271, in <lambda>
+    lambda ctx, call, ast: exec_hcq(ctx, call, ast) if isinstance(call.arg.aux, HCQInfo) else exec_kernel(ctx, call, ast)),
+                                                                                              ~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/engine/realize.py", line 166, in exec_kernel
+    prg_bufs = [b.ensure_allocated() for b in bufs]
+                ~~~~~~~~~~~~~~~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 134, in ensure_allocated
+    def ensure_allocated(self) -> Buffer: return self.allocate() if not self.is_initialized() else self
+                                                 ~~~~~~~~~~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 148, in allocate
+    self._bufs[self.device] = opaque if opaque is not None else self.allocator.alloc(self.nbytes, self.options)
+                                                                ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 254, in alloc
+    return super().alloc(size, options)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 222, in alloc
+    except (RuntimeError, MemoryError) as e: raise MemoryError(f"Allocation of {size_to_str(size)} failed on {self.dev.device}. "
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                                               f"Used: {size_to_str(GlobalCounters.mem_used_per_device[self.dev.device])}") from e
+                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MemoryError: Allocation of 10.00 MB failed on AMD. Used: 23.85 GB

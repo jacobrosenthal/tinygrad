@@ -1,0 +1,34 @@
+restore cycle 20260905-234743: RUNS=3 REQS=8 fw=tiny custom ed4e39b7-CLEAN tinygrad=1ca779d13 dirty=0
+env: WAVEDUMP=1 USB_VERIFY_WRITES=2 HCQ_USB_SERIALIZE=0 AMD_USB_SPIN_MS=0 LLM_CACHE=1 DFLASH_XCTX=0 DFLASH_BLOCK=6 DFLASH_NOSEL=1
+=== RESTART 1 23:47:43 ===
+SERVED run 1 kind=restore startup=150s 23:50:17
+run 1 (restore) req 1 23:50:27 drops=0 gen:  69 tok/s
+run 1 (restore) req 2 23:50:36 drops=0 gen:  60 tok/s
+run 1 (restore) req 3 23:50:46 drops=0 gen:  61 tok/s
+run 1 (restore) req 4 23:50:56 drops=0 gen:  58 tok/s
+run 1 (restore) req 5 23:51:05 drops=0 gen:  61 tok/s
+run 1 (restore) req 6 23:51:15 drops=0 gen:  60 tok/s
+run 1 (restore) req 7 23:51:24 drops=0 gen:  61 tok/s
+run 1 (restore) req 8 23:51:34 drops=0 gen:  57 tok/s
+=== RESTART 2 23:51:34 ===
+SERVED run 2 kind=restore startup=151s 23:54:08
+run 2 (restore) req 1 23:54:18 drops=0 gen:  69 tok/s
+run 2 (restore) req 2 23:54:27 drops=0 gen:  60 tok/s
+run 2 (restore) req 3 23:54:36 drops=0 gen:  61 tok/s
+run 2 (restore) req 4 23:54:46 drops=0 gen:  58 tok/s
+run 2 (restore) req 5 23:54:56 drops=0 gen:  61 tok/s
+run 2 (restore) req 6 23:55:05 drops=0 gen:  60 tok/s
+run 2 (restore) req 7 23:55:14 drops=0 gen:  61 tok/s
+run 2 (restore) req 8 23:55:24 drops=0 gen:  57 tok/s
+=== RESTART 3 23:55:24 ===
+SERVED run 3 kind=restore startup=150s 23:57:58
+run 3 (restore) req 1 23:58:08 drops=0 gen:  69 tok/s
+run 3 (restore) req 2 23:58:18 drops=0 gen:  60 tok/s
+run 3 (restore) req 3 23:58:27 drops=0 gen:  61 tok/s
+run 3 (restore) req 4 23:58:37 drops=0 gen:  58 tok/s
+run 3 (restore) req 5 23:58:46 drops=0 gen:  61 tok/s
+run 3 (restore) req 6 23:58:56 drops=0 gen:  60 tok/s
+run 3 (restore) req 7 23:59:05 drops=0 gen:  61 tok/s
+run 3 (restore) req 8 23:59:15 drops=0 gen:  57 tok/s
+=== SUMMARY ===
+DONE 23:59:15

@@ -1,0 +1,756 @@
+                                                                   5                                                                                                                                           4                                                                                                                                             3                                                                                                       2                                                                                                                                   1
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    +3.3V_SSD
+                                                                                                                                                                                             VDD095_SYS                                                                                                             VCC18_SYS                                                                                                                                                                                   CON1
+        R/W LED                                       LED1
+                                                                            VCC33                         VCC33_SYS
+                                                                                                                                R2        1             2 0Ohm
+                                                                                                                                                                       VCC33
+                                                                                                                                                                                                     C1            1           2 2.2UF/6.3V
+                                                                                                                                                                                                                                                           VCC33_SYS
+                                                                                                                                                                                                                                                                                                                            C2        1      2 2.2UF/6.3V
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           2
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           4       3.3V_1                             GND/CONFIG_3
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         1
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         3
+                             R3                                                                                                                                                                                                                                    C3        1     2 2.2UF/6.3V                                                                                                                                                                                                            6       3.3V_2                                     GND1       5                                                                                    PRXN3
+        GPIO0          1             2            2           +    1                                                                                  VCCA33                                         C4            1           2 10UF/6.3V                                                                                  C14       1      2 10UF/6.3V                                                                                                                                                   8       NC1                                       PERN3       7                                                                                    PRXP3
+                                                                                                                                                                                                                                                                   C5        1     2 10UF/6.3V                                                                                                                                                                                            LED_M2          10       NC2                                       PERP3       9
+                                                                                                                                                                                                                                                                                                                                                                                                                                                               TP1                                                 DAS/DSS#(OD)                               GND2
+                            1KOhm                                                                               R4        1               2 0Ohm             C6   2          1 22UF/6.3V          VDD095                                                                                                            VCC18                                                                                                                                                                                 12                                                             11                      PETN3         0.22UF/10V        1         2       C15        PTXN3
+                                                      BLUE                                                                                                                                                                                                 VCC33                                                                                                                                                                                                                                          14       3.3V_3                                    PETN3       13                      PETP3         0.22UF/10V        1         2       C7         PTXP3
+                                                                                                                                                                                                                                            GND                                                                                                         GND
+                                                                                                                                                             C8   2          1 0.22UF/10V                C9            1           2 2.2UF/6.3V                                                                             C16       1      2 2.2UF/6.3V                                                                                                                                                 16       3.3V_4                                    PETP3       15
+                                                                                                                                                                                                                                                                                              GND
+                                                      LED3                                                                                                                                                                                                         C10       1     2 2.2UF/6.3V                                                                                                                                                                                                           18       3.3V_5                                     GND3       17                                                                                   PRXN2
+                             R8                                                                           VCC18_SYS                                                    VCC18                             C11           1           2 10UF/6.3V                                                                              C12       1      2 10UF/6.3V                                                                                                                                                  20       3.3V_6                                    PERN2       19                                                                                   PRXP2
+        GPIO3          1             2            2           +    1                                                            R6        1             2 0Ohm                                                                                                     C13       1     2 10UF/6.3V                                                                                                                                                                                                            22       NC3                                       PERP2       21
+                                                                                                                                                                                            GND
+                                                                                                                                                                                                  VDD095                                                                                                                                                                                                                                                                                                  24       NC4                                GND/CONFIG_0       23                      PETN2         0.22UF/10V        1         2       C17        PTXN2
+                            1KOhm                                                                         VDD095_SYS                                                   VDD095                                                                              VCC33                                                    VCC18                                                                                                                                                                                 26       NC5                                       PETN2       25                      PETP2         0.22UF/10V        1         2       C18        PTXP2
+                                                                                                                                                                                                                                              GND                                                                                                        GND
+                                                                  BLUE                                                          R7        1             2 0Ohm                                           C19           1           2 2.2UF/6.3V                                                                                                                                                                                                                                                           28       NC6                                       PETP2       27
+        Device                       LED                                                                                                                                                                 C22           1           2 10UF/6.3V
+                                                                                                                                                                                                                                                                   C20       2
+                                                                                                                                                                                                                                                                                              GND
+                                                                                                                                                                                                                                                                                   1 2.2UF/6.3V                             C21       1      2 2.2UF/6.3V
+                                                                                                                                                                                                                                                                                                                                                                                                                                     R69
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          30
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          32
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   NC7
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   NC8
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              GND4
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             PERN1
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         29
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         31
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              PRXN1
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              PRXP1
+D
+                                                                                                                                                                                                                                                                   C23       2     1 2.2UF/6.3V                             C24       1      2 10UF/6.3V                                                                    VCC33    10K Ohm/NC                                                           34       NC9                                       PERP1       33                                                                                                             D
+                                                                                                                                    VDD095                                                                                                                                                                                                                                                                                                               R70             1K Ohm/NC                        36       NC10                                       GND5       35                      PETN1         0.22UF/10V        1         2       C25        PTXN1
+                                                                                                                                                                                                                                                           VCC33                                                                                                                                                                     2       1    PERST_B 2               1                               38       NC11                                      PETN1       37                      PETP1         0.22UF/10V        1         2       C26        PTXP1
+                                                                                                                                                                                                                                                 GND                                                                                                                                                                                                                             GND
+                                                                                                                                              C27   2       1 2.2UF/6.3V                                                                                                                                        VCC18                                                                                                                                                                                     40       DEVSLP(0/3.3V)                            PETP1       39
+                                                                                                                                                                                                                                                                                                   GND                                                   GND
+                                                                                                                                                                                             VDD095                                                                C28       2     1 0.22UF/10V                                                                                                                                                              2        1                                   42       NC12                                       GND6       41
+                                          change to                                                                                                                                                                                                                                                                                                                                                                                                                                                                NC13                              PERN0/SATA-B+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              PRXN0
+                                          SIWARD/XTL501100-A288-004                                                                           C29   2       1 2.2UF/6.3V                                                                                                                                                  C30     2       1 2.2UF/6.3V                                                                                                      C96      220PF/50V/NC                         44                                                             43                                                                                   PRXP0
+                       XO                                                                                                                                                                            C31           2           1 0.22UF/10V                        C32       2     1 0.22UF/10V                                                                                                                                                                                                           46       NC14                              PERP0/SATA-B-       45
+                                                                                                                                              C33   2       1 2.2UF/6.3V                                                                                                                                                  C34     2       1 2.2UF/6.3V                                                                                                                                                    48       NC15                                       GND7       47                      PETN0         0.22UF/10V        1         2       C35        PTXN0
+                                                                                                                                                                                                     C36           2           1 0.22UF/10V                        C37       2     1 0.22UF/10V                                                                                                                                            PERST_B     0Ohm 2                  1 R9 PERST_M2              50       NC16                               PETN0/SATA-A-      49                      PETP0         0.22UF/10V        1         2       C38        PTXP0
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   PERST#(0/3.3V)/NC                 PETP0/SATA-A+
+                                                          1
+
+
+
+
+                                                                                                                                              C39   2       1 2.2UF/6.3V                                                                                                                                                  C40     2       1 2.2UF/6.3V                                                                                     GPIO8       0Ohm 2                  1 R10 CLKREQ_M2            52                                                             51
+                                                                                                                                                                                                     C41           2           1 0.22UF/10V                        C43       2     1 0.22UF/10V                                                                                                                                            GPIO22      0Ohm 2                  1 R11 PEWAKE_M2            54       CLKREQ#(IO)(0/3.3V)/NC                     GND8       53                      REFCLKN           0Ohm      2                 1    R12       PECLKN
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   PEW AKE#(IO)(0/3.3V)/NC                REFCLKN
+                               1
+
+
+
+
+                                                                       2                                                                      C44   2       1 2.2UF/6.3V                                                                                                                                                  C45     2       1 2.2UF/6.3V                                                                                                                                                    56                                                             55                      REFCLKP           0Ohm      2                 1    R13       PECLKP
+                 10PF/50V                C42        X1                                                                                                                                               C46           2           1 0.22UF/10V                                                                                                                                                                                                                                                               58       NC/MFG1                                REFCLKP        57
+    XTAL-CAP= 0402 /NPO                           25Mhz                4                                                                      C47   2       1 2.2UF/6.3V                                                                                                                                                  C48     2       1 2.2UF/6.3V                                                                                                                                                             NC/MFG2                                    GND9
+                                                                                                                                                                                                                                                                                                   GND
+                               2
+
+
+
+
+                                                  25M
+                                                  16pF                                                                                        C49   2       1 2.2UF/6.3V                                                                         GND                                                                      C50     2       1 2.2UF/6.3V
+                                                          3
+
+
+
+
+                                                                                                                                              C51   2       1 2.2UF/6.3V                                                                                                                                                  C52     2       1 2.2UF/6.3V                                                                                                                            +3.3V_SSD               68                                                             67
+                       XI                                                                                                                                                                                                                                                                                                                                                                                                                                                              +3.3V_M2           70       SUSCLK(32KHZ)/(0/3.3V)                 NC17           69                      PEDET_M2
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   3.3V_7           /NC-PCIo/GND-SATA)/CONFIG_1                                                                      TP2
+                                                                                    GND                                                                                                                                                                                                                                   C53     2       1 2.2UF/6.3V                                                                                             VCC33                                                  72                                                             71
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          74       3.3V_8                                GND10           73
+           XI/ Xo as short as possible.                                                                                                                                      GND
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   3.3V_9                                GND11                                   CONFIG_2
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             SIDE1
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             SIDE2
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         75                                     0Ohm     2                 1       R14
+
+
+
+
+                                                                                                                                                                                   Wifi was here :3
+                                                                                                                                                                                                                                                                                                                                                                                                                                                       R16 2               1      10KOhm          GPIO8                                           GND/CONFIG_2
+                                                                                                                                                                                                                                                                                                                                                         GND
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 H3
+                                                                                                                                                                                                                                                                                                                                                                                                                                                       R15 2               1      10KOhm          GPIO22
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                MINI_PCI_75P                                                                                                                   GND
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                82
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             76
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             77
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           GND
+
+                                            U1A
+                  UDP                M1                                              G21 PERST_B                                                                                                                                                                                                                                                                                                                                                                                                                                                                               +3.3V_SSD
+                  UDM                M2        UDP                     PERST0#       F21
+                  URXP0              P1        UDM                      NC/F21       E21                                                                                                                                                                                                                                                                                                                                                                                                                                                      GND
+                  URXN0              P2        URXP0                    NC/E21       D21                                            U1B                                                                                                                                                                                                                                                                      VDD095                                            VDD095
+                  UTXP0              T1        URXN0                    NC/D21                                                 J2                                       B20                                            U1C                                                                  U1D
+                                               UTXP0                                                                                 NC/J2                    NC/B20
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               2
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   1
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    1
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       1
+                  UTXN0              T2                                              D1     GPIO0                              H2                                       E20                               K2                                                N9                       L1                                           Y12                VCC18                                         VCC33
+                  URXP1              Y2        UTXN0                       GPIO0     C1     GPIO1                              G2    NC/H2                    NC/E20    C20                               D4           GND1                       GND16     P9                       N1    GNDA1                    GNDA33        AA12                                                                                                                                                                                                                                                C54                 C55              C56                  C57
+                                     Y1        URXP1                       GPIO1     B1                                        F2    NC/G2                    NC/C20    D20                               E4           GND2                       GND17     D11                      R1    GNDA2                    GNDA34        AA20                                 U1E                                                  U1F                                                                                                                                                      0.1UF/10V           10UF/6.3V        10UF/6.3V            10UF/6.3V
+                  URXN1                                                                     GPIO2
+                                               URXN1                       GPIO2                                                     NC/F2                    NC/D20                                                   GND3                       GND18                                    GNDA3                    GNDA35
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               1
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   2
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    2
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       2
+                  UTXP1              V2                                              A1     GPIO3                              E2                                       B19                               F4                                                J11                      U1                                           V13                            L16                         D13                      D14                             J9
+                  UTXN1              V1        UTXP1                       GPIO3     A19    GPIO8                              D2    NC/E2                    NC/B19                                      H4           GND4                       GND19     D17                     W1     GNDA4                    GNDA36        Y20                            L17   VCCL_1       VCCH_1   D6                       D16   VDD_1           VDD_21    K20
+                  CC1               AA6        UTXN1                       GPIO8                                               C2    NC/D2                                                                J4           GND5                       GND20     N11                     AA1    GNDA5                    GNDA37        V14                            L18   VCCL_2       VCCH_2   D8                       E11   VDD_2           VDD_22    K21
+                  CC2                Y6        CC1                                                                             B2    NC/C2                              E1      I2C_CLK_P                 D5           GND6                       GND21     L13                      L2    GNDA6                    GNDA38        Y14                            L20   VCCL_3       VCCH_3   D9                       E14   VDD_3           VDD_23    L14
+C                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       C
+                  SBU1               K1        CC2                                                                             B3    NC/B2                I2C_CLK_P     F1      I2C_DATA_P                E5           GND7                       GND22     N13                      N2    GNDA7                    GNDA39        AA14                           L21   VCCL_4       VCCH_4   E13                      E16   VDD_4           VDD_24    L8                                                                                                                       GND
+                  SBU2               J1        SBU1                                                                            B4    NC/B3              I2C_DATA_P                                        F5           GND8                       GND23     P11                      R2    GNDA8                    GNDA40        AA21                            L6   VCCL_5       VCCH_5   E6                       F11   VDD_5           VDD_25    N14
+                                               SBU2                                                                            B5    NC/B4                              A21        UART_RX               D18           GND9                       GND24     E17                      U2    GNDA9                    GNDA41        V16                            N16   VCCL_6       VCCH_6   E8                       F14   VDD_6           VDD_26    N8
+                                                                                     A20    GPIO14                             B6    NC/B5                  UART_RX     B21        UART_TX                J5           GND10                      GND25     F17                     W2     GNDA10                   GNDA42        Y16                             N6   VCCL_7       VCCH_7   E9                       F16   VDD_7           VDD_27    P13
+                                                                           GPIO14                              TP14                  NC/B6                  UART_TX                                                    GND11                      GND26                                    GNDA11                   GNDA43                                             VCCL_8       VCCH_8                                  VDD_8           VDD_28
+                  PECLKN              Y8                                             A6     GPIO15                             B7                                                                         H8                                                H17                     AA2                                           AA16                           P16                         F13                       F9                             P14
+                  PECLKP             AA8       REFCLKN0                    GPIO15    A7     GPIO16                             B8    NC/B7                              C21        HDDPC                  J6           GND12                      GND27     E18                      Y3    GNDA12                   GNDA44        V20                             P6   VCCL_9       VCCH_9   F6                       H11   VDD_9           VDD_29    P8
+                                     Y11       REFCLKP0                    GPIO16    A8     GPIO17                             B9    NC/B8                    HDDPC                                       F8           GND13                      GND28     F18                      L4    GNDA13                   GNDA45        N17                            T16   VCCL_10     VCCH_10   H6                       H13   VDD_10          VDD_30    T11
+                                    AA11       NC/Y11                      GPIO17    A9     GPIO18                            B10    NC/B9                                                                L9           GND14                      GND29     H18                      N4    GNDA14                   GNDA46        P17                             T6   VCCL_11     VCCH_11                            H16   VDD_11          VDD_31    T13
+                                     Y10       NC/AA11                     GPIO18    A10    GPIO19                            B11    NC/B10                                                                            GND15                      GND30                              P4    GNDA15                   GNDA47        T17                            U11   VCCL_12                                         H9   VDD_12          VDD_32    T14
+                                               NC/Y10                      GPIO19                              TP15                  NC/B11                                                                                                                                                GNDA16                   GNDA48                                             VCCL_13                                              VDD_13          VDD_33
+                                    AA10                                             A11    GPIO20             TP16           B12                                                                        G20                                                                         T4                                           U17                            U13                         H5     VCCA33            J13                             T8
+                                      Y7       NC/AA10                     GPIO20    A12    GPIO21                            B13    NC/B12                                                              F20           NC/G20                                                        U4    GNDA17                   GNDA49        V17                            U14   VCCL_14     VCCA33                             J16   VDD_14          VDD_34    T9
+                                                                                                               TP17                                                                          GND                                                                    GND
+                                     AA7       NC/Y7                       GPIO21    A13    GPIO22                            B14    NC/B13                                                              H20           NC/F20                                                        V4    GNDA18                   GNDA50        T20                             U6   VCCL_15                                        J17   VDD_15          VDD_35    U8
+                                               NC/AA7                      GPIO22    A14    GPIO23                            B15    NC/B14                                                                            NC/H20                                                        L5    GNDA19                   GNDA51        N18                            U16   VCCL_16                                        J18   VDD_16          VDD_36    U9
+                                                                           GPIO23                              TP18                  NC/B15                                                                                                                                                GNDA20                   GNDA52                                             VCCL_17                                              VDD_17          VDD_37
+                  PRXP0              N21                                             A15    GPIO24             TP19
+                                                                                                                              B16                                                                                                                                                    N5                                           P18                                                                                 J20                             H14
+                  PRXN0              N20       PRXP0                       GPIO24    A16    GPIO25                            B17    NC/B16                                                                                                                                          P5    GNDA21                   GNDA53        T18                                                                                 J21   VDD_18          VDD_38    J14
+                                               PRXN0                       GPIO25                                                    NC/B17                                                                            ASM2464PD                                                           GNDA22                   GNDA54                                                                                                  VDD_19          VDD_39
+                  PTXP0              R20                                             A17    GPIO26                            B18                                                                                                                                                    T5                                           U18                                                                                  J8                             L11
+                  PTXN0              R21       PTXP0                       GPIO26    A18    GPIO27                                   NC/B18                                                                                                                                          U5    GNDA23                   GNDA55        V18                                                                                       VDD_20          VDD_40
+                                               PTXN0                       GPIO27                              TP20                                                                                                                                                                        GNDA24                   GNDA56                                             ASM2464PD
+                  PRXP1             W21                                                                                                                                                                                                                                              V5                                           Y18
+                  PRXN1             W20        PRXP1                                                                                ASM2464PD                                                                                                                                        Y5    GNDA25                   GNDA57        AA18
+                                               PRXN1                                        TEST_EN                                                                                                                                                                                        GNDA26                   GNDA58                                                                                                  ASM2464PD
+                  PTXP1              U20                                             H21                                                                                                                                                                                            AA5                                           M20
+                  PTXN1              U21       PTXP1                   TEST_EN       G1     VBUS                                                                                                                                                                                     V8    GNDA27                   GNDA59        P20
+                  PRXP2              Y19       PTXN1                      VBUS       H1     RST                                                                                                                                                                                      V9    GNDA28                   GNDA60        M21
+                  PRXN2             AA19       PRXP2                      RST#       AA3    UREXT                                                                                                                                                                                    Y9    GNDA29                   GNDA61        P21
+                  PTXP2              Y17       PRXN2                      REXT       AA4    XI                                                                                                                                                                                      AA9    GNDA30                   GNDA62        T21
+                  PTXN2             AA17       PTXP2                         XI      Y4     XO                                                                                                                                                                                      V11    GNDA31                   GNDA63        V21
+                  PRXP3             AA13       PTXN2                        XO                                                                                                                                                                                                             GNDA32                   GNDA64        Y21
+                  PRXN3              Y13       PRXP3                                 A5     SPI_CLK                                                                                                                                                                                                                 GNDA65        V6
+                  PTXP3              Y15       PRXN3                   SPI_CLK       A4     SPI_DI                                                                                                                                                                                                                  GNDA66
+                  PTXN3             AA15       PTXP3                     SPI_DI      A2     SPI_CS#                                                                                                                                                                          GND
+                                               PTXN3                   SPI_CS#       A3     SPI_DO
+                                                                                                                                                                                                                                                                                            ASM2464PD                                       GND
+                                                                        SPI_DO
+
+                                            ASM2464PD
+
+
+
+
+                                                                                            UDP_C         R17         1              2 0Ohm             UDP
+B                                                                                           UDM_C                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       B
+                                                                                                          R18         1              2 0Ohm             UDM
+
+                                                                                            SBU2_C        R19         1              2 0Ohm             SBU2
+                                                                                            SBU1_C        R20         1              2 0Ohm             SBU1                                       ESD150-B1-W0201/NC                                              ESD150-B1-W0201/NC                                                                                                                                                                                                                                                                                                                                                                    GPIO15
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 TP3
+                                                                                                                                                                                                   ESD150-B1-W0201/NC                                              ESD150-B1-W0201/NC                                                                                                                                                                                                                                                                                                                                                                    GPIO16
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 TP4
+      +5V_BUS                                                                                                                                                                                      ESD150-B1-W0201/NC                                              ESD150-B1-W0201/NC                                                                                                                                                                                                                                                                                                                                                                    GPIO17
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 TP5
+                                                                                                                                                                                                   ESD150-B1-W0201/NC                                              ESD150-B1-W0201/NC                                                                                                                                                                                                                                                                                                                                                                    GPIO18
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 TP6
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         GPIO25
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 TP7
+          0201 size for USB4 connector VBUS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      TP8
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         GPIO26
+                                                                                                                                                                                   UTXP1_CON         1                         2   D1      /X         UTXP0_CON          1             2   D2          /X
+            C58    2         1 0.1UF/25V                                             CC1/2 siganls for ASM2464PD                                                                   UTXN1_CON
+                                                                                                                                                                                   URXP1_CON
+                                                                                                                                                                                                     1                         2   D3      /X         UTXN0_CON
+                                                                                                                                                                                                                                                      URXP0_CON
+                                                                                                                                                                                                                                                                         1             2   D4          /X
+                                                                                                                                                                                                     1                         2   D5      /X                            1             2   D6          /X
+            C59    2         1 0.1UF/25V                                            CC1_C    R21      1           2 0Ohm                  CC1                                      URXN1_CON         1                         2   D7      /X         URXN0_CON          1             2   D8          /X
+                                                                                    CC2_C    R22      1           2 0Ohm                  CC2
+            C60    2         1 0.1UF/25V                                                                                                                                            0201 size for USB4                                                   0201 size for USB4                      GND                                                                                                                                                                                                                                                     UREXT     1 R23             2 12.1KOHM                                                          UART_RX
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             GND                       TP9
+                                                                                                                                    2
+
+
+
+                                                                                                                                               2
+
+
+
+
+                                                                                                                          C62                         C63                           ESD150-B1-W0201 for USB4 Gen3                                        ESD150-B1-W0201 for USB4 Gen3                                                                                                                                                                                                                                                                                                 1%
+            C61    2         1 0.1UF/25V                                                   Rev0.3                                                                                                                                        GND
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         Close to ASM2464PD                                                            TP21
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             GPIO2
+                                                                                                                  220PF/50V                           220PF/50V
+                                                                                                                                    1
+
+
+
+                                                                                                                                               1
+
+
+
+
+            C64    2         1 0.1UF/25V                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     GPIO1
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       TP11
+                                                                                                                                                                                                                                                                                                                0201 size for USB4                                                                                                                                                                                                                                        R24              100KOhm
+            C65    2         1 0.1UF/25V                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         RST            2             1                                                              I2C_DATA_P
+
+                                                                                                                                    GND         GND
+                                                                                                                                                                                                                                                                                                            URXP0
+                                                                                                                                                                                                                                                                                                            URXN0
+                                                                                                                                                                                                                                                                                                                    C66
+                                                                                                                                                                                                                                                                                                                    C67
+                                                                                                                                                                                                                                                                                                                            1
+                                                                                                                                                                                                                                                                                                                            1
+                                                                                                                                                                                                                                                                                                                                      2 0.33UF/10V
+                                                                                                                                                                                                                                                                                                                                      2 0.33UF/10V
+                                                                                                                                                                                                                                                                                                                                                       URXP0_CON
+                                                                                                                                                                                                                                                                                                                                                       URXN0_CON
+                                                                                                                                                                                                                                                                                                                                                                                                                                                           SSD M.2 POWER_Control                                                                                                                         VCC33                         TP12
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             I2C_CLK_P
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       TP13
+                                           GND                                                                                                                                                                                                                                                                                                                                                                                                              HDDPC          1              2 R25                               HDD_PC_EN                                              1      2            GND
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           0Ohm
+                                                  +5V_BUS                                                                                                                                                                                                                                                                                                                                                                                                                                         2            1                                                               C68
+                                                                                                                +5V_BUS                                                                                                                                                                                     URXP1   C69     1         2 0.33UF/10V     URXP1_CON                                                                                                                                                                                                                         1UF/10V
+                                                                                                                                                                                                                       2
+
+
+
+
+                                                                                                                                                                                                                                                                                                            URXN1   C70     1         2 0.33UF/10V     URXN1_CON                                                                                                                               R26     1KOhm
+                                                                                                                                                                                                                               R27                                                                                                                                                                                                                                                       GND
+                                                                                                                                                                                                                               4.7KOhm                                                                              0201 size for USB4
+                                                                                                                                                                       2
+
+
+
+
+                                                                                                                                                                                        1
+
+
+
+
+                                                                              CON2                                            No more polarity inversion implementation
+                                                                       B12                                A1                                                       C71                        C72                                                                                                                                                                                                                                                                                                                                                                                                                                                                    VCC33
+                                                                               GND4            GND1
+                                                                                                                                                                                                                       1
+
+
+
+
+                                         URXP0_CON                     B11                                A2                     UTXP0_CON                        0.1UF/50V                  2.2UF/16V                                  VBUS
+                                                                               RX1+            TX1+
+                                                                                                                                                                       1
+
+
+
+
+                                                                                                                                                                                        2
+
+
+
+
+                                         URXN0_CON                     B10                                A3                     UTXN0_CON
+                                                                        B9     RX1-             TX1-      A4                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       R28   1                 2   4.7KOhm/NC                  /X
+                                                                               VBUS4          VBUS1
+                                                                                                                                                                                                                       2
+
+
+
+
+                                                                                                                                                                                                                                          1
+
+
+
+
+                                         SBU2_C                         B8                                A5                        CC1_C                                                                                                                                                                      0201 size for USB4                                                                                                                                                                                                                                                                                  R29   1                 2   4.7KOhm
+                                         UDM_C                          B7     SBU2             CC1       A6                        UDP_C                                                                                      R30                C73                                                                                                                                                                                                                                                                                                                                      UART_TX                 R31   1                 2   4.7KOhm/NC                  /X
+                                         UDP_C                          B6     D2-               D1+      A7                        UDM_C                                                                                      10KOhm            1UF/16V                                        UTXP1           C74         2         1 0.22UF/10V         UTXP1_CON                                                                                           VCC33                                                                                 VCC33                                 SPI_DO                  R32   1                 2   4.7KOhm/NC                  /X
+                                                                               D2+               D1-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      SPI ROM
+                                                                                                                                                                                                                                          2
+
+
+
+
+                                          CC2_C                         B5                                A8                        SBU1_C                                                                                                                                                      UTXN1           C75         2         1 0.22UF/10V         UTXN1_CON                                                                                                                                                                                                                       TEST_EN                 R33   1                 2   4.7KOhm
+                                                                        B4     CC2             SBU1       A9
+A
+                                                                               VBUS3          VBUS2
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           H/W Strapping                                                                                A
+                                                                                                                                                                                                                       1
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     2
+                                         UTXN1_CON                      B3                                A10                  URXN1_CON                                                                                                                                                                                                                                                                                                                                                                                             VCC33
+                                                                               TX2-             RX2-
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                               2
+                                         UTXP1_CON                      B2                                A11                  URXP1_CON                               GND             GND                                                                                                                              close to connector                                                                                                                                                                              C76                              R35                                                                                                         GND
+                                                                        B1     TX2+            RX2+       A12                                                                                                                                                                                                                                                                                                                                                            R34                                                2         1
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        GND                                              4.7KOhm
+                                                                               GND3            GND2                                                                                                                            GND               GND                                            UTXP0           C77         2         1 0.22UF/10V       UTXP0_CON                                                                                                                                                  0.1UF/16V
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                         4.7KOhm
+                                                                                                                          No more polarity inversion implementation                                                                                                                             UTXN0           C78         2         1 0.22UF/10V       UTXN0_CON                                                                                                                                    U2
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     1
+                                                                        G1                                G2                                                                                                                                                                                                                                                                                                                                                                   SPI_CS#            1                      8
+                                                                               P_GND1   P_GND2                                                                                                                                                                                                                                                                                                                                                                                                        CS#        VCC
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                               1
+                                                                        G3                                G4                                                                                                                                                                                                    0201 size for USB4                                                                                                                                             SPI_DI             2                      7
+                                                                        G5     P_GND3   P_GND4            G6                                                                                                                                                                                                                                                                                                                                                                   WP                 3   SO       HOLD#     6                SPI_CLK
+                                                                               P_GND5   P_GND6                                                                                                                                                                                                                                                                                                                                                                                                    4   WP#        SCK     5                SPI_DO
+                                                                              USB_CON_24P                                                                                                                                                                                                                                                                                                                                                                                                             GND          SI
+                                                                                                                                                                   UTXP1_CON                 R36     1                     2   220KOhm                             UTXP0_CON                R37     1               2   220KOhm
+                                                          GND                                                     GND                                              UTXN1_CON                 R38     1                     2   220KOhm                             UTXN0_CON                R39     1               2   220KOhm                                                                                                                                                                       W25X20CLSNIG
+                                                                                                                                                                   URXP1_CON                 R40     1                     2   220KOhm                             URXP0_CON                R41     1               2   220KOhm                                                                                                                                                                                                                                        Title
+                                                                                                                                                                   URXN1_CON                 R42     1                     2   220KOhm                             URXN0_CON                R43     1               2   220KOhm                                                                                                                                               SPI flash
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  GND
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ASM2464PD
+                       JAE SMT DX07S024JAAR1100 TID No.: 4729/Gen3 speed                                                                                                              0201 size for USB4                                                                                    0201 size for USB4                                                                                                                                                                                                                                                         Size          Document Number                                                                            Rev
+                                                                                                                                                                                                                                                GND                                                                                   GND                                                                                                                                Refer to support list                                                                         Custom        <Doc>                                                                                        0.3
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       Date:             Friday, September 22, 2023                  Sheet               1      of         2
+                                                                   5                                                                                                                                           4                                                                                                                                             3                                                                                                       2                                                                                                                                   1
+                        5                                                                                                  4                                                                     3                                                            2                                                                        1
+
+
+
+
+        HDD_POWER_Control for NVME device
+                                                                                                                                                                                                                                                                                                        1.8V change to 1.9V
+                                                                                                                                            Max : 4A                                                                                                     VDD 1.8V                             2A                                                VCC18_SYS
+
+                                                                                                                                             3.3V                                    R74    1             2 0Ohm                               +5V_BUS                            U4             2.2uH,0412              1.92V
+
+
+
+
+                                                                                                      1
+D                                                                                                           0.1uF/50V                                                                                                                                                                            L2                                                                         D
+                                                                                                            C105                                                      +3.3V_M2       R75    1             2 0Ohm                +3.3V_SSD                         4                      3
+                                                                                                                                                                                                                                                                       IN           LX
+
+
+
+
+                                                                                 6
+    +5V_BUS                                                             U3                                         2.2UH/L6.95xW6.6mm                                                                                                                                                                           26.7K 1%
+
+
+
+
+                                                                                                      2
+
+
+
+
+                                                                                                                                                                                                                                               1
+                                                                                                                   L1                                                                                                                              22UF/10V                                             R47
+
+
+
+
+                                                                                    BST
+
+
+
+
+                                                                                                                                                                                                                                                                            GND
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                   1
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                     1
+                                                                  3                              2            1              2                                                        1                      6                                                    1                      5
+                                                                         VIN              SW                                                                                               VIN       VOUT                                                              EN          FB
+
+
+
+
+                                                                                                                                 1
+            C79                                                                                                                                                                                                                                    C82                                                          1        2                  C84           C85
+
+
+
+
+                                                                                                                                                                                                                                               2
+    1
+
+
+
+
+                                                                                                                                            1
+
+
+
+                                                                                                                                                       1
+
+
+
+
+                                                                                                                                                                      1
+
+
+
+
+                                                                                                                                                                                                                                1
+            22UF/10V        1 R45               2                 5                                                                                                                   5                      2                                                                                                          22PF/50V           10UF/10V      10UF/10V
+                                                                                                                                                                                                                                                                                                        R48 C83
+
+
+
+
+                                                                                    GND
+                                                                         EN                                                                                                                EN         Iset
+
+
+
+
+                                                                                                                                                                                                                                                                            2
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                   2
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                     2
+                                                                                                 4                         R46                   C80          C81          C102                                                      C103
+                    100KOhm                                                                FB                        40.2KOhm /1%     R1                     22UF/10V     22UF/10V    4
+                                                                                                                                                                                           FAULT     GND
+                                                                                                                                                                                                             3      C104            22UF/10V
+                                                                                                                                                                                                                                                              BL8039                                   12.1K/1%
+    2
+
+
+
+
+                                                                                                                                            2
+
+
+
+                                                                                                                                                       2
+
+
+
+
+                                                                                                                                                                      2
+
+
+
+
+                                                                                                                                                                                                                                2
+                                                                                                                                                                                                                    470PF/16V/NC
+
+
+
+
+                                                                                 1
+
+
+
+
+                                                                                                                                 2
+
+
+
+
+                                                                                                                                                                                                                           1
+              VCC33_SYS                                                                   LP6454                                                                                           TCP1001/NC U7
+    GND                                                                                                                                   22PF/50V
+                                                                                                                                                                                                                                                                  Vout=0.6V*[1+R1/R2)]
+
+
+
+
+                                                                                                                                 2
+                                                                                                                                                       GND            GND
+                                                                                                                                                                                     Iset=3.6A                     R71          GND
+
+
+
+
+                                                                                                                                                                                                                           2
+                         HDD_PC_EN1
+                                                                                                                                                                                                                   536R/1%/NC
+                                                                                                                      R50
+                                                                                 GND                              12.1KOhm /1%        R2                         HDD_PC_EN2                                                                                                              VCC18_SYS                                              VCC18
+                                                                                                                                                                                                                                                                                                          R72       1           2 0Ohm
+
+
+
+
+                                                                                                                                 1
+                    VOUT=0.765V*[1+(R1/R2)]                                                                                                                                                                  GND
+
+
+
+
+                                                                                                                               Wifi was here tooo >:3
+                                                                                                                                 GND
+                                                                 R76           0 Ohm
+                                                             1                2 HDD_PC_EN1
+              HDD_PC_EN
+
+C
+                                                                 R77           0 Ohm/NC                                                                                                                                                                                                                                                                                     C
+                                                             1                2 HDD_PC_EN2
+
+
+
+
+                                                                                                                                                                                                                                                                                                                        +5V_BUS
+                                                                                                                               Change to 1.13V                                                                                                                                                                J5
+                                                                                          1
+
+
+
+
+    +5V_BUS                                                                                     0.1uF/50V
+                                                                                                C106                                                   VDD095_SYS                                                                                                                                                   2
+                                                                                                                                     3A
+                                                                 6
+
+
+
+
+                                                    U5                                                                                                                                                                                                                                                              3
+                                                                                          2
+                                                                  BST
+
+
+
+
+                                                3                               2                         L3
+                    R52                                 VIN             SW
+                                                                                                          L-1.0uH,0412
+                             100K               5
+                                                                  GND
+
+
+
+
+                                                        EN                      4                           R53            5.76K 1%       C91              C92                                                                                                                                                           GND
+                                                                         FB
+              22UF/10V                                                                                    C107 1          2 NC
+                                                                 1
+
+
+
+
+            C89                                                         LP6454                                                        22uF/10v             22uF/10v
+                                                                                                            R54
+
+                                                                                                                      12.1K 1%
+B                                                                                    VOUT=0.765V*[1+(R1/R2)]                                                                                                                                                                                                                                                                B
+
+
+
+
+                                                                                              VDD095_SYS                                         VDD095
+                                                                                                               R73    1           2 0Ohm
+                                      BL1117-33CX
+    +5V_BUS             U6                                            VCC33_SYS
+
+                    3                               2
+                                   GND
+
+
+
+
+                            Vin          Vout
+                                                                     C88
+        C90
+                                  1
+
+
+
+
+                                                                     10uF
+        10UF/10V                                                                                                                                                                                                                                                                                 OT1                      OT2
+
+
+                                                                                                                                                                                                                                                                                              for SMT Optical Point
+
+                                                                                                                                                                                                     H2               H1
+        +5V_BUS
+                                                                                                                                                                                                     H4               H3
+A           22UF/10V/NC 22UF/10V/NC 22UF/10V/NC 22UF/10V/NC                                                                                                                                                                                                                                                                                                                 A
+        1
+
+
+
+
+                        1
+
+
+
+
+                                                1
+
+
+
+
+                                                                        1
+
+
+
+
+                                                                                            1
+
+
+
+
+                                                                                                   22UF/10V/NC
+
+              C97                 C98                    C99                   C100                C101
+        2
+
+
+
+
+                        2
+
+
+
+
+                                                2
+
+
+
+
+                                                                        2
+
+
+
+
+                                                                                            2
+
+
+
+
+                                                                                                                                                                                                                                                                                Title
+                                                                                                                                                                                                                                                                                         Power
+
+                                                                                                                                                                                                                                                                                Size     Document Number                                                            Rev
+                                                                                                                                                                                                                                                                                B        <Doc>                                                                        0.3
+
+                                                                                                                                                                                                                                                                                Date:        Monday, November 13, 2023             Sheet         2       of   2
+                        5                                                                                                  4                                                                     3                                                            2                                                                        1
+

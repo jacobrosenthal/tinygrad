@@ -1,0 +1,4 @@
+MULTI-SERVER SOAK (2 fresh servers x 60 req, SPIN_MS=0, HCQ core fix) 19:23:43
+server1: good=60 hang_reports=0 19:33:47
+server2: good=0 hang_reports=1 19:36:35
+MULTISOAK DONE 19:36:35

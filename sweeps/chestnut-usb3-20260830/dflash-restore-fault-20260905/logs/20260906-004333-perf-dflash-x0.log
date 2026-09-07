@@ -1,0 +1,11 @@
+llm cache: stale (model file, env, or llm sources changed), reloading
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:578085
+opened device PYTHON from pid:578085
+am usb:2-9: product string: 'custom ed4e39b7-CLEAN'
+llm cache: stale (model file, env, or llm sources changed), reloading
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:579161
+opened device PYTHON from pid:579161
+llm cache: stale (model file, env, or llm sources changed), reloading
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:580236
+opened device PYTHON from pid:580236
+am usb:2-9: product string: 'custom ed4e39b7-CLEAN'

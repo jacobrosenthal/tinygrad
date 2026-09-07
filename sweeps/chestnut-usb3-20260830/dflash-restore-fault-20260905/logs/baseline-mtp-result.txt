@@ -1,0 +1,2 @@
+branch: amd-qwen-on-master @ 1f3d594dc
+config: MTP K=3, max_context 8192, DEV=USB+AMD:LLVM, dock=ed4e39b(no-C450)+upstream copyin fix, governor=powersave

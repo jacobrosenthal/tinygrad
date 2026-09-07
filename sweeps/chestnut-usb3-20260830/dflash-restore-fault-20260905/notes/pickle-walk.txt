@@ -1,0 +1,163 @@
+second pickle starts at 243; walked to 101542882 in 1s; found 9/9
+=== hit @30804967 inside opcode span [30679101,31170630) ===
+     30679073 BINGET           102
+     30679075 BINGET           103
+     30679077 BINGET           104
+     30679079 BINGET           105
+     30679081 NEWFALSE         None
+     30679082 BINGET           106
+     30679084 NONE             None
+     30679085 BINGET           107
+     30679087 BINGET           110
+     30679089 MARK             None
+     30679090 BINGET           104
+     30679092 BININT           245760
+     30679097 BINGET           93
+     30679099 NONE             None
+     30679100 NONE             None
+     30679101 BYTEARRAY8       <491520 bytes>
+     31170630 FRAME            290
+=== hit @47977567 inside opcode span [47499477,47991006) ===
+     47499449 BINGET           102
+     47499451 BINGET           103
+     47499453 BINGET           104
+     47499455 BINGET           105
+     47499457 NEWFALSE         None
+     47499458 BINGET           106
+     47499460 NONE             None
+     47499461 BINGET           107
+     47499463 BINGET           110
+     47499465 MARK             None
+     47499466 BINGET           104
+     47499468 BININT           245760
+     47499473 BINGET           93
+     47499475 NONE             None
+     47499476 NONE             None
+     47499477 BYTEARRAY8       <491520 bytes>
+     47991006 FRAME            300
+=== hit @64145390 inside opcode span [63996000,64487529) ===
+     63995972 BINGET           102
+     63995974 BINGET           103
+     63995976 BINGET           104
+     63995978 BINGET           105
+     63995980 NEWFALSE         None
+     63995981 BINGET           106
+     63995983 NONE             None
+     63995984 BINGET           107
+     63995986 BINGET           110
+     63995988 MARK             None
+     63995989 BINGET           104
+     63995991 BININT           245760
+     63995996 BINGET           93
+     63995998 NONE             None
+     63995999 NONE             None
+     63996000 BYTEARRAY8       <491520 bytes>
+     64487529 FRAME            290
+=== hit @75718674 inside opcode span [75718077,75720914) ===
+     75717108 MARK             None
+     75717109 LONG_BINGET      143654
+     75717114 EMPTY_TUPLE      None
+     75717115 BINUNICODE       define amdgpu_kernel void @E_3(i32* noalias align 32 %data0, i32* noal
+     75718061 MEMOIZE          None
+     75718062 NONE             None
+     75718063 NONE             None
+     75718064 TUPLE            None
+     75718065 MEMOIZE          None
+     75718066 REDUCE           None
+     75718067 MEMOIZE          None
+     75718068 BINGET           75
+     75718070 MARK             None
+     75718071 LONG_BINGET      143659
+     75718076 EMPTY_TUPLE      None
+     75718077 BINBYTES         <2832 bytes>
+     75720914 MEMOIZE          None
+=== hit @86250388 inside opcode span [86247046,86252915) ===
+     86218656 LONG_BINGET      143654
+     86218661 EMPTY_TUPLE      None
+     86218662 BINUNICODE       ; ModuleID = '/home/jacob/.cache/tinygrad/amd_gemv_ir/a4ad6db54d8a6255
+     86247021 MEMOIZE          None
+     86247022 FRAME            87908
+     86247031 NONE             None
+     86247032 NONE             None
+     86247033 TUPLE            None
+     86247034 MEMOIZE          None
+     86247035 REDUCE           None
+     86247036 MEMOIZE          None
+     86247037 BINGET           75
+     86247039 MARK             None
+     86247040 LONG_BINGET      143659
+     86247045 EMPTY_TUPLE      None
+     86247046 BINBYTES         <5864 bytes>
+     86252915 MEMOIZE          None
+=== hit @88018128 inside opcode span [88014786,88020623) ===
+     87986413 MARK             None
+     87986414 LONG_BINGET      143654
+     87986419 EMPTY_TUPLE      None
+     87986420 BINUNICODE       ; ModuleID = '/home/jacob/.cache/tinygrad/amd_gemv_ir/e45dfa61386a4ed6
+     88014770 MEMOIZE          None
+     88014771 NONE             None
+     88014772 NONE             None
+     88014773 TUPLE            None
+     88014774 MEMOIZE          None
+     88014775 REDUCE           None
+     88014776 MEMOIZE          None
+     88014777 BINGET           75
+     88014779 MARK             None
+     88014780 LONG_BINGET      143659
+     88014785 EMPTY_TUPLE      None
+     88014786 BINBYTES         <5832 bytes>
+     88020623 MEMOIZE          None
+=== hit @101461897 inside opcode span [101458555,101464400) ===
+    101427305 LONG_BINGET      143654
+    101427310 EMPTY_TUPLE      None
+    101427311 BINUNICODE       ; ModuleID = '/home/jacob/.cache/tinygrad/amd_gemv_ir/2346845dbf8fa7bd
+    101458530 MEMOIZE          None
+    101458531 FRAME            78601
+    101458540 NONE             None
+    101458541 NONE             None
+    101458542 TUPLE            None
+    101458543 MEMOIZE          None
+    101458544 REDUCE           None
+    101458545 MEMOIZE          None
+    101458546 BINGET           75
+    101458548 MARK             None
+    101458549 LONG_BINGET      143659
+    101458554 EMPTY_TUPLE      None
+    101458555 BINBYTES         <5840 bytes>
+    101464400 MEMOIZE          None
+=== hit @101504304 inside opcode span [101503707,101506352) ===
+    101503050 MARK             None
+    101503051 LONG_BINGET      143654
+    101503056 EMPTY_TUPLE      None
+    101503057 BINUNICODE       define amdgpu_kernel void @E_10240_32_4(float* noalias align 32 %data0
+    101503691 MEMOIZE          None
+    101503692 NONE             None
+    101503693 NONE             None
+    101503694 TUPLE            None
+    101503695 MEMOIZE          None
+    101503696 REDUCE           None
+    101503697 MEMOIZE          None
+    101503698 BINGET           75
+    101503700 MARK             None
+    101503701 LONG_BINGET      143659
+    101503706 EMPTY_TUPLE      None
+    101503707 BINBYTES         <2640 bytes>
+    101506352 MEMOIZE          None
+=== hit @101540379 inside opcode span [101537165,101542882) ===
+    101508140 LONG_BINGET      143654
+    101508145 EMPTY_TUPLE      None
+    101508146 BINUNICODE       ; ModuleID = '/home/jacob/.cache/tinygrad/amd_gemv_ir/f9ca4558e8cb729d
+    101537140 MEMOIZE          None
+    101537141 FRAME            41300
+    101537150 NONE             None
+    101537151 NONE             None
+    101537152 TUPLE            None
+    101537153 MEMOIZE          None
+    101537154 REDUCE           None
+    101537155 MEMOIZE          None
+    101537156 BINGET           75
+    101537158 MARK             None
+    101537159 LONG_BINGET      143659
+    101537164 EMPTY_TUPLE      None
+    101537165 BINBYTES         <5712 bytes>
+    101542882 MEMOIZE          None

@@ -1,0 +1,10 @@
+perf sweep 00:49:27: fw=tiny custom ed4e39b7-CLEAN tinygrad=e301fea46 restores=2 reqs=8
+=== dflash-x0: DFLASH=/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf DFLASH_BLOCK=6 DFLASH_NOSEL=1 DFLASH_XCTX=0 ===
+dflash-x0 run 0 (warmup, startup 575s): faults=0 | 73 tok/s    accept: 0.39 (2.96 tok/step) 62 tok/s    accept: 0.29 (2.43 tok/step) 63 tok/s    accept: 0.29 (2.45 tok/step) 60 tok/s    accept: 0.26 (2.29 tok/step) 63 tok/s    accept: 0.29 (2.45 tok/step) 62 tok/s    accept: 0.28 (2.39 tok/step) 63 tok/s    accept: 0.29 (2.43 tok/step) 59 tok/s    accept: 0.25 (2.25 tok/step)
+dflash-x0 run 1: server did not come up
+dflash-x0 run 2: server did not come up
+=== dflash-x16: DFLASH=/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf DFLASH_BLOCK=6 DFLASH_NOSEL=1 DFLASH_XCTX=16 ===
+dflash-x16 run 0: server did not come up
+dflash-x16 run 1: server did not come up
+dflash-x16 run 2: server did not come up
+DONE 01:01:04

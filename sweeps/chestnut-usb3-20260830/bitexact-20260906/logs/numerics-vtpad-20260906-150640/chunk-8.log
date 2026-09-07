@@ -1,0 +1,289 @@
+loaded: 17.61 GB used
+prompt 23 tokens, teacher [760, 1156, 6587, 728, 310, 4072, 2943, 11088], prefill chunk 256, blocks 64, gdn blocks 48
+Traceback (most recent call last):
+  File "/home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/bitexact-20260906/scripts/chunk_numerics.py", line 37, in <module>
+    model.forward(t[:, sp:sp + PC], sp, temp, n_tok=nt).realize()
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/worktrees/gemv-spillfree/tinygrad/llm/model.py", line 542, in forward
+    for block in self.blk: x = block(x, start_pos, n_tok)
+                               ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/worktrees/gemv-spillfree/tinygrad/llm/model.py", line 178, in __call__
+    if self._decode_fused(x): return self._run_decode(x, start_pos, n_tok)
+                                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/worktrees/gemv-spillfree/tinygrad/llm/model.py", line 199, in _run_decode
+    h = self._attention(self.attn_norm(x), start_pos, residual=x, n_tok=n_tok)
+  File "/home/jacob/z/worktrees/gemv-spillfree/tinygrad/llm/model.py", line 239, in _attention
+    if residual is not None and self._n_fused(x) and self._fused_ok(): return self._attention_fused(x, start_pos, residual, n_tok)
+                                                                              ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/worktrees/gemv-spillfree/tinygrad/llm/model.py", line 228, in _attention_fused
+    attn = amd_gemv.attn_decode(self.cache_kv, q, k, v, qnw, knw, self.freqs_cis, start_pos, c.n_heads, c.n_kv_heads, c.head_dim, c.rope_dim,
+                                self.kv_maxc, c.norm_eps, c.attn_output_gate, T, n_tok, self.kv_quant)
+  File "/home/jacob/z/worktrees/gemv-spillfree/tinygrad/llm/amd_gemv.py", line 1509, in attn_decode
+    return attn_decode_mq(cache, q_raw, k_raw, v_raw, qnw, knw, freqs, start_pos, H, HKV, D, RD, MAXC, eps, gated, T, n_tok, kvq,
+                          getenv("AMD_ATTN_MQ_CH", CH))
+  File "/home/jacob/z/worktrees/gemv-spillfree/tinygrad/llm/amd_prefill.py", line 766, in attn_decode_mq
+    ir_pf = hip_to_ir(src, arch)
+  File "/home/jacob/z/worktrees/gemv-spillfree/tinygrad/llm/amd_gemv.py", line 27, in hip_to_ir
+    raise RuntimeError("clang failed:\n" + r.stderr + "\n--- source ---\n" + "\n".join(f"{i+1:4d} {l}" for i, l in enumerate(src.split("\n"))))
+RuntimeError: clang failed:
+/home/jacob/.cache/tinygrad/amd_gemv_ir/da177cc0aff31567cc1cf7d1.hip:81:51: error: use of undeclared identifier 'D'
+   81 |   __attribute__((shared)) _Float16 Vt[256 * 16 + (D // 8) * 8];   // [dim][pos], 16 B pad every 8 rows: the lane stride of the transposed stores (8 rows = 256 B) hit one LDS bank 32-way
+      |                                                   ^
+/home/jacob/.cache/tinygrad/amd_gemv_ir/da177cc0aff31567cc1cf7d1.hip:123:18: error: use of undeclared identifier 'Ps'
+  123 |   _Float16* Pw = Ps + wave * 256;
+      |                  ^
+2 errors generated when compiling for gfx1100.
+
+--- source ---
+   1 
+   2 typedef unsigned char u8; typedef unsigned short u16; typedef unsigned int u32; typedef int i32; typedef signed char i8;
+   3 typedef unsigned long u64;
+   4 typedef u32 u32x4 __attribute__((ext_vector_type(4)));
+   5 typedef u32 u32x2 __attribute__((ext_vector_type(2)));
+   6 #define DEV static inline __attribute__((device, always_inline))
+   7 #define KERNEL(name, wg) extern "C" __attribute__((global)) void __attribute__((amdgpu_flat_work_group_size(wg, wg))) name
+   8 DEV u32 lane_id() { return __builtin_amdgcn_mbcnt_hi(~0u, __builtin_amdgcn_mbcnt_lo(~0u, 0u)); }
+   9 DEV u32 wg_id() { return __builtin_amdgcn_workgroup_id_x(); }
+  10 DEV u32 tid() { return __builtin_amdgcn_workitem_id_x(); }
+  11 // v_dot4_i32_iu8: a,b are 4 packed int8 (signed/unsigned selectable), c is the i32 accumulator
+  12 DEV i32 dot4_ss(u32 a, u32 b, i32 c) { return __builtin_amdgcn_sudot4(true, (i32)a, true, (i32)b, c, false); }
+  13 DEV i32 dot4_us(u32 a, u32 b, i32 c) { return __builtin_amdgcn_sudot4(false, (i32)a, true, (i32)b, c, false); }
+  14 DEV i32 dot16_ss(u32x4 q, u32x4 x) { i32 a = dot4_ss(q.x, x.x, 0); a = dot4_ss(q.y, x.y, a); a = dot4_ss(q.z, x.z, a); return dot4_ss(q.w, x.w, a); }
+  15 DEV i32 dot16_us(u32x4 q, u32x4 x) { i32 a = dot4_us(q.x, x.x, 0); a = dot4_us(q.y, x.y, a); a = dot4_us(q.z, x.z, a); return dot4_us(q.w, x.w, a); }
+  16 DEV float f16_to_f32(u32 h) { return (float)__builtin_bit_cast(_Float16, (u16)(h & 0xffff)); }
+  17 DEV u32 ld_u32(const u8* p) { u32 v; __builtin_memcpy(&v, p, 4); return v; }
+  18 DEV u32x2 ld_u32x2(const u8* p) { u32x2 v; __builtin_memcpy(&v, p, 8); return v; }
+  19 DEV u32x4 ld_u32x4(const u8* p) { u32x4 v; __builtin_memcpy(&v, p, 16); return v; }
+  20 // sub-dword loads read the containing aligned dword: the d16 loads the compiler emits otherwise (two in-flight loads filling the halves of
+  21 // one VGPR) corrupt results nondeterministically on gfx1100. u16 addresses are 2-byte aligned (all block layouts have even sizes/offsets)
+  22 DEV u32 ld_u16(const u8* p) { const u64 a = (u64)p; u32 v; __builtin_memcpy(&v, (const u8*)(a & ~3ull), 4); return (v >> ((a & 2) * 8)) & 0xffff; }
+  23 DEV u32 ld_u8(const u8* p) { const u64 a = (u64)p; u32 v; __builtin_memcpy(&v, (const u8*)(a & ~3ull), 4); return (v >> ((a & 3) * 8)) & 0xff; }
+  24 DEV float ld_f32(const u8* p) { float v; __builtin_memcpy(&v, p, 4); return v; }
+  25 #define dpp_shr(v, ctrl) __builtin_bit_cast(float, __builtin_amdgcn_update_dpp(0, __builtin_bit_cast(i32, (v)), (ctrl), 0xf, 0xf, true))
+  26 // sum over lanes [0,16) -> lane 15, [16,32) -> lane 31 (row_shr within each 16-lane row, bound_ctrl zero-fills)
+  27 DEV float row_sum16(float v) {
+  28   v += dpp_shr(v, 0x111); v += dpp_shr(v, 0x112); v += dpp_shr(v, 0x114); v += dpp_shr(v, 0x118); return v;
+  29 }
+  30 DEV float read_lane(float v, u32 l) { return __builtin_bit_cast(float, __builtin_amdgcn_readlane(__builtin_bit_cast(i32, v), l)); }
+  31 DEV float wave_sum(float v) { v = row_sum16(v); return read_lane(v, 15) + read_lane(v, 31); }
+  32 // spread the low 4 bits of s into bytes (0x00/0x01 per byte), bit i -> byte i
+  33 DEV u32 sign_m(u32 s) { return ((s & 0xFu) * 0x00204081u) & 0x01010101u; }
+  34 // negate the bytes of g (all nonzero) where the 0/1 byte m is 1: (g ^ 0xFF) + 1 per byte, no cross-byte carries since g != 0
+  35 DEV u32 apply_signs(u32 g, u32 m) { return (g ^ ((m << 8) - m)) + m; }
+  36 // 7-bit sign index -> 8 sign bits (bit 7 = parity), see ksigns_iq2xs
+  37 DEV u32 ksigns(u32 idx) { idx &= 127u; return idx | ((u32)(__builtin_popcount(idx) & 1) << 7); }
+  38 // 16-entry int8 LUT applied to the 4 nibbles of n (each byte of n must be in [0,16)). lut0 = entries 0-7, lut1 = entries 8-15
+  39 DEV u32 nib_lut(u32 n, u32 lut0_lo, u32 lut0_hi, u32 lut1_lo, u32 lut1_hi) {
+  40   const u32 lo = __builtin_amdgcn_perm(lut0_hi, lut0_lo, n & 0x07070707u);
+  41   const u32 hi = __builtin_amdgcn_perm(lut1_hi, lut1_lo, n & 0x07070707u);
+  42   const u32 m1 = (n >> 3) & 0x01010101u, m = (m1 << 8) - m1;  // 0xFF where bit 3 of the nibble is set
+  43   return (hi & m) | (lo & ~m);
+  44 }
+  45 
+  46 #define WG 192
+  47 #define BAR() __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup")
+  48 #define VT(r) ((r) * 16 + ((r) >> 3) * 8)   // Vt row offset in halves (row pitch 32 B + 16 B per 8 rows)
+  49 #define dpp_keep(v, ctrl) __builtin_bit_cast(float, __builtin_amdgcn_update_dpp(__builtin_bit_cast(i32, (v)), __builtin_bit_cast(i32, (v)), (ctrl), 0xf, 0xf, false))
+  50 typedef i32 i32x4 __attribute__((ext_vector_type(4)));
+  51 typedef i32 i32x8 __attribute__((ext_vector_type(8)));
+  52 typedef float f32x8 __attribute__((ext_vector_type(8)));
+  53 typedef _Float16 f16x16 __attribute__((ext_vector_type(16)));
+  54 
+  55 // pseudo-random sign of coordinate i (1 = negative); the python side (kv_sign) uses the same hash
+  56 DEV bool kv_sgn(u32 i, u32 seed) { return __builtin_popcount((i ^ seed) * 0x9E3779B1u) & 1u; }
+  57 // in-place (unnormalized) Walsh-Hadamard transform of nvec contiguous 256-vectors in LDS, all WG threads, barriers inside
+  58 DEV void wht_vecs(float* v, const u32 nvec, const u32 t) {
+  59   #pragma unroll
+  60   for (u32 h = 1; h < 256; h <<= 1) {
+  61     BAR();
+  62     for (u32 i = t; i < nvec * 128; i += WG) {
+  63       const u32 a = ((i >> 7) << 8) + (((i & 127) & ~(h - 1)) << 1) + ((i & 127) & (h - 1)), b = a + h;
+  64       const float x = v[a], y = v[b];
+  65       v[a] = x + y; v[b] = x - y;
+  66     }
+  67   }
+  68   BAR();
+  69 }
+  70 
+  71 // max over the 16 lanes of a DPP row -> lanes 15 / 31 (out-of-row sources keep the lane's own value)
+  72 DEV float row_max16(float v) {
+  73   v = __builtin_fmaxf(v, dpp_keep(v, 0x111)); v = __builtin_fmaxf(v, dpp_keep(v, 0x112));
+  74   v = __builtin_fmaxf(v, dpp_keep(v, 0x114)); v = __builtin_fmaxf(v, dpp_keep(v, 0x118)); return v;
+  75 }
+  76 KERNEL(attn_pfd_24_4_256_64_8204_11_k4jv4_c256, WG)(float* __restrict__ pacc, float* __restrict__ pm, float* __restrict__ pl,
+  77                     const i8* __restrict__ qq, const float* __restrict__ qsc, const i8* __restrict__ sqq, const float* __restrict__ sqsc,
+  78                     const u8* __restrict__ cache, const i32* __restrict__ sp_p) {
+  79   
+  80   __attribute__((shared)) i8 Ks[16 * 272], KJs[16 * 272];
+  81   __attribute__((shared)) _Float16 Vt[256 * 16 + (D // 8) * 8];   // [dim][pos], 16 B pad every 8 rows: the lane stride of the transposed stores (8 rows = 256 B) hit one LDS bank 32-way
+  82   __attribute__((shared)) _Float16 Ps[6 * 16 * 16];   // per wave [row][pos]
+  83   __attribute__((shared)) float ka_s[16], kb_s[16], va_s[16], qsc_s[48], sqsc_s[48], cbv_s[16];
+  84   __attribute__((shared)) i32 cbk8_s[16];
+  85   __attribute__((shared)) u8 zrow[256];
+  86   
+  87   const u32 chunk = wg_id() % 33, wg2 = wg_id() / 33; const u32 qb = wg2 / 4, kvh = wg2 % 4;
+  88   const u32 qt0 = qb * 8, n = (u32)sp_p[1];
+  89   if (qt0 >= n) return;
+  90   const u32 nq = n - qt0 < 8u ? n - qt0 : 8u;
+  91   const i32 sp = sp_p[0];
+  92   const u32 kv_end = (u32)sp + qt0 + nq;  // positions [0, kv_end)
+  93   // this workgroup's positions [pos0, pend)
+  94   const u32 pos0 = chunk * 256; if (pos0 >= kv_end) return; const u32 pend = pos0 + 256 < kv_end ? pos0 + 256 : kv_end;
+  95   // wave is uniform per wave: say so (readfirstlane) so the per-position scale loads (same address for all lanes) become scalar loads
+  96   const u32 t = tid(), lane = lane_id(), wave = __builtin_amdgcn_readfirstlane(t >> 5), rt = wave >> 1, dh = wave & 1, l16 = lane & 15, h = lane >> 4;
+  97   const u8* Kh = cache + (u64)kvh * 2461200;
+  98   if (t < 16) { cbk8_s[t] = t == 0 ? -127 : t == 1 ? -96 : t == 2 ? -75 : t == 3 ? -58 : t == 4 ? -44 : t == 5 ? -31 : t == 6 ? -18 : t == 7 ? -6 : t == 8 ? 6 : t == 9 ? 18 : t == 10 ? 31 : t == 11 ? 44 : t == 12 ? 58 : t == 13 ? 75 : t == 14 ? 96 : t == 15 ? 127 : 0; cbv_s[t] = t == 0 ? -2.7325896f : t == 1 ? -2.0690172f : t == 2 ? -1.6180464f : t == 3 ? -1.2562312f : t == 4 ? -0.9423405f : t == 5 ? -0.6567591f : t == 6 ? -0.3880483f : t == 7 ? -0.1283950f : t == 8 ? 0.1283950f : t == 9 ? 0.3880483f : t == 10 ? 0.6567591f : t == 11 ? 0.9423405f : t == 12 ? 1.2562312f : t == 13 ? 1.6180464f : t == 14 ? 2.0690172f : t == 15 ? 2.7325896f : 0.0f; }
+  99   for (u32 i = t; i < 256; i += WG) zrow[i] = 0;
+ 100   
+ 101   if (t < 48) {
+ 102     const u32 tl = t / 6, hh = t % 6;
+ 103     const u64 row = (u64)(qt0 + tl) * 24 + 6 * kvh + hh;
+ 104     qsc_s[t] = tl < nq ? qsc[row] * 0.021516453334296075f : 0.0f;
+ 105     sqsc_s[t] = tl < nq ? sqsc[row] : 0.0f;
+ 106   }
+ 107   BAR();
+ 108   // QG: this lane's WMMA A row (rt*16 + l16) straight from global qq/sqq; rows of padding tokens read a zero row
+ 109   const u32 qr = rt * 16 + l16, qtl = qr / 6, qhh = qr % 6;
+ 110   const u64 qrow_off = ((u64)(qt0 + (qtl < nq ? qtl : 0)) * 24 + 6 * kvh + qhh) * 256;
+ 111   const i8* qrow_g = qtl < nq ? qq + qrow_off : (const i8*)zrow;
+ 112   const i8* sqrow_g = qtl < nq ? sqq + qrow_off : (const i8*)zrow;
+ 113   // this lane's 8 accumulator rows: 2i + h of row tile rt
+ 114   float qs_r[8], sqs_r[8], m[8], l[8]; i32 row_pos[8];
+ 115   f32x8 O[8];
+ 116   #pragma unroll
+ 117   for (int i = 0; i < 8; i++) {
+ 118     const u32 r = rt * 16 + 2 * i + h;
+ 119     qs_r[i] = qsc_s[r]; sqs_r[i] = sqsc_s[r]; m[i] = -1e30f; l[i] = 0.0f; row_pos[i] = sp + (i32)qt0 + (i32)(r / 6);
+ 120   }
+ 121   #pragma unroll
+ 122   for (int dt = 0; dt < 8; dt++) O[dt] = (f32x8){0, 0, 0, 0, 0, 0, 0, 0};
+ 123   _Float16* Pw = Ps + wave * 256;
+ 124   const u32 ntiles = (pend + 15) / 16;
+ 125   
+ 126   for (u32 tile = pos0 / 16; tile < ntiles; tile++) {
+ 127     BAR();
+ 128     // dequantize the tile: K as codebook int8, QJL signs as +-1, V as f16 (transposed)
+ 129     for (u32 pp = wave; pp < 16; pp += 6) {
+ 130       const u32 pos = tile * 16 + pp;
+ 131       if (pos < pend) {
+ 132         const u32 kn = ld_u32(Kh + 0 + (u64)pos * 128 + lane * 4); const u32 vn = ld_u32(Kh + 1378272 + (u64)pos * 128 + lane * 4);
+ 133         const u32 kj = ld_u8(Kh + 1050112 + (u64)pos * 32 + lane);
+ 134         const float va = ld_f32(Kh + 2428384 + (u64)pos * 4);
+ 135         u32 kw0 = 0, kw1 = 0, jw0 = 0, jw1 = 0;
+ 136         kw0 |= ((u32)(cbk8_s[((kn >> 0) & 15u)]) & 0xffu) << 0; kw0 |= ((u32)(cbk8_s[((kn >> 4) & 15u)]) & 0xffu) << 8; kw0 |= ((u32)(cbk8_s[((kn >> 8) & 15u)]) & 0xffu) << 16; kw0 |= ((u32)(cbk8_s[((kn >> 12) & 15u)]) & 0xffu) << 24; kw1 |= ((u32)(cbk8_s[((kn >> 16) & 15u)]) & 0xffu) << 0; kw1 |= ((u32)(cbk8_s[((kn >> 20) & 15u)]) & 0xffu) << 8; kw1 |= ((u32)(cbk8_s[((kn >> 24) & 15u)]) & 0xffu) << 16; kw1 |= ((u32)(cbk8_s[((kn >> 28) & 15u)]) & 0xffu) << 24;
+ 137         jw0 |= (((kj >> 0) & 1u) ? 1u : 0xffu) << 0; jw0 |= (((kj >> 1) & 1u) ? 1u : 0xffu) << 8; jw0 |= (((kj >> 2) & 1u) ? 1u : 0xffu) << 16; jw0 |= (((kj >> 3) & 1u) ? 1u : 0xffu) << 24; jw1 |= (((kj >> 4) & 1u) ? 1u : 0xffu) << 0; jw1 |= (((kj >> 5) & 1u) ? 1u : 0xffu) << 8; jw1 |= (((kj >> 6) & 1u) ? 1u : 0xffu) << 16; jw1 |= (((kj >> 7) & 1u) ? 1u : 0xffu) << 24;
+ 138         Vt[VT(lane * 8 + 0) + pp] = (_Float16)(cbv_s[((vn >> 0) & 15u)] * va); Vt[VT(lane * 8 + 1) + pp] = (_Float16)(cbv_s[((vn >> 4) & 15u)] * va); Vt[VT(lane * 8 + 2) + pp] = (_Float16)(cbv_s[((vn >> 8) & 15u)] * va); Vt[VT(lane * 8 + 3) + pp] = (_Float16)(cbv_s[((vn >> 12) & 15u)] * va); Vt[VT(lane * 8 + 4) + pp] = (_Float16)(cbv_s[((vn >> 16) & 15u)] * va); Vt[VT(lane * 8 + 5) + pp] = (_Float16)(cbv_s[((vn >> 20) & 15u)] * va); Vt[VT(lane * 8 + 6) + pp] = (_Float16)(cbv_s[((vn >> 24) & 15u)] * va); Vt[VT(lane * 8 + 7) + pp] = (_Float16)(cbv_s[((vn >> 28) & 15u)] * va);
+ 139         { const u32x2 w = {kw0, kw1}; __builtin_memcpy(Ks + pp * 272 + lane * 8, &w, 8); }
+ 140         { const u32x2 w = {jw0, jw1}; __builtin_memcpy(KJs + pp * 272 + lane * 8, &w, 8); }
+ 141         if (lane == 0) { ka_s[pp] = ld_f32(Kh + 1312640 + (u64)pos * 8); kb_s[pp] = ld_f32(Kh + 1312640 + (u64)pos * 8 + 4); }
+ 142       } else {
+ 143         const u32x2 z = {0u, 0u};
+ 144         __builtin_memcpy(Ks + pp * 272 + lane * 8, &z, 8);
+ 145         __builtin_memcpy(KJs + pp * 272 + lane * 8, &z, 8);
+ 146         #pragma unroll
+ 147         for (int i = 0; i < 8; i++) Vt[VT(lane * 8 + i) + pp] = (_Float16)0.0f;
+ 148         if (lane == 0) { ka_s[pp] = 0.0f; kb_s[pp] = 0.0f; }
+ 149       }
+ 150     }
+ 151 
+ 152     BAR();
+ 153     if (wave < 6) {  // compute waves only (the extra load waves idle here)
+ 154       // next tile's loads go out now and land during this tile's WMMA/softmax (no barrier in between)
+ 155     // scores of this wave's 16 rows x the 16 positions
+ 156     i32x8 ci = (i32x8){0, 0, 0, 0, 0, 0, 0, 0}, cj = (i32x8){0, 0, 0, 0, 0, 0, 0, 0};
+ 157     #pragma unroll
+ 158     for (int ks = 0; ks < 16; ks++) {
+ 159       i32x4 a, b;
+ 160       __builtin_memcpy(&a, qrow_g + ks * 16, 16);
+ 161       __builtin_memcpy(&b, Ks + l16 * 272 + ks * 16, 16);
+ 162       ci = __builtin_amdgcn_wmma_i32_16x16x16_iu8_w32(true, a, true, b, ci, false);
+ 163       __builtin_memcpy(&a, sqrow_g + ks * 16, 16); __builtin_memcpy(&b, KJs + l16 * 272 + ks * 16, 16);
+ 164       cj = __builtin_amdgcn_wmma_i32_16x16x16_iu8_w32(true, a, true, b, cj, false);
+ 165     }
+ 166     const float ka = ka_s[l16], kb = kb_s[l16];
+ 167     const i32 pos = (i32)(tile * 16 + l16);
+ 168     float p[8];
+ 169     #pragma unroll
+ 170     for (int i = 0; i < 8; i++) {
+ 171       float sc = (float)ci[i] * qs_r[i] * ka + (float)cj[i] * sqs_r[i] * kb;
+ 172       sc = (pos > row_pos[i] || (u32)pos >= pend) ? -1e30f : sc;
+ 173       float rm = row_max16(sc); rm = h ? read_lane(rm, 31) : read_lane(rm, 15);
+ 174       const float mn = __builtin_fmaxf(m[i], rm), corr = __builtin_expf(m[i] - mn);
+ 175       p[i] = __builtin_expf(sc - mn);
+ 176       float ps = row_sum16(p[i]); ps = h ? read_lane(ps, 31) : read_lane(ps, 15);
+ 177       l[i] = l[i] * corr + ps; m[i] = mn;
+ 178       #pragma unroll
+ 179       for (int dt = 0; dt < 8; dt++) O[dt][i] *= corr;
+ 180 
+ 181       Pw[(2 * i + h) * 16 + l16] = (_Float16)p[i];
+ 182     }
+ 183     __builtin_amdgcn_fence(__ATOMIC_SEQ_CST, "wavefront");
+ 184     f16x16 pa; __builtin_memcpy(&pa, Pw + l16 * 16, 32);
+ 185     #pragma unroll
+ 186     for (int dt = 0; dt < 8; dt++) {
+ 187       f16x16 vb; __builtin_memcpy(&vb, Vt + VT(dh * 128 + dt * 16 + l16), 32);
+ 188       O[dt] = __builtin_amdgcn_wmma_f32_16x16x16_f16_w32(pa, vb, O[dt]);
+ 189     }
+ 190     __builtin_amdgcn_fence(__ATOMIC_SEQ_CST, "wavefront");
+ 191     }  // compute waves
+ 192   }
+ 193   if (wave >= 6) return;  // load-only waves are done (no barriers below in the attn_pfd epilogue)
+ 194   // partials of this chunk: unnormalized O rows, row max m and row sum l (merged over the chunks by attn_merge_mq)
+ 195   #pragma unroll
+ 196   for (int i = 0; i < 8; i++) {
+ 197     const u32 r = rt * 16 + 2 * i + h, tl = r / 6, hh = r % 6;
+ 198     if (tl < nq) {
+ 199       const u64 row = (u64)(qt0 + tl) * 24 + 6 * kvh + hh;
+ 200       float* dst = pacc + (row * 33 + chunk) * 256 + dh * 128 + l16;
+ 201       #pragma unroll
+ 202       for (int dt = 0; dt < 8; dt++) dst[dt * 16] = O[dt][i];
+ 203       if (l16 == 0 && dh == 0) { pm[row * 33 + chunk] = m[i]; pl[row * 33 + chunk] = l[i]; }
+ 204     }
+ 205   }
+ 206   return;
+ 207 #if 0  // the full-output epilogue below refers to the outputs attn_pf has and attn_pfd does not
+ 208   
+ 209   // epilogue per row tile: O / l into LDS, undo the rotation (signs * WHT / 16), gate, write + quantize per 128
+ 210   float* Os = (float*)qbuf;
+ 211   #pragma unroll
+ 212   for (int i = 0; i < 8; i++) l[i] = l[i] > 0.0f ? 1.0f / l[i] : 0.0f;
+ 213   for (u32 rtt = 0; rtt < 3; rtt++) {
+ 214     BAR();
+ 215     if (rt == rtt) {
+ 216       #pragma unroll
+ 217       for (int dt = 0; dt < 8; dt++)
+ 218         #pragma unroll
+ 219         for (int i = 0; i < 8; i++) Os[(2 * i + h) * 256 + dh * 128 + dt * 16 + l16] = O[dt][i] * l[i];
+ 220     }
+ 221     wht_vecs(Os, 16, t);
+ 222     for (u32 b = wave; b < 32; b += 6) {  // one wave per 128-block: row rr, half hf
+ 223       const u32 rr = b >> 1, hf = b & 1, r = rtt * 16 + rr, tl = r / 6, hh = r % 6;
+ 224       if (tl >= nq) continue;
+ 225       const u64 tok = qt0 + tl, head = 6 * kvh + hh, e0 = (tok * 24 + head) * 256 + hf * 128;
+ 226       float y[4], a = 0.0f;
+ 227       #pragma unroll
+ 228       for (int c = 0; c < 4; c++) {
+ 229         const u32 d = hf * 128 + c * 32 + lane;
+ 230         float v = (kv_sgn(d, 19088743u) ? -Os[rr * 256 + d] : Os[rr * 256 + d]) * (1.0f / 16.0f);
+ 231         const float g = q_raw[(tok * 24 + head) * 512 + 256 + d]; v *= 1.0f / (1.0f + __builtin_expf(-g));
+ 232         y[c] = v; out[e0 + c * 32 + lane] = v; a = __builtin_fmaxf(a, __builtin_fabsf(v));
+ 233       }
+ 234       a = __builtin_fmaxf(a, dpp_shr(a, 0x111)); a = __builtin_fmaxf(a, dpp_shr(a, 0x112));
+ 235       a = __builtin_fmaxf(a, dpp_shr(a, 0x114)); a = __builtin_fmaxf(a, dpp_shr(a, 0x118));
+ 236       const float mx = __builtin_fmaxf(read_lane(a, 15), read_lane(a, 31));
+ 237       const float dq = mx / 127.0f, id = dq != 0.0f ? 1.0f / dq : 0.0f;
+ 238       #pragma unroll
+ 239       for (int c = 0; c < 4; c++) {
+ 240         const u64 e = e0 + c * 32 + lane;
+ 241         const i32 qi = (i32)__builtin_rintf(y[c] * id);
+ 242         oq[e] = (i8)qi;
+ 243         const float sq = row_sum16((float)qi);
+ 244         if (lane == 15) osum16[(e >> 5) * 2] = dq * sq;
+ 245         if (lane == 31) osum16[(e >> 5) * 2 + 1] = dq * sq;
+ 246       }
+ 247       if (lane == 31) os[e0 >> 7] = dq;
+ 248     }
+ 249   }
+ 250 #endif
+ 251 }
+ 252 

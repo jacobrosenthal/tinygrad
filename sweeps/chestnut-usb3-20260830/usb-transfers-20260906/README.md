@@ -20,3 +20,9 @@ laptop's other USB traffic).
 Result: 2.5x the code-derived 190-240. At 75 tok/s and 2.8 tok/step a step is ~37 ms, so 540 transfers cannot each cost 75-150 us
 (that would be 40-80 ms): most are pipelined/async or ~30-50 us. Either way USB traffic is the dominant per-step cost on this
 path, which is the case for (a) USB4/KFD (removes all of it) and (b) "one graph per step" + batched doorbells on USB3.
+
+## Log retention (2026-09-06 consolidation)
+`logs/20260906-052928-usbdebug-mtp-k3.log` (the DEBUG usb trace the transfer counts were derived from) is 6.9 GB and is kept on
+the serving box only, at `~/z/tinygrad/sweeps/chestnut-usb3-20260830/usb-transfers-20260906/logs/`, not in git (GitHub's 100 MB
+file limit). Every other log/txt/pkl in these sweep dirs is committed; the root `.gitignore` had been silently dropping them until
+`sweeps/.gitignore` re-included `*.log`, `*.txt`, `*.pkl`.

@@ -1,0 +1,7 @@
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:591972
+opened device PYTHON from pid:591972
+am usb:2-9: product string: 'custom ed4e39b7-CLEAN'
+opened device CPU from pid:591972
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:593066
+opened device PYTHON from pid:593066
+am usb:2-9: product string: 'custom ed4e39b7-CLEAN'

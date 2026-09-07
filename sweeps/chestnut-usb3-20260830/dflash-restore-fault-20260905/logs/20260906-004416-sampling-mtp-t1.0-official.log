@@ -1,0 +1,5 @@
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:589833
+opened device PYTHON from pid:589833
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:590910
+opened device PYTHON from pid:590910
+am usb:2-9: product string: 'custom ed4e39b7-CLEAN'

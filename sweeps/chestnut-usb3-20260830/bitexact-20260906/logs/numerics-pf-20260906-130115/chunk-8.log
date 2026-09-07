@@ -1,0 +1,5 @@
+loaded: 17.61 GB used
+prompt 23 tokens, teacher [760, 1156, 6587, 728, 310, 4072, 2943, 11088], prefill chunk 256, blocks 64, gdn blocks 48
+prefill done, 18.27 GB used
+chunk T=8: top1 248046 (18.7616)
+saved /home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/bitexact-20260906/logs/numerics-pf-20260906-130115/chunk-8.npz: 64 block rows (last position), logits (248320,)

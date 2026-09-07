@@ -1,0 +1,43 @@
+07:44:42 chain5 start: waiting for pid 663676; TREE=/home/jacob/z/worktrees/gemv-spillfree
+08:04:12 chain4 exited
+08:04:12 1/1 exactness matrix (K=1 ref)
+bitexact 08:04:12: fw=tiny custom ed4e39b7-CLEAN tree=c9a53aa96 reqs=8 outputs=/home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/bitexact-20260906/logs/outputs-20260906-080412
+mtp-k1 (warmup, startup 274s): 63 tok/s 62 tok/s 60 tok/s 61 tok/s 62 tok/s 61 tok/s 62 tok/s 59 tok/s
+/home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/bitexact-20260906/scripts/bitexact.sh: line 14: 722662 Killed                  env $extra PYTHONPATH=$TREE WAVEDUMP=1 LLM_CACHE=1 DEV=USB+AMD:LLVM MAX_T=12 ATTN_QT=8 NGRAM_DRAFT=0 PYTHONUNBUFFERED=1 "$PY" -m tinygrad.llm.cli --model "$MODEL" --mmproj none --repeat-penalty 1.0 --max_context 8192 --host 127.0.0.1 --serve 8082 >> "$LOG" 2>&1
+mtp-k3 (warmup, startup 383s): 87 tok/s 79 tok/s 75 tok/s 81 tok/s 75 tok/s 74 tok/s 80 tok/s 70 tok/s
+/home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/bitexact-20260906/scripts/bitexact.sh: line 13: 724025 Killed                  env $extra PYTHONPATH=$TREE WAVEDUMP=1 LLM_CACHE=1 DEV=USB+AMD:LLVM MAX_T=12 ATTN_QT=8 NGRAM_DRAFT=0 PYTHONUNBUFFERED=1 "$PY" -m tinygrad.llm.cli --model "$MODEL" --mmproj none --repeat-penalty 1.0 --max_context 8192 --host 127.0.0.1 --serve 8082 >> "$LOG" 2>&1
+mtp-k5 (warmup, startup 546s): 85 tok/s 71 tok/s 73 tok/s 73 tok/s 69 tok/s 70 tok/s 70 tok/s 63 tok/s
+/home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/bitexact-20260906/scripts/bitexact.sh: line 13: 725383 Killed                  env $extra PYTHONPATH=$TREE WAVEDUMP=1 LLM_CACHE=1 DEV=USB+AMD:LLVM MAX_T=12 ATTN_QT=8 NGRAM_DRAFT=0 PYTHONUNBUFFERED=1 "$PY" -m tinygrad.llm.cli --model "$MODEL" --mmproj none --repeat-penalty 1.0 --max_context 8192 --host 127.0.0.1 --serve 8082 >> "$LOG" 2>&1
+dflash-b6 (warmup, startup 565s): 82 tok/s 76 tok/s 72 tok/s 68 tok/s 77 tok/s 68 tok/s 74 tok/s 65 tok/s
+/home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/bitexact-20260906/scripts/bitexact.sh: line 13: 726826 Killed                  env $extra PYTHONPATH=$TREE WAVEDUMP=1 LLM_CACHE=1 DEV=USB+AMD:LLVM MAX_T=12 ATTN_QT=8 NGRAM_DRAFT=0 PYTHONUNBUFFERED=1 "$PY" -m tinygrad.llm.cli --model "$MODEL" --mmproj none --repeat-penalty 1.0 --max_context 8192 --host 127.0.0.1 --serve 8082 >> "$LOG" 2>&1
+DONE 08:33:55
+reference: mtp-k1
+dflash-b6: 0/8 requests bit-exact vs mtp-k1 greedy  <-- NOT EXACT
+  req0: diverges at char 267/1582 (plain 400 tok, dflash-b6 400 tok): plain[..]='est/average/worst cases), and then explain what st' vs 'est/average/worst cases), and finally explain what'
+  req1: diverges at char 15/1904 (plain 400 tok, dflash-b6 400 tok): plain[..]='The user wants implementations of f' vs 'The user wants me to implement four'
+  req2: diverges at char 646/1603 (plain 400 tok, dflash-b6 400 tok): plain[..]='regular BST (always insert as red to minimize reba' vs 'regular BST (always insert as RED to minimize reba'
+  req3: diverges at char 368/1589 (plain 400 tok, dflash-b6 400 tok): plain[..]='cture:\n- Introduction to DP\n- Key concepts (optima' vs 'cture:\n- Introduction to DP\n- Core concepts (optim'
+  req4: diverges at char 586/1550 (plain 400 tok, dflash-b6 400 tok): plain[..]=' in practice much faster with a good heuristic.\n- ' vs ' in practice much faster with good heuristics.\n- T'
+  req5: diverges at char 651/1704 (plain 400 tok, dflash-b6 400 tok): plain[..]='ds on the previous one, since coroutines are essen' vs 'ds on the previous one, since generators → corouti'
+  req6: diverges at char 184/1423 (plain 400 tok, dflash-b6 400 tok): plain[..]='ts.\n\nFive paragraphs on causes:\n1. Social/structur' vs 'ts.\n\nFive paragraphs on causes - I need to cover t'
+  req7: diverges at char 359/1708 (plain 400 tok, dflash-b6 400 tok): plain[..]="Character: A lighthouse keeper - I'll make him sol" vs 'Character: A lighthouse keeper, solitary, perhaps '
+mtp-k3: 0/8 requests bit-exact vs mtp-k1 greedy  <-- NOT EXACT
+  req0: diverges at char 267/1582 (plain 400 tok, mtp-k3 400 tok): plain[..]='est/average/worst cases), and then explain what st' vs 'est/average/worst cases), and finally explain what'
+  req1: diverges at char 15/1904 (plain 400 tok, mtp-k3 400 tok): plain[..]='The user wants implementations of f' vs 'The user wants me to implement four'
+  req2: diverges at char 748/1603 (plain 400 tok, mtp-k3 400 tok): plain[..]='ave been violated.\n\nThe cases for fixing violation' vs 'ave been violated.\n\nThe cases to fix after inserti'
+  req3: diverges at char 665/1589 (plain 400 tok, mtp-k3 400 tok): plain[..]='i / Climbing Stairs** - Simple 1D DP (introductory' vs 'i / Climbing Stairs** - Simplest, introduces memoi'
+  req4: diverges at char 106/1550 (plain 400 tok, mtp-k3 400 tok): plain[..]="tra's algorithm (shortest path)\n2. A* search (info" vs "tra's algorithm (shortest path with non-negative w"
+  req5: diverges at char 941/1704 (plain 400 tok, mtp-k3 400 tok): plain[..]=' yield-based coroutine syntax to illustrate the co' vs ' yield-based coroutine syntax for historical conte'
+  req6: diverges at char 184/1423 (plain 400 tok, mtp-k3 400 tok): plain[..]='ts.\n\nFive paragraphs on causes:\n1. Social/structur' vs 'ts.\n\nFive paragraphs on causes - I need to cover t'
+  req7: diverges at char 405/1708 (plain 400 tok, mtp-k3 400 tok): plain[..]=' solitary, weathered, perhaps a bit lonely\n- The m' vs ' solitary, weathered, perhaps lonely\n- The message'
+mtp-k5: 0/8 requests bit-exact vs mtp-k1 greedy  <-- NOT EXACT
+  req0: diverges at char 267/1582 (plain 400 tok, mtp-k5 400 tok): plain[..]='est/average/worst cases), and then explain what st' vs 'est/average/worst cases), and finally explain what'
+  req1: diverges at char 15/1904 (plain 400 tok, mtp-k5 400 tok): plain[..]='The user wants implementations of f' vs 'The user wants me to implement four'
+  req2: diverges at char 683/1603 (plain 400 tok, mtp-k5 400 tok): plain[..]='minimize rebalancing).\n2. Fix the red-black proper' vs 'minimize rebalancing).\n2. Fix violations:\n   - If '
+  req3: diverges at char 612/1589 (plain 400 tok, mtp-k5 400 tok): plain[..]='ick ones that are classic but distinct:\n1. **Fibon' vs 'ick ones that are classic but also illustrative:\n1'
+  req4: diverges at char 106/1550 (plain 400 tok, mtp-k5 400 tok): plain[..]="tra's algorithm (shortest path)\n2. A* search (info" vs "tra's algorithm (shortest path with non-negative w"
+  req5: diverges at char 651/1704 (plain 400 tok, mtp-k5 400 tok): plain[..]='ds on the previous one, since coroutines are essen' vs 'ds on the previous one, since generators → corouti'
+  req6: diverges at char 184/1423 (plain 400 tok, mtp-k5 400 tok): plain[..]='ts.\n\nFive paragraphs on causes:\n1. Social/structur' vs 'ts.\n\nFive paragraphs on causes - I need to cover t'
+  req7: diverges at char 405/1708 (plain 400 tok, mtp-k5 400 tok): plain[..]=' solitary, weathered, perhaps a bit lonely\n- The m' vs ' solitary, weathered, perhaps lonely\n- The message'
+08:33:55 1/1 done: /home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/bitexact-20260906/logs/20260906-080412-bitexact-summary.txt
+08:33:55 CHAIN5 DONE

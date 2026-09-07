@@ -1,0 +1,5 @@
+perf sweep 15:42:46: fw= tinygrad=701360b93 restores=1 reqs=8
+=== mtp-k3: MTP_K=3 ===
+mtp-k3 run 0 (warmup, startup 108s): faults=0 | 97 tok/s    accept: 0.67 (3.01 tok/step) 94 tok/s    accept: 0.64 (2.92 tok/step) 89 tok/s    accept: 0.58 (2.74 tok/step) 95 tok/s    accept: 0.65 (2.94 tok/step) 93 tok/s    accept: 0.62 (2.87 tok/step) 85 tok/s    accept: 0.53 (2.60 tok/step) 88 tok/s    accept: 0.57 (2.71 tok/step) 88 tok/s    accept: 0.57 (2.71 tok/step)
+mtp-k3 run 1 (restore, startup 68s): faults=0 | 97 tok/s    accept: 0.67 (3.01 tok/step) 94 tok/s    accept: 0.64 (2.92 tok/step) 89 tok/s    accept: 0.58 (2.74 tok/step) 95 tok/s    accept: 0.65 (2.94 tok/step) 93 tok/s    accept: 0.62 (2.87 tok/step) 85 tok/s    accept: 0.53 (2.60 tok/step) 88 tok/s    accept: 0.57 (2.71 tok/step) 88 tok/s    accept: 0.57 (2.71 tok/step)
+DONE 15:45:50

@@ -1,0 +1,25 @@
+=== control ===
+200 tokens in 75150.1 ms: 2.66 tok/s (mtp accepted 146/53 drafts)
+  (exit 0, 143s)
+
+=== nogemv ===
+  (exit 1, 91s)
+
+=== nochunk ===
+  (exit 1, 68s)
+
+=== k1 ===
+200 tokens in 71447.4 ms: 2.80 tok/s (mtp accepted 98/102 drafts)
+  (exit 0, 138s)
+
+=== nokvquant ===
+  (exit 1, 91s)
+
+--- summary ---
+=== control ===
+200 tokens in 75150.1 ms: 2.66 tok/s (mtp accepted 146/53 drafts)
+=== nogemv ===
+=== nochunk ===
+=== k1 ===
+200 tokens in 71447.4 ms: 2.80 tok/s (mtp accepted 98/102 drafts)
+=== nokvquant ===

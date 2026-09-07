@@ -1,0 +1,14 @@
+perf sweep 01:00:05: fw=tiny custom ed4e39b7-CLEAN tinygrad=a28eb6ff2 restores=2 reqs=8
+=== dflash-b8-sel: DFLASH=/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf DFLASH_BLOCK=8 DFLASH_EAGER_SEL=1 DFLASH_XCTX=0 ===
+dflash-b8-sel run 0: server did not come up
+dflash-b8-sel run 1: server did not come up
+dflash-b8-sel run 2: server did not come up
+=== dflash-b6-sel: DFLASH=/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf DFLASH_BLOCK=6 DFLASH_EAGER_SEL=1 DFLASH_XCTX=0 ===
+dflash-b6-sel run 0: server did not come up
+dflash-b6-sel run 1: server did not come up
+dflash-b6-sel run 2: server did not come up
+=== dflash-b8-nosel: DFLASH=/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf DFLASH_BLOCK=8 DFLASH_EAGER_SEL=0 DFLASH_XCTX=0 ===
+dflash-b8-nosel run 0: server did not come up
+dflash-b8-nosel run 1: server did not come up
+dflash-b8-nosel run 2: server did not come up
+DONE 01:02:08

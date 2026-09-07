@@ -1,0 +1,23 @@
+vocab=248320 rank=256 top_k=16 dim=5120 K=5 device=AMD
+tables: (248320, 256) (248320, 256) (256, 5120)
+trial 0: ref=[200, 221751, 57642, 110070, 22869]
+         fused(float hp)=[200, 221751, 57642, 110070, 22869] OK
+         fused(gemv hp)=[200, 221751, 57642, 110070, 22869] same
+         select_gpu=[200, 221751, 57642, 110070, 22869] same  [1246.9 ms first call]
+trial 1: ref=[200, 217734, 43087, 231989, 123283]
+         fused(float hp)=[200, 217734, 43087, 231989, 123283] OK
+         fused(gemv hp)=[200, 217734, 43087, 231989, 123283] same
+         select_gpu=[200, 217734, 43087, 231989, 123283] same  [62.2 ms first call]
+trial 2: ref=[100, 227587, 62123, 60756, 162018]
+         fused(float hp)=[100, 227587, 62123, 60756, 162018] OK
+         fused(gemv hp)=[100, 227587, 62123, 60756, 162018] same
+         select_gpu=[100, 227587, 62123, 60756, 162018] same  [62.5 ms first call]
+trial 3: ref=[200, 219319, 142006, 129456, 197920]
+         fused(float hp)=[200, 219319, 142006, 129456, 197920] OK
+         fused(gemv hp)=[200, 219319, 142006, 129456, 197920] same
+         select_gpu=[200, 219319, 142006, 129456, 197920] same  [62.2 ms first call]
+trial 4: ref=[100, 239081, 189210, 59115, 241889]
+         fused(float hp)=[100, 239081, 189210, 59115, 241889] OK
+         fused(gemv hp)=[100, 239081, 189210, 59115, 241889] same
+         select_gpu=[100, 239081, 189210, 59115, 241889] same  [62.9 ms first call]
+5/5 trials bit-match the float reference (fused kernels with float hp)

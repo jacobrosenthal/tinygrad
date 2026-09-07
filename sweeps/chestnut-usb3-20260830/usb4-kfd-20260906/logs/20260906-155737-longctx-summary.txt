@@ -1,0 +1,3 @@
+longctx 15:58:40: ATTN_QT=8 CH=256 server up in 60s
+words=48000 wall=117s | in:    0 +55064    prefill: 496 tok/s    gen:  49 tok/s    accept: 0.25 (1.76 tok/step)
+DONE 16:00:38

@@ -1,0 +1,66 @@
+64 blocks, dim 5120; teacher [760, 1156, 6587, 728, 310, 4072, 2943, 11088]
+block  0 GDN  EXACT
+block  1 GDN  EXACT
+block  2 GDN  EXACT
+block  4 GDN  diff max 5.960e-08 rel 1.93e-09 n!= 3676/5120
+block  5 GDN  diff max 7.668e-04 rel 2.38e-05 n!= 5120/5120
+block  6 GDN  diff max 4.032e-03 rel 1.21e-04 n!= 5120/5120
+block  7 ATTN diff max 1.033e-01 rel 2.78e-03 n!= 5120/5120
+block  8 GDN  diff max 5.762e-02 rel 1.45e-03 n!= 5120/5120
+block  9 GDN  diff max 1.466e-02 rel 3.34e-04 n!= 5120/5120
+block 10 GDN  diff max 3.882e-02 rel 8.59e-04 n!= 5120/5120
+block 11 ATTN diff max 1.220e-02 rel 2.42e-04 n!= 5120/5120
+block 12 GDN  diff max 9.036e-02 rel 1.67e-03 n!= 5120/5120
+block 13 GDN  diff max 9.932e-02 rel 1.80e-03 n!= 5120/5120
+block 14 GDN  diff max 7.407e-02 rel 1.32e-03 n!= 5120/5120
+block 15 ATTN diff max 7.866e-02 rel 1.34e-03 n!= 5120/5120
+block 16 GDN  diff max 5.767e-02 rel 9.47e-04 n!= 5120/5120
+block 17 GDN  diff max 2.317e-02 rel 3.85e-04 n!= 5120/5120
+block 18 GDN  diff max 2.758e-02 rel 4.41e-04 n!= 5120/5120
+block 19 ATTN diff max 3.004e-02 rel 5.22e-04 n!= 5120/5120
+block 20 GDN  diff max 4.172e-02 rel 7.96e-04 n!= 5120/5120
+block 21 GDN  diff max 1.089e-01 rel 1.99e-03 n!= 5120/5120
+block 22 GDN  diff max 1.823e-01 rel 3.24e-03 n!= 5120/5120
+block 23 ATTN diff max 1.195e-01 rel 2.13e-03 n!= 5120/5120
+block 24 GDN  diff max 1.718e-01 rel 2.89e-03 n!= 5120/5120
+block 25 GDN  diff max 1.734e-01 rel 2.84e-03 n!= 5120/5120
+block 26 GDN  diff max 1.347e-01 rel 1.95e-03 n!= 5120/5120
+block 27 ATTN diff max 2.039e-01 rel 3.18e-03 n!= 5120/5120
+block 28 GDN  diff max 8.882e-02 rel 1.40e-03 n!= 5120/5120
+block 29 GDN  diff max 1.322e-01 rel 2.10e-03 n!= 5120/5120
+block 30 GDN  diff max 1.659e-01 rel 2.64e-03 n!= 5120/5120
+block 31 ATTN diff max 1.543e-01 rel 2.46e-03 n!= 5120/5120
+block 32 GDN  diff max 1.013e-01 rel 1.74e-03 n!= 5120/5120
+block 33 GDN  diff max 8.173e-02 rel 1.47e-03 n!= 5120/5120
+block 34 GDN  diff max 1.047e-01 rel 1.94e-03 n!= 5120/5120
+block 35 ATTN diff max 3.748e-01 rel 7.49e-03 n!= 5120/5120
+block 36 GDN  diff max 2.864e-01 rel 5.52e-03 n!= 5120/5120
+block 37 GDN  diff max 2.782e-01 rel 5.09e-03 n!= 5120/5120
+block 38 GDN  diff max 3.434e-01 rel 5.84e-03 n!= 5120/5120
+block 39 ATTN diff max 4.069e-01 rel 7.57e-03 n!= 5120/5120
+block 40 GDN  diff max 4.412e-01 rel 8.37e-03 n!= 5120/5120
+block 41 GDN  diff max 3.624e-01 rel 6.15e-03 n!= 5120/5120
+block 42 GDN  diff max 1.266e-01 rel 1.75e-03 n!= 5120/5120
+block 43 ATTN diff max 3.736e-01 rel 5.36e-03 n!= 5120/5120
+block 44 GDN  diff max 3.567e-01 rel 5.01e-03 n!= 5120/5120
+block 45 GDN  diff max 3.751e-01 rel 5.13e-03 n!= 5120/5120
+block 46 GDN  diff max 3.633e-01 rel 4.61e-03 n!= 5120/5120
+block 47 ATTN diff max 2.479e-01 rel 3.31e-03 n!= 5120/5120
+block 48 GDN  diff max 3.049e-01 rel 4.42e-03 n!= 5120/5120
+block 49 GDN  diff max 3.814e-01 rel 5.41e-03 n!= 5120/5120
+block 50 GDN  diff max 8.048e-01 rel 1.03e-02 n!= 5120/5120
+block 51 ATTN diff max 8.687e-01 rel 1.16e-02 n!= 5120/5120
+block 52 GDN  diff max 9.285e-01 rel 1.22e-02 n!= 5120/5120
+block 53 GDN  diff max 1.011e+00 rel 1.32e-02 n!= 5120/5120
+block 54 GDN  diff max 1.068e+00 rel 1.21e-02 n!= 5120/5120
+block 55 ATTN diff max 1.074e+00 rel 1.64e-02 n!= 5120/5120
+block 56 GDN  diff max 1.108e+00 rel 1.52e-02 n!= 5120/5120
+block 57 GDN  diff max 1.449e+00 rel 1.64e-02 n!= 5120/5120
+block 58 GDN  diff max 1.152e+00 rel 1.00e-02 n!= 5120/5120
+block 59 ATTN diff max 1.320e+00 rel 1.36e-02 n!= 5120/5120
+block 60 GDN  diff max 1.332e+00 rel 9.41e-03 n!= 5120/5120
+block 61 GDN  diff max 1.264e+00 rel 8.52e-03 n!= 5120/5120
+block 62 GDN  diff max 1.258e+00 rel 7.71e-03 n!= 5120/5120
+block 63 ATTN diff max 3.995e+00 rel 4.88e-02 n!= 5120/5120
+logits: seq top [248046, 27355] (18.3922, margin 2.1549) | chunk top [248046, 27355] (18.7616, margin 2.4629) | max |dlogit| 3.695e-01
+verdict: first difference at block 4 (GDN), 60 blocks differ

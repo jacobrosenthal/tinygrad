@@ -1,0 +1,6 @@
+test_graph_survives_scratch_regrowth (test.test_scratch_regrow.TestScratchRegrow.test_graph_survives_scratch_regrowth) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.104s
+
+OK

@@ -1,0 +1,12 @@
+DROP DETECTOR (unfixed firmware, serialize OFF, spin 0, USB_VERIFY_WRITES=1) 20:23:41
+=== RESTART 1 20:23:41 ===
+SERVED run 1 20:33:05  drops-so-far=0
+run 1 req 1 20:33:15  drops=0  gen:  71 tok/s
+run 1 req 2 20:33:25  drops=0  gen:  60 tok/s
+run 1 req 3 20:33:34  drops=0  gen:  61 tok/s
+run 1 req 4 20:33:44  drops=0  gen:  58 tok/s
+run 1 req 5 20:33:53  drops=0  gen:  61 tok/s
+run 1 req 6 20:34:02  drops=0  gen:  60 tok/s
+run 1 req 7 20:34:12  drops=0  gen:  61 tok/s
+run 1 req 8 20:34:22  drops=0  gen:  57 tok/s
+=== RESTART 2 20:34:22 ===

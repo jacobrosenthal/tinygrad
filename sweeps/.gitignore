@@ -1,2 +1,7 @@
 *.server.log
 *.bak
+.venv/
+# experiment records: re-include what the root .gitignore drops
+!*.log
+!*.txt
+!*.pkl

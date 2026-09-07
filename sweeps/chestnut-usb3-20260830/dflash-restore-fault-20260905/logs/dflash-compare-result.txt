@@ -1,0 +1,4 @@
+DFlash-vs-MTP clean timing (MTP baseline: 80 tok/s @ 3.08). 18:46:33
+XCTX=0: PARSEFAIL Expecting value: line 2 column 1 (char 1) | faults=9274 | /v1/chat/completions  --  prep:    0 ms  --  in:    0 +   29  --  prefill:  10 tok/s  --  === hang report for AMD: Wait timeout: 30000 ms! (the signal is not set to 37976, but 37972)
+XCTX=16: PARSEFAIL Expecting value: line 2 column 1 (char 1) | faults=9302 | /v1/chat/completions  --  prep:    0 ms  --  in:    0 +   29  --  prefill:  10 tok/s  --  === hang report for AMD: Wait timeout: 30000 ms! (the signal is not set to 37976, but 37972)
+DONE 18:52:03

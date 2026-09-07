@@ -1,0 +1,12 @@
+loaded: 17.61 GB used
+prompt 23 tokens, teacher [760, 1156, 6587, 728, 310, 4072, 2943, 11088], prefill chunk 256, blocks 64, gdn blocks 48
+prefill done, 18.27 GB used
+seq step 0: token 760 at 23: top1 248046 (22.8058)
+seq step 1: token 1156 at 24: top1 248046 (26.6322)
+seq step 2: token 6587 at 25: top1 248046 (24.6082)
+seq step 3: token 728 at 26: top1 248046 (25.2422)
+seq step 4: token 310 at 27: top1 248046 (22.6932)
+seq step 5: token 4072 at 28: top1 248046 (23.4908)
+seq step 6: token 2943 at 29: top1 248046 (20.1513)
+seq step 7: token 11088 at 30: top1 248046 (18.3922)
+saved /home/jacob/z/tinygrad/sweeps/chestnut-usb3-20260830/bitexact-20260906/logs/numerics-20260906-111201/seq-8.npz: 64 block rows (last position), logits (248320,)

@@ -1,0 +1,2 @@
+perf sweep 10:33:48: fw= tinygrad=ef42a3dc3 restores=1 reqs=8
+=== k3-tg16-old: MTP_K=3 GEMV_TG=16 ===

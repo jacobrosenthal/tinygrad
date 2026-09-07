@@ -1,0 +1,672 @@
+am usb:2-9: product string: 'custom ed4e39b7-CLEAN'
+opened device CPU from pid:81048
+am usb:2-9: Malformed state. Issuing a full reset.
+am usb:2-9: mode1 reset
+am usb:2-9: AM_SOC initialized
+am usb:2-9: AM_GMC initialized
+am usb:2-9: AM_IH initialized
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_KDB
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_KDB
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_SYS_DRV
+am usb:2-9: loading sos component: PSP_FW_TYPE_PSP_SOS
+am usb:2-9: loading fw: GFX_FW_TYPE_SMU
+am usb:2-9: loading fw: GFX_FW_TYPE_SDMA_UCODE_TH1
+am usb:2-9: loading fw: GFX_FW_TYPE_SDMA_UCODE_TH0
+am usb:2-9: loading fw: GFX_FW_TYPE_RS64_MEC
+am usb:2-9: loading fw: GFX_FW_TYPE_RS64_MEC_P0_STACK
+am usb:2-9: loading fw: GFX_FW_TYPE_IMU_I
+am usb:2-9: loading fw: GFX_FW_TYPE_IMU_D
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_IRAM
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_DRAM_BOOT
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_P
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_V
+am usb:2-9: loading fw: GFX_FW_TYPE_RLC_G
+am usb:2-9: AM_PSP initialized
+am usb:2-9: AM_SMU initialized
+am usb:2-9: AM_GFX initialized
+am usb:2-9: AM_SDMA initialized
+am usb:2-9: boot done
+AMDDevice: opening 0 with target (11, 0, 0) arch gfx1100
+opened device AMD from pid:81048
+opened device DISK:/home/jacob/models/Qwen3.8-27B-UD-Q4_K_XL.gguf from pid:81048
+[32m*** AMD        1[0m [33mcopy   16.34 GB,     AMD <- DISK:/h[0m            arg  2 mem  17.55 GB tm [33m    45.67s [0m/ 45668.74ms (      0 GFLOPS    0|0      GB/s)
+opened device DISK:/home/jacob/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf from pid:81048
+[32m*** AMD        2[0m [33mcopy    1.05 GB,     AMD <- DISK:/h[0m            arg  2 mem  18.68 GB tm [33m  2962.28ms[0m/ 48631.02ms (      0 GFLOPS    0|0      GB/s)
+llm cache: uploaded weights in 50377.94 ms
+opened device PYTHON from pid:81048
+llm cache: unpickled model in 8772.89 ms
+scheduled   192 kernels in   143.45 ms | CACHE MISS 66da3371 |   66516 uops in cache | <frozen runpy>:88
+compiling:   0%|                                          | 0/4 [00:00<?, ?it/s]compiling E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                              :  25%|▎| 1/4 [00:00<00:00,  3.60it/s]compiling E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                              :  50%|▌| 2/4 [00:00<00:00,  7.05it/s]compiling E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                             :  75%|▊| 3/4 [00:00<00:00,  8.88it/s]compiling E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                             : 100%|█| 4/4 [00:00<00:00, 11.62it/s]compiling E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                             : 100%|█| 4/4 [00:00<00:00, 11.62it/s]
+[32m*** AMD        3[0m E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.07 GB tm      4.68us/ 48631.03ms (      0 GFLOPS   26|26     GB/s)
+[32m*** AMD        4[0m E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.07 GB tm      3.92us/ 48631.03ms (      0 GFLOPS  802|802    GB/s)
+*** AMD        5 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.07 GB tm      3.24us/ 48631.03ms (      0 GFLOPS   38|38     GB/s)
+*** AMD        6 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.07 GB tm      4.04us/ 48631.04ms (      0 GFLOPS  779|779    GB/s)
+*** AMD        7 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.07 GB tm      3.32us/ 48631.04ms (      0 GFLOPS   37|37     GB/s)
+*** AMD        8 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.08 GB tm      4.16us/ 48631.04ms (      0 GFLOPS  756|756    GB/s)
+*** AMD        9 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.08 GB tm      3.32us/ 48631.05ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       10 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.08 GB tm      4.04us/ 48631.05ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       11 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.08 GB tm      3.24us/ 48631.05ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       12 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.08 GB tm      4.08us/ 48631.06ms (      0 GFLOPS  771|771    GB/s)
+*** AMD       13 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.08 GB tm      3.28us/ 48631.06ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       14 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.09 GB tm      4.00us/ 48631.07ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       15 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.09 GB tm      3.24us/ 48631.07ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       16 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.09 GB tm      4.16us/ 48631.07ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       17 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.09 GB tm      3.24us/ 48631.08ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       18 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.09 GB tm      4.04us/ 48631.08ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       19 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.09 GB tm      3.24us/ 48631.08ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       20 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.10 GB tm      4.12us/ 48631.09ms (      0 GFLOPS  764|764    GB/s)
+*** AMD       21 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.10 GB tm      3.24us/ 48631.09ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       22 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.10 GB tm      4.00us/ 48631.10ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       23 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.10 GB tm      3.28us/ 48631.10ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       24 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.10 GB tm      4.12us/ 48631.10ms (      0 GFLOPS  764|764    GB/s)
+*** AMD       25 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.10 GB tm      3.20us/ 48631.11ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       26 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.11 GB tm      4.00us/ 48631.11ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       27 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.11 GB tm      3.28us/ 48631.11ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       28 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.11 GB tm      4.12us/ 48631.12ms (      0 GFLOPS  764|764    GB/s)
+*** AMD       29 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.11 GB tm      3.28us/ 48631.12ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       30 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.11 GB tm      4.04us/ 48631.12ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       31 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.11 GB tm      3.28us/ 48631.13ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       32 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.12 GB tm      4.16us/ 48631.13ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       33 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.12 GB tm      3.24us/ 48631.14ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       34 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.12 GB tm      3.96us/ 48631.14ms (      0 GFLOPS  794|794    GB/s)
+*** AMD       35 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.12 GB tm      3.32us/ 48631.14ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       36 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.12 GB tm      4.20us/ 48631.15ms (      0 GFLOPS  749|749    GB/s)
+*** AMD       37 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.12 GB tm      3.32us/ 48631.15ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       38 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.13 GB tm      3.96us/ 48631.15ms (      0 GFLOPS  794|794    GB/s)
+*** AMD       39 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.13 GB tm      3.24us/ 48631.16ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       40 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.13 GB tm      4.12us/ 48631.16ms (      0 GFLOPS  764|764    GB/s)
+*** AMD       41 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.13 GB tm      3.24us/ 48631.16ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       42 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.13 GB tm      3.96us/ 48631.17ms (      0 GFLOPS  794|794    GB/s)
+*** AMD       43 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.13 GB tm      3.24us/ 48631.17ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       44 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.14 GB tm      4.20us/ 48631.18ms (      0 GFLOPS  749|749    GB/s)
+*** AMD       45 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.14 GB tm      3.28us/ 48631.18ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       46 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.14 GB tm      4.08us/ 48631.18ms (      0 GFLOPS  771|771    GB/s)
+*** AMD       47 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.14 GB tm      3.24us/ 48631.19ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       48 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.14 GB tm      4.16us/ 48631.19ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       49 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.14 GB tm      3.28us/ 48631.19ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       50 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.15 GB tm      4.04us/ 48631.20ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       51 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.15 GB tm      3.28us/ 48631.20ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       52 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.15 GB tm      4.12us/ 48631.21ms (      0 GFLOPS  764|764    GB/s)
+*** AMD       53 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.15 GB tm      3.20us/ 48631.21ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       54 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.15 GB tm      3.96us/ 48631.21ms (      0 GFLOPS  794|794    GB/s)
+*** AMD       55 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.15 GB tm      3.24us/ 48631.22ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       56 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.16 GB tm      4.16us/ 48631.22ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       57 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.16 GB tm      3.28us/ 48631.22ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       58 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.16 GB tm      4.04us/ 48631.23ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       59 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.16 GB tm      3.28us/ 48631.23ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       60 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.16 GB tm      4.16us/ 48631.23ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       61 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.16 GB tm      3.28us/ 48631.24ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       62 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.17 GB tm      4.04us/ 48631.24ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       63 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.17 GB tm      3.28us/ 48631.25ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       64 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.17 GB tm      4.20us/ 48631.25ms (      0 GFLOPS  749|749    GB/s)
+*** AMD       65 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.17 GB tm      3.28us/ 48631.25ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       66 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.17 GB tm      4.04us/ 48631.26ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       67 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.17 GB tm      3.28us/ 48631.26ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       68 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.17 GB tm      4.16us/ 48631.26ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       69 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.18 GB tm      3.20us/ 48631.27ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       70 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.18 GB tm      4.00us/ 48631.27ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       71 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.18 GB tm      3.24us/ 48631.27ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       72 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.18 GB tm      4.16us/ 48631.28ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       73 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.18 GB tm      3.24us/ 48631.28ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       74 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.18 GB tm      4.00us/ 48631.29ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       75 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.18 GB tm      3.24us/ 48631.29ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       76 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.19 GB tm      4.16us/ 48631.29ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       77 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.19 GB tm      3.24us/ 48631.30ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       78 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.19 GB tm      4.04us/ 48631.30ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       79 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.19 GB tm      3.28us/ 48631.30ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       80 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.19 GB tm      4.20us/ 48631.31ms (      0 GFLOPS  749|749    GB/s)
+*** AMD       81 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.19 GB tm      3.24us/ 48631.31ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       82 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.20 GB tm      4.04us/ 48631.32ms (      0 GFLOPS  779|779    GB/s)
+*** AMD       83 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.20 GB tm      3.24us/ 48631.32ms (      0 GFLOPS   38|38     GB/s)
+*** AMD       84 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.20 GB tm      4.12us/ 48631.32ms (      0 GFLOPS  764|764    GB/s)
+*** AMD       85 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.20 GB tm      3.28us/ 48631.33ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       86 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.20 GB tm      4.00us/ 48631.33ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       87 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.20 GB tm      3.28us/ 48631.33ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       88 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.21 GB tm      4.20us/ 48631.34ms (      0 GFLOPS  749|749    GB/s)
+*** AMD       89 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.21 GB tm      3.28us/ 48631.34ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       90 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.21 GB tm      4.00us/ 48631.35ms (      0 GFLOPS  786|786    GB/s)
+*** AMD       91 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.21 GB tm      3.28us/ 48631.35ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       92 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.21 GB tm      4.16us/ 48631.35ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       93 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.21 GB tm      3.28us/ 48631.36ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       94 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.22 GB tm      4.12us/ 48631.36ms (      0 GFLOPS  764|764    GB/s)
+*** AMD       95 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.22 GB tm      3.28us/ 48631.36ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       96 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.22 GB tm      4.16us/ 48631.37ms (      0 GFLOPS  756|756    GB/s)
+*** AMD       97 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  1 mem  19.22 GB tm      3.28us/ 48631.37ms (      0 GFLOPS   37|37     GB/s)
+*** AMD       98 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  1 mem  19.22 GB tm      4.04us/ 48631.37ms (      0 GFLOPS  779|779    GB/s)
+[32m*** AMD       99[0m E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.22 GB tm      3.92us/ 48631.38ms (      0 GFLOPS   63|63     GB/s)
+[32m*** AMD      100[0m E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.23 GB tm      9.20us/ 48631.39ms (      0 GFLOPS  684|684    GB/s)
+*** AMD      101 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.23 GB tm      3.68us/ 48631.39ms (      0 GFLOPS   67|67     GB/s)
+*** AMD      102 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.23 GB tm      8.84us/ 48631.40ms (      0 GFLOPS  712|712    GB/s)
+*** AMD      103 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.23 GB tm      3.80us/ 48631.40ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      104 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.23 GB tm      9.08us/ 48631.41ms (      0 GFLOPS  693|693    GB/s)
+*** AMD      105 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.23 GB tm      3.84us/ 48631.42ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      106 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.24 GB tm      8.84us/ 48631.43ms (      0 GFLOPS  712|712    GB/s)
+*** AMD      107 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.24 GB tm      3.88us/ 48631.43ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      108 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.24 GB tm      9.04us/ 48631.44ms (      0 GFLOPS  696|696    GB/s)
+*** AMD      109 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.24 GB tm      3.80us/ 48631.44ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      110 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.24 GB tm     10.56us/ 48631.45ms (      0 GFLOPS  596|596    GB/s)
+*** AMD      111 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.24 GB tm      3.96us/ 48631.46ms (      0 GFLOPS   62|62     GB/s)
+*** AMD      112 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.25 GB tm     10.28us/ 48631.47ms (      0 GFLOPS  612|612    GB/s)
+*** AMD      113 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.25 GB tm      3.84us/ 48631.47ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      114 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.25 GB tm      9.20us/ 48631.48ms (      0 GFLOPS  684|684    GB/s)
+*** AMD      115 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.25 GB tm      3.88us/ 48631.48ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      116 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.25 GB tm     11.40us/ 48631.50ms (      0 GFLOPS  552|552    GB/s)
+*** AMD      117 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.25 GB tm      3.80us/ 48631.50ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      118 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.26 GB tm     10.80us/ 48631.51ms (      0 GFLOPS  583|583    GB/s)
+*** AMD      119 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.26 GB tm      3.84us/ 48631.51ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      120 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.26 GB tm      9.72us/ 48631.52ms (      0 GFLOPS  647|647    GB/s)
+*** AMD      121 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.26 GB tm      3.96us/ 48631.53ms (      0 GFLOPS   62|62     GB/s)
+*** AMD      122 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.26 GB tm     11.36us/ 48631.54ms (      0 GFLOPS  554|554    GB/s)
+*** AMD      123 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.26 GB tm      3.80us/ 48631.54ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      124 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.27 GB tm     10.48us/ 48631.55ms (      0 GFLOPS  600|600    GB/s)
+*** AMD      125 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.27 GB tm      3.88us/ 48631.56ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      126 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.27 GB tm     10.88us/ 48631.57ms (      0 GFLOPS  578|578    GB/s)
+*** AMD      127 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.27 GB tm      3.92us/ 48631.57ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      128 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.27 GB tm      8.96us/ 48631.58ms (      0 GFLOPS  702|702    GB/s)
+*** AMD      129 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.27 GB tm      3.80us/ 48631.59ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      130 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.28 GB tm      9.16us/ 48631.59ms (      0 GFLOPS  687|687    GB/s)
+*** AMD      131 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.28 GB tm      3.84us/ 48631.60ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      132 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.28 GB tm     10.48us/ 48631.61ms (      0 GFLOPS  600|600    GB/s)
+*** AMD      133 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.28 GB tm      3.88us/ 48631.61ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      134 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.28 GB tm      8.28us/ 48631.62ms (      0 GFLOPS  760|760    GB/s)
+*** AMD      135 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.28 GB tm      3.88us/ 48631.62ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      136 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.29 GB tm      8.20us/ 48631.63ms (      0 GFLOPS  767|767    GB/s)
+*** AMD      137 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.29 GB tm      3.76us/ 48631.64ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      138 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.29 GB tm      8.40us/ 48631.64ms (      0 GFLOPS  749|749    GB/s)
+*** AMD      139 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.29 GB tm      3.88us/ 48631.65ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      140 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.29 GB tm      8.08us/ 48631.66ms (      0 GFLOPS  779|779    GB/s)
+*** AMD      141 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.29 GB tm      3.80us/ 48631.66ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      142 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.30 GB tm      8.60us/ 48631.67ms (      0 GFLOPS  732|732    GB/s)
+*** AMD      143 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.30 GB tm      3.80us/ 48631.67ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      144 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.30 GB tm      8.96us/ 48631.68ms (      0 GFLOPS  702|702    GB/s)
+*** AMD      145 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.30 GB tm      3.80us/ 48631.69ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      146 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.30 GB tm      8.12us/ 48631.69ms (      0 GFLOPS  775|775    GB/s)
+*** AMD      147 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.30 GB tm      3.88us/ 48631.70ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      148 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.31 GB tm      8.16us/ 48631.71ms (      0 GFLOPS  771|771    GB/s)
+*** AMD      149 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.31 GB tm      3.88us/ 48631.71ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      150 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.31 GB tm      8.52us/ 48631.72ms (      0 GFLOPS  738|738    GB/s)
+*** AMD      151 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.31 GB tm      3.84us/ 48631.72ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      152 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.31 GB tm      8.12us/ 48631.73ms (      0 GFLOPS  775|775    GB/s)
+*** AMD      153 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.31 GB tm      4.08us/ 48631.73ms (      0 GFLOPS   60|60     GB/s)
+*** AMD      154 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.32 GB tm      8.36us/ 48631.74ms (      0 GFLOPS  753|753    GB/s)
+*** AMD      155 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.32 GB tm      3.84us/ 48631.75ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      156 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.32 GB tm      9.08us/ 48631.76ms (      0 GFLOPS  693|693    GB/s)
+*** AMD      157 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.32 GB tm      3.88us/ 48631.76ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      158 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.32 GB tm      8.12us/ 48631.77ms (      0 GFLOPS  775|775    GB/s)
+*** AMD      159 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.32 GB tm      3.96us/ 48631.77ms (      0 GFLOPS   62|62     GB/s)
+*** AMD      160 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.33 GB tm      8.72us/ 48631.78ms (      0 GFLOPS  721|721    GB/s)
+*** AMD      161 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.33 GB tm      3.84us/ 48631.78ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      162 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.33 GB tm      8.72us/ 48631.79ms (      0 GFLOPS  721|721    GB/s)
+*** AMD      163 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.33 GB tm      3.80us/ 48631.80ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      164 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.33 GB tm      8.92us/ 48631.81ms (      0 GFLOPS  705|705    GB/s)
+*** AMD      165 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.33 GB tm      3.80us/ 48631.81ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      166 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.34 GB tm      8.20us/ 48631.82ms (      0 GFLOPS  767|767    GB/s)
+*** AMD      167 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.34 GB tm      3.88us/ 48631.82ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      168 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.34 GB tm      8.96us/ 48631.83ms (      0 GFLOPS  702|702    GB/s)
+*** AMD      169 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.34 GB tm      3.84us/ 48631.83ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      170 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.34 GB tm      8.68us/ 48631.84ms (      0 GFLOPS  725|725    GB/s)
+*** AMD      171 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.34 GB tm      3.84us/ 48631.85ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      172 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.34 GB tm      8.92us/ 48631.86ms (      0 GFLOPS  705|705    GB/s)
+*** AMD      173 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.34 GB tm      3.84us/ 48631.86ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      174 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.35 GB tm      8.64us/ 48631.87ms (      0 GFLOPS  728|728    GB/s)
+*** AMD      175 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.35 GB tm      3.88us/ 48631.87ms (      0 GFLOPS   63|63     GB/s)
+*** AMD      176 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.35 GB tm      9.00us/ 48631.88ms (      0 GFLOPS  699|699    GB/s)
+*** AMD      177 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.35 GB tm      3.84us/ 48631.88ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      178 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.35 GB tm      8.60us/ 48631.89ms (      0 GFLOPS  732|732    GB/s)
+*** AMD      179 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.35 GB tm      3.76us/ 48631.90ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      180 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.36 GB tm      8.56us/ 48631.91ms (      0 GFLOPS  735|735    GB/s)
+*** AMD      181 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.36 GB tm      3.84us/ 48631.91ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      182 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.36 GB tm      8.48us/ 48631.92ms (      0 GFLOPS  742|742    GB/s)
+*** AMD      183 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.36 GB tm      3.80us/ 48631.92ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      184 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.36 GB tm      8.92us/ 48631.93ms (      0 GFLOPS  705|705    GB/s)
+*** AMD      185 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.36 GB tm      3.80us/ 48631.93ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      186 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.37 GB tm      8.72us/ 48631.94ms (      0 GFLOPS  721|721    GB/s)
+*** AMD      187 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.37 GB tm      3.80us/ 48631.95ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      188 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.37 GB tm      8.32us/ 48631.96ms (      0 GFLOPS  756|756    GB/s)
+*** AMD      189 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.37 GB tm      3.80us/ 48631.96ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      190 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.37 GB tm      8.12us/ 48631.97ms (      0 GFLOPS  775|775    GB/s)
+*** AMD      191 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.37 GB tm      3.84us/ 48631.97ms (      0 GFLOPS   64|64     GB/s)
+*** AMD      192 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.38 GB tm      9.00us/ 48631.98ms (      0 GFLOPS  699|699    GB/s)
+*** AMD      193 E[90m_[0m[34m320[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                     arg  2 mem  19.38 GB tm      3.80us/ 48631.98ms (      0 GFLOPS   65|65     GB/s)
+*** AMD      194 E[90m_[0m[34m8192[0m[90m_[0m[36m32[0m[90m_[0m[33m3[0m                                    arg  2 mem  19.38 GB tm      7.80us/ 48631.99ms (      0 GFLOPS  807|807    GB/s)
+llm cache: loaded warmed-up model from /home/jacob/.cache/tinygrad/llm/f520608d0b15e154.pkl
+using model "Qwen3.8-27B" with 19,193,626,236 bytes and 66,795,492,623 params, max context 8192 on AMD
+scheduled     2 kernels in     3.56 ms | CACHE MISS c4dbb478 |   66181 uops in cache | <frozen runpy>:88
+*** started server on http://127.0.0.1:8080 at 113.64 s
+/v1/chat/completions  [90m--[0m  prep:    0 ms  [90m--[0m  in:[32m    0[0m +   29  [90m--[0m  prefill:  10 tok/s  [90m--[0m  === hang report for AMD: Wait timeout: 30000 ms! (the signal is not set to 38092, but 38091)
+timeline: expected 38092, completed 38091
+  compute_queue: read_ptr=1356 write_ptr=25932 put_value=25932
+  sdma_queue: read_ptr=2903760 write_ptr=2903760 put_value=2903760
+  pending timeline 38092: graph of 323 calls, var_vals={'start_pos': 29}
+    (start with HANG_DEBUG=1 to record which kernel of the graph did not finish)
+am usb:2-9: IH (0x8/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba784, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 1, 'walker_error': 0, 'permission_faults': 1, 'mapping_error': 0, 'cid': 8, 'rw': 1, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x2000ba784000
+am usb:2-9: FAULTMAP fault_va=0x2000ba784000 n_used_blocks=2018
+am usb:2-9: FAULTMAP  overrun-src va=0x2000b0000000 size=0x7e00000(132.12MB) end=0x2000b7e00000 (fault +0x2984000 past end)
+am usb:2-9: FAULTMAP  next-above va=0x2000c8000000 size=0x6400000(104.86MB) (gap 0xd87c000)
+am usb:2-9: IH (0x10/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba763, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x18/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba769, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x20/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba770, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x28/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba776, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x30/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a63, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x38/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba783, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x40/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a50, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x48/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a56, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x50/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba77d, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x58/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a5d, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x60/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a64, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x68/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbb490, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x70/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d3d, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x78/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbc1b6, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x80/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d44, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x88/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8003, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x90/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbb496, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x98/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a43, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xa0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8009, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xa8/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a49, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xb0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d23, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xb8/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbc1a3, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xc0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbb483, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xc8/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d29, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xd0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbc1a9, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xd8/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbb489, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xe0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8010, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xe8/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8016, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xf0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d30, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0xf8/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d36, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x100/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb801d, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x108/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d43, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x110/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8024, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x118/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8023, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x120/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbc1b0, 0x22, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x128/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba770, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x130/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba769, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x138/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=48 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x8c, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x140/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba776, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x148/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba763, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x150/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba783, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x158/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=48 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x8e, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x160/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xba77d, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x168/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=48 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x8a, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x170/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a63, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x178/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=48 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x88, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x180/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a5d, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x188/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=48 vmid=0(0) pasid=0 node=0 ctx=[0x4400000, 0x81, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x190/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbb490, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x198/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=32 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x83, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x1a0/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=48 vmid=0(0) pasid=0 node=0 ctx=[0x4400000, 0x83, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x1a8/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=64 vmid=0(0) pasid=0 node=0 ctx=[0x4400000, 0x83, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x1b0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d3d, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1b8/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=32 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x81, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x1c0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbb496, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1c8/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=16 vmid=0(0) pasid=0 node=0 ctx=[0x4400000, 0x80, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x1d0/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=64 vmid=0(0) pasid=0 node=0 ctx=[0x4400000, 0x81, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x1d8/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a43, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1e0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a50, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1e8/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=32 vmid=0(0) pasid=0 node=0 ctx=[0x4400000, 0x8b, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x1f0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a56, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x1f8/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb9a49, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x200/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbc1a3, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x208/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=32 vmid=0(0) pasid=0 node=0 ctx=[0x4400000, 0x8f, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x210/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=80 vmid=0(0) pasid=0 node=0 ctx=[0x4400000, 0x8c, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x218/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbb483, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x220/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=32 vmid=0(0) pasid=0 node=0 ctx=[0x4400000, 0x8d, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x228/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=64 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x8e, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x230/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbc1a9, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x238/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=32 vmid=0(0) pasid=0 node=0 ctx=[0x4400000, 0x89, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x240/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=80 vmid=0(0) pasid=0 node=0 ctx=[0x4400000, 0x8e, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x248/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbb489, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x250/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8003, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x258/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=64 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x8c, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x260/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d30, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x268/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=0 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x87, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x270/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=16 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x8f, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x278/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d29, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x280/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d36, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x288/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d23, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x290/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb801d, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x298/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=16 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x8d, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x2a0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8009, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2a8/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=16 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x89, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x2b0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8d43, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2b8/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=0 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x8f, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x2c0/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=16 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x8b, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x2c8/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8016, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2d0/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=0 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x85, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x2d8/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=16 vmid=0(0) pasid=0 node=0 ctx=[0x4400000, 0x82, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x2e0/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8010, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2e8/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xb8023, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x2f0/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=0 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x89, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x2f8/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbc1b6, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x300/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=0 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x8b, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x308/0x320) client=SOC21_IH_CLIENTID_GFX src=UTCL2_FAULT(0) ring=8 vmid=0(0) pasid=0 node=0 ctx=[0xbc1b0, 0x42, 0x0, 0x0]
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 0, 'walker_error': 0, 'permission_faults': 0, 'mapping_error': 0, 'cid': 0, 'rw': 0, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x0
+am usb:2-9: FAULTMAP fault_va=0x0 n_used_blocks=2018
+am usb:2-9: FAULTMAP  next-above va=0x200000000000 size=0x80000(0.52MB) (gap 0x200000000000)
+am usb:2-9: IH (0x310/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=0 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x8d, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x318/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=80 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x80, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+am usb:2-9: IH (0x320/0x320) client=SOC21_IH_CLIENTID_GFX src=SQ_INTERRUPT_ID(239) ring=80 vmid=0(0) pasid=0 node=0 ctx=[0x6400000, 0x82, 0x0, 0x0]
+am usb:2-9: sq_intr: error (MEMVIOL)
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 36232)
+Traceback (most recent call last):
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/hcq.py", line 430, in synchronize
+    try: self.timeline_signal.wait(self.timeline_value - 1, timeout=timeout if timeout is not None and self.can_recover else None)
+         ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/hcq.py", line 287, in wait
+    if not_passed and self.value < value: raise RuntimeError(f"Wait timeout: {timeout} ms! (the signal is not set to {value}, but {self.value})")
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Wait timeout: 30000 ms! (the signal is not set to 38092, but 38091)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/socketserver.py", line 318, in _handle_request_noblock
+    self.process_request(request, client_address)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/socketserver.py", line 349, in process_request
+    self.finish_request(request, client_address)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/socketserver.py", line 766, in __init__
+    self.handle()
+    ~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/http/server.py", line 436, in handle
+    self.handle_one_request()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/http/server.py", line 424, in handle_one_request
+    method()
+    ~~~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/serve.py", line 363, in do_POST
+    for c in accumulate(chunks): last = c
+             ~~~~~~~~~~^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/serve.py", line 351, in accumulate
+    for c in chunks:
+             ^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/serve.py", line 214, in run_model
+    for next_id in model.generate(ids, temperature=temperature, media=media):
+                   ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 1156, in generate
+    yield from self._generate_spec(tokens, chunk_T, temperature, spans, start_pos)
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 1278, in _generate_spec
+    res, cands = run(chunk, p, T, n_keep, window=window)
+                 ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/llm/model.py", line 1241, in run
+    return res.tolist(), tuple(cands)
+           ~~~~~~~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/tensor.py", line 769, in _wrapper
+    ret = fn(*args, **kwargs)
+  File "/home/jacob/z/tinygrad/tinygrad/tensor.py", line 512, in tolist
+    return self.data().tolist()
+           ~~~~~~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/tensor.py", line 766, in _wrapper
+    if TRACEMETA < 1 or _METADATA.get() is not None: return fn(*args, **kwargs)
+                                                            ~~^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/tensor.py", line 489, in data
+    return buf.as_memoryview().cast(fmt, self.shape)  # type: ignore[arg-type,return-value]
+           ~~~~~~~~~~~~~~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 192, in as_memoryview
+    Buffer("PYTHON", self.size, self.dtype, opaque=(mv:=memoryview(bytearray(self.nbytes)))).copy_from(self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/device.py", line 204, in copy_from
+    run_linear(UOp(Ops.LINEAR, src=(su.param_like(1).copy_to_device(self.device).call(du, su),)), update_stats=False)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/engine/realize.py", line 293, in run_linear
+    for call in linear.src: track_stats(ctx, call.without_after, perf_counter_us(), pm_exec.rewrite(call.without_after, ctx))
+                                                                                    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/uop/ops.py", line 1532, in rewrite
+    if (ret:=match(uop, ctx)) is not None and ret is not uop: return ret
+             ~~~~~^^^^^^^^^^
+  File "<string>", line 3, in compiled_match
+  File "/home/jacob/z/tinygrad/tinygrad/engine/realize.py", line 157, in exec_copy
+    elif hasattr(dest.allocator, '_as_buffer'): src.allocator._copyout(dest.as_memoryview(force_zero_copy=True), src._buf)
+                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 737, in _copyout
+    self.dev.synchronize()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 1180, in synchronize
+    super().synchronize(timeout)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/support/hcq.py", line 434, in synchronize
+    if hasattr(self, 'on_device_hang'): self.on_device_hang()
+                                        ~~~~~~~~~~~~~~~~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 1183, in on_device_hang
+    def on_device_hang(self): self.iface.on_device_hang()
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/jacob/z/tinygrad/tinygrad/runtime/ops_amd.py", line 989, in on_device_hang
+    raise RuntimeError("Device hang detected")
+RuntimeError: Device hang detected
+----------------------------------------
+/usr/lib/python3.13/multiprocessing/resource_tracker.py:301: UserWarning: resource_tracker: There appear to be 6 leaked semaphore objects to clean up at shutdown: {'/mp-a_ofquvw', '/mp-5asxmh9s', '/mp-6juyio21', '/mp-p8148_fn', '/mp-le3ncme7', '/mp-2qtna5ua'}
+  warnings.warn(

@@ -1,0 +1,3 @@
+graph captured with scratch 0x7cd97e940000 (48 MiB), tmpring 0x41200
+after a kernel with a larger private segment: scratch 0x7cd966880000 (384 MiB), tmpring 0x201200
+the graph still dispatches with COMPUTE_DISPATCH_SCRATCH_BASE=0x7cd97e940000, which _ensure_has_local_memory freed

@@ -1,0 +1,4 @@
+09:51:48 chainK3 start: waiting for pid 10288
+10:33:48 1/1 levers sweep (dv2)
+perf sweep 10:33:48: fw= tinygrad=ef42a3dc3 restores=1 reqs=8
+=== k3-tg16-old: MTP_K=3 GEMV_TG=16 ===

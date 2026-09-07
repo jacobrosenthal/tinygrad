@@ -1,0 +1,986 @@
+  ASM2464PD
+  USB4 Device         l
+  Controller      ti a
+                 n
+  MP Tool ide
+              nf
+           Co
+  User Manual
+       i a
+     ed
+ S M
+A
+                      Rev: 0.1
+Copyright Notice:
+Copyright © 2022, ASMedia TECHNOLOGY INC. All Rights Reserved.
+
+INFORMATION IN THIS DOCUMENT IS PROVIDED IN CONNECTION WITH PRODUCTS OF ASMEDIA TECHNOLOGY INC. NO LICENSE,
+EXPRESS OR IMPLIED, BY ESTOPPEL OR OTHERWISE, TO ANY INTELLECTUAL PROPERTY RIGHTS IS GRANTED BY THIS DOCUMENT.
+EXCEPT AS PROVIDED IN ASMEDIA’S TERMS AND CONDITIONS OF SALE FOR SUCH PRODUCTS, ASMEDIA ASSUMES NO LIABILITY
+WHATSOEVER, AND ASMEDIA DISCLAIMS ANY EXPRESS OR IMPLIED WARRANTY, RELATING TO SALE AND/OR USE OF ASMEDIA
+PRODUCTS INCLUDING LIABILITY OR WARRANTIES RELATING TO FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, OR
+INFRINGEMENT OF ANY PATENT, COPYRIGHT OR OTHER INTELLECTUAL PROPERTY RIGHT.
+Products of ASMEDIA TECHNOLOGY INC. are not intended for use in medical, life saving, life sustaining, critical control or safety systems, or in nuclear
+facility applications.
+
+ASMedia may make changes to specifications and product descriptions at any time, without notice.
+ASMedia TECHNOLOGY INC. may have patents or pending patent applications, trademarks, copyrights, or other intellectual property rights that relate to
+the presented subject matter. The furnishing of documents and other materials and information does not provide any license, express or implied, by estoppel
+or otherwise, to any such patents, trademarks, copyrights, or other intellectual property rights.
+Contact your local ASMedia sales office or your agent to obtain the latest specifications and before placing your product order.
+Copies of documents which have an order number and are referenced in this document, or other ASMedia literature may be obtained by calling
+
+
+
+
+                                                                                                            l
++886-2-22196088 or by visiting ASMedia’s website at www.asmedia.com.tw.
+ASMedia and ASMedia logo are trademarks or registered trademarks of ASMedia TECHNOLOGY INC. in Taiwan and other countries.
+
+
+
+© 2022 祥碩科技股份有限公司，著作權所有，並保留一切權利
+
+
+                                                                                                        ti a
+                                                                                                       n
+本文資料為與祥碩科技股份有限公司之產品相關。本文並未明示或默示授權任何智慧財產權予第三人。除在祥碩科技股份有限公司對該產品提供
+的買賣條款及條件以外，祥碩科技股份有限公司免於擔負任何責任，且不對產品的買賣及使用做任何明示或默示的保證，包含產品適於特殊使用
+
+
+
+
+                                                                                                      e
+目的、以及產品不侵害任何專利權、著作權或其他智慧財產權。祥碩科技股份有限公司之產品不用於醫療的、救助生命的、生命維持的、安全控
+管系統或核子設施等用途之上。
+
+
+
+
+                                                                                                     d
+祥碩科技股份有限公司可隨時不經通知，逕行增訂或修改產品規格及描述。
+
+
+
+
+                                                                              i
+本文之相關專利權、申請中之專利權、商標權、著作權及其餘智慧財產權均屬祥碩科技股份有限公司所有。本文及其他資訊並未明示或默示的提
+
+
+
+
+                                                                            f
+供任何專利、商標、著作權及其餘智慧財產權之授權。
+請於下產品訂單前先聯絡當地的祥碩科技銷售處或代理商以取得最新的產品規格書。
+
+
+
+
+                                                                           n
+本文提及之有訂單號碼之文件或其他詳細資料可參閱祥碩科技網站www.asmedia.com.tw或撥打+886-2-22196088
+ASMEDIA 和 ASMEDIA 商標均為祥碩科技股份有限公司在台灣和其他國家的註冊商標或商標。
+
+
+
+
+Office:
+
+                                                                        Co
+                                                 a
+ASMedia Technology, Inc.
+
+
+
+
+                                               i
+6F, No.115, Minquan Rd., Xindian City, Taipei County 231, Taiwan, R.O.C.
+http://www.asmedia.com.tw
+
+
+
+
+                                              d
+Tel: 886-2-2219-6088
+Fax: 886-2-2219-6080
+
+
+
+
+                                             e
+                     SM
+                    A
+
+      Environmentally hazardous materials are not used in this product.
+                                                                    ASM246x MP Tool User manual
+
+
+
+
+Revision History
+ Rev.     Date         Description
+  0.1   2022/11/21     Formal release
+
+
+
+
+                                                                        al
+                                                                     ti
+                                                                   en
+                                                 f i              d
+                                              o n
+                                             C
+                           i a
+                         ed
+         SM
+        A
+
+                     ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                     6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                          Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                          ASM246x MP Tool User manual
+Scope:
+Customers can easily manufacture ASM2464PD related products.
+
+
+Operation environment:
+Win10 and later version.
+
+
+MP Tool Interface Overview
+
+
+
+
+                                                                              al
+                                                                           ti
+                                                                         en
+                                                       f i              d
+                                                    o n
+                                                   C
+                                 i a
+                                d
+MP tool have 5 major function areas.
+
+
+
+                               e
+Area A: Device Configuration and Device Firmware.
+
+
+
+
+             M
+Area B: USB4 Configure device information.
+
+
+
+
+            S
+Area C: Device function.
+Area D: Status and results.
+
+
+           A
+Area E: Switch configures mode or un-configures mode and save/load ini file.
+
+
+
+
+                           ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                           6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                                Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                       ASM246x MP Tool User manual
+Area A: Device Configuration and Device Firmware
+
+
+
+
+                                                                           al
+                                                                        ti
+                                                                      en
+                                                     f i             d
+                                                    n
+    1. Vendor ID, Product ID and Device Revision:
+       You can type 4 characters. (“0”~”9” and “A”~”F”)
+    2. Serial Number:
+
+
+                                                 Co
+       You can type 20 characters (“0”~”9” and “A”~”F”)
+
+
+
+
+                                a
+        2-1. S/N Increase Hex or Dec:
+
+
+
+                              i
+        You can select auto increase serial number or remain by Hex or Dec .
+
+
+
+                             d
+        2-2. Input from Barcode:
+
+
+
+                            e
+        The radio is a function that you can input serial number by barcode scanner. There is a limitation
+
+
+
+
+           M
+        is that it is only support one device operation.
+
+
+
+
+          S
+        2-3. Input from HDD SN:
+        the radio is a function that the S/N number will use HDD’s serial number.
+
+
+         A
+        2-4. S/N CHK HEX:
+        The radio is a function that MPTool will check S/N number is valid or not.
+
+
+
+
+                       ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                       6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                            Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                     ASM246x MP Tool User manual
+
+
+3. Manufacturer String and Product String:
+   All characters are allowed.
+4. Device Firmware:
+   The FW directory must be selected if update FW in area B is checked.
+   The Preload path must be selected if preload file in area B is checked.
+5. Idle Timer:
+   It allows user to select idle timer to trigger the function of HDD standby.
+
+
+
+
+                                                                         al
+                                                                      ti
+                                                                    en
+                                                 f i               d
+                                              o n
+                                             C
+                          i a
+                        ed
+      SM
+     A
+
+                   ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                   6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                        Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                      ASM246x MP Tool User manual
+Area B: USB4 Configure device information
+
+
+
+
+                                                                          al
+                                                                       ti
+    1. Vendor Name, Model Name:
+
+                                                                     en
+                                                                    d
+       You can type 32 characters.
+
+
+
+
+                                                    f i
+    2. U4 Mode:
+        0: PD + PCIe:
+        PD + PCIe tunneling
+        1: PD + PCIe + Lgcy:
+
+                                                 o n
+        PD + PCIe tunneling + legacy USB
+
+                                                C
+                               a
+        2: PD + U3 + Lgcy:
+
+
+
+                             i
+        PD + USB3 tunneling + legacy USB
+
+
+
+                            d
+        3: Auto:
+
+
+
+                           e
+        Auto by reference host PD PCIe Supported bit
+
+
+
+
+           M
+    3. Vendor ID, Product ID, Test ID:
+
+
+
+          S
+       You can type 4 characters. (“0”~”9” and “A”~”F”)
+
+
+
+
+         A
+    4. Test ID:
+       You can type 8 characters. (“0”~”9” and “A”~”F”)
+    5. BCD Product FW:
+       Set USB4_BcdSync=0 in ini file first for customer setting
+    6. Product HW:
+       You can type 2 characters.
+    7. TBT3 Vendor ID, Model ID, Model Rev:
+       You can type 4, 4 and 2 (“0”~”9” and “A”~”F”)
+
+
+
+                       ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                       6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                            Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                        ASM246x MP Tool User manual
+Area C: Device Function
+
+
+
+
+                                                                            al
+                                                                         ti
+    1. USB Status:
+
+                                                                       en
+                                                                      d
+       Check device status. USB device only.
+
+
+
+
+                                                      f i
+    2. MP Auto Mode:
+       In MP Auto Mode, only one ASM246x device is supported.
+    3. Update FW:
+
+
+                                                   o
+       Update new firmware and configuration setting.n
+    4. Reload FW:
+                                                  C
+                                 a
+       Reload new firmware and new configuration. Do not supported now.
+    5. Config Check:
+
+
+                              di
+       Check device’s PID、VID、Manufacture string、Product String, and Serial number are same with MP
+
+
+
+                             e
+       tool’s setting.
+
+
+
+
+           M
+    6. Format Type:
+
+
+
+          S
+       You can select format type NTFS 、 FAT32 or EXFAT
+       Drive Label support 11 characters in FAT32 type, 32 characters in NTFS type.
+
+
+         A
+       USB device only.
+    7. Partition Type
+       You can select MBR or GPT. USB device only.
+    8. W/R Test:
+       MP tool will Write, Read and compare test file on HDD.
+       The limit size of test pattern file is 180MB.
+       The file name of test pattern is “rwtest.bin”.
+       USB device only.
+
+                         ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                         6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                              Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                  ASM246x MP Tool User manual
+
+
+9. Speed Test:
+   Test for device read/write speed.USB device only.
+10. Preload Files:
+   MP tool will copy the files to the HDD.USB device only.
+11. Auto Safe remove after ?? second:
+    this function will auto safely remove after a few second after MP operation success. USB
+   device only.
+
+
+
+
+                                                                      al
+                                                                   ti
+                                                                 en
+                                               f i              d
+                                            o n
+                                           C
+                         i a
+                       ed
+      SM
+     A
+
+                   ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                   6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                        Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                         ASM246x MP Tool User manual
+Area D: Status and Results
+
+
+
+
+ASM2464PD MPTool will show basic information such as Port Number, Status, PID, VID, Serial Number, FW
+Version and Capacity and test results.
+
+
+
+
+                                                                              al
+Area E: Mode select
+
+                                                                           ti
+                                                                         en
+                                                                        d
+Lock Mode:
+
+
+
+                                                      f i
+Initially, ASM2464PD MPTool work in Lock Mode. It will load INI file and ready to run.
+
+
+Unlock Mode:
+
+
+                                                   o n
+If you want to enter into Unlock Mode, you must key in password. Password is "asmedia". When you are in
+
+
+
+                                                  C
+Unlock Mode, you can modify Device Configuration, Device Function, Device Firmware, clean test result and
+
+
+
+
+                                  a
+save INI.
+
+
+
+                                i
+Password is “asmedia”
+
+
+
+
+                              ed
+             SM
+            A
+
+                         ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                         6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                              Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                        ASM246x MP Tool User manual
+Operation Procedure:
+   ASM2464PD MPTool will auto load configuration from “as_mp_toolv0.6.ini”. You can edit
+   “as_mp_toolv0.6.ini” by notepad or other edit tool. Please refer to Appendix A.
+
+
+   The standard Operation Procedure is described as followed.
+   --
+   Step1. Please open ASM2464PD MPTool and press Unlock button to modify setting.
+   Step2. ASM2464PD MPTool will show Login Dialog. Please key in "asmedia".
+   Step3. You can modify configuration or clean test result.
+
+
+
+                                                                             l
+   Step4. Check test configuration items when you begin to test.
+
+
+   Manual Mode
+
+                                                                         ti a
+                                                                       en
+                                                                      d
+   If MP Auto Mode item is not selected, ASM2464PD MPTool will run in Manual Mode.
+
+
+
+
+                                                    f i
+   In Manual Mode, It support Max eight DUTs to test at the same time.
+   All of USB Ports can’t connect any other Mass Storage Device on test server.
+
+
+   1.1 Connect DUT to platform.
+                                                 o n
+                                                C
+                              i a
+                            ed
+           SM
+          A
+        Test Server                                                     DUT
+
+
+   1.2 Press start in bottom left.
+         1.2.1   if user didn’t change the default config setting, tool will pop-up warning msg box.
+
+
+
+
+                       ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                       6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                            Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                           ASM246x MP Tool User manual
+
+
+
+
+          It is not recommended to use default value for config setting.
+     1.3 The progress can be monitored from Progress Bar or % in bottom right.
+
+
+
+                                                                              l
+     1.4 When the test is finished, users can see pass count, fail count and total count in the screen.
+
+
+
+
+                                                                          ti a
+     1.5 Press safely Remove and change next DUT
+
+
+                                                                        en
+                                                                       d
+     1.6 ASM2464PD MPTool will save the test result in file named "YYYYMMDD.log"
+
+
+
+
+                                                      f i
+                                                     n
+     Auto Mode
+
+
+
+
+                                                  Co
+If MP Auto Mode is selected, ASM2464PD MPTool will run in Auto Mode.
+
+
+
+
+                                  a
+In Auto Mode, it only supports one DUT to test at the same time.
+
+
+
+                                i
+All of USB Ports can’t connect any other Mass Storage Device on test server.
+
+
+
+
+                              ed
+     2.1 Plug DUT to USB port, after entered MP Tool window.
+
+
+
+
+            SM
+           A
+
+                         ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                         6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                              Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                     ASM246x MP Tool User manual
+2.2   ASM2464PD MPTool will automatically test when the USB device is plugged into test server.
+2.3   You can monitor the progress through Progress Bar or % in bottom right.
+2.4   When the test is finished, users can see pass count, fail count and total count in the screen.
+
+
+
+
+2.5   Press safely remove and change next DUT
+2.6   ASM2464PD MPTool will save the test result in file named "YYYYMMDD.log"
+
+
+
+
+                                                                          al
+                                                                       ti
+                                                                     en
+                                                  f i               d
+                                               o n
+                                              C
+                           i a
+                         ed
+       SM
+      A
+
+                    ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                    6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                         Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                        ASM246x MP Tool User manual
+
+Appendix A:
+INI file Description:
+==========================INI file Start==============================
+INI file Description:
+[usb_func]
+format_enable=0                           //0: Disable; 1: Enable Format disk
+format_drive_type=1                       //0: NTFS; 1: FAT32; 2: exFAT
+partition_drive_type=0                    //0: MBR; 1:GPT
+
+
+                                                                             l
+drive_label_name=Test                     //Setup Disk label name
+
+
+
+                                                                          i a
+wr_test_enable=0                          //0: Disable; 1: Enable Read/Write test
+
+
+                                                                         t
+wr_test_binary_name=rwtest.bin            //File name for read/write test
+
+
+
+                                                                        n
+wr_test_count=1                           //Loop count for read/write test
+
+
+
+                                                                       e
+auto_mp=0                                 //0: Disable; 1: Enable Auto MP mode
+
+
+
+                                                                      d
+auto_mp_DevNum=1                          //1~8: When Auto MP mode enable, determine how many
+
+
+
+                                                     f i
+                                          devices plug-in will trigger MP process
+
+
+preload_enable=0
+preload_folder_path=D:\temp
+                                                  o n
+                                          //0: Disable; 1: Enable Preload load file
+                                          //File folder path for preload
+Check_USBStatus_enable=0
+                                                 C
+                                           //0: Disable; 1: Enable Check USB status
+
+
+
+                                 a
+Check_USBStatus=0                          //0: USB2.0; 1: USB3.0; 2: USB3.1
+Check_SerialNumber=0
+Auto_Safe_Remove=0
+
+                              di           //0: Disable; 1: Enable check input serial number is hex
+                                           //0: Disable; 1: Enable auto safe remove after MP process
+
+
+                             e
+Scan_BarCode=0                             // Do not support now
+
+
+
+            M
+uiRemove_after_finish=0                    //if Auto_Safe_Remove enable, wait X sec, remove device
+
+
+
+           S
+Speed_test_enable=0                        //0: Disable; 1: Enable read write speed test
+
+
+
+          A
+Scan_HDDSN=0                               //0: Disable; 1: Enable this item is not used currently
+check_config=0                            //0: Disable; 1: Enable check PID, VID, Manufacture string,
+                                          Product string, and serial number
+SN_EditType=1                             //input serial number edit type:
+                                          0: user define;
+                                          1: Increase Hex;
+                                          2: Increase Dec;
+                                          3: serial number from barcode scanner;
+                                          4: serial number from HDD SN
+
+                         ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                         6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                              Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                       ASM246x MP Tool User manual
+USB4_ComponentID_EditType=5              //Only for Asmedia internal test
+CmdLineTimeOut=35                        //the timeout while executing tool by commandline
+                                         (unit:second)
+USB4_BcdSync=1                           //0: customer can modify U4 BCD Product FW; 1: U4 BCD
+Product FW use ASmedia default value
+
+
+[usb_fw]
+fw_enable=1                    //0: Disable; 1: Enable Firmware update
+fw_binary_name=AS_USB4_220616_81_00_00.bin // Firmware file path for Firmware update
+
+
+                                                                            l
+fw_reload=0                              //0: Disable; 1: Enable relink
+
+
+
+                                                                         i a
+rescan_after_relink=0               //Only for Asmedia internal test always set to 0
+
+
+                                                                        t
+ext_fw_enable=0                     //Only for Asmedia internal test always set to 0
+
+
+
+                                                                       n
+pd_fw_enable=0                      //Only for Asmedia internal test always set to 0
+
+
+
+                                                                      e
+mcu_fw_enable=0                     //Only for Asmedia internal test always set to 0
+
+
+
+                                                                     d
+pd_binary_name=                     //Only for Asmedia internal test always set to NULL
+
+
+
+                                                    f i
+mcu_binary_name=                    //Only for Asmedia internal test always set to NULL
+
+
+[usb_config]
+config_format=4
+                                                 o n
+                                    //Always set to format 4
+vendor_id=174C
+                                                C
+                              //Setup for vender ID
+
+
+
+                                a
+product_id=2463               //Setup for product ID
+device_revision=0100
+manufacturer_string=ASMedia
+
+                             di
+                              //Setup for revision
+                              //Setup for manufacturer string EP0
+
+
+                            e
+product_string=ASM246X series //Setup for product string EP0
+
+
+
+            M
+manufacturer_string_T10=ASMT //Setup for manufacturer string T10
+
+
+
+           S
+product_string_T10=ASM246X //Setup for product string T10
+
+
+
+          A
+serial_number=AAAABBBB000D         //Setup for serial number
+                                   serial number shall contain 12 ~ 20 valid digits
+serial_number_increase=1            // Do not support now
+serial_number_increase_HEX=1        // Do not support now
+serial_number_increase_DEC=0        // Do not support now
+SN_fix_length=0                     //0~20: tool will check if input serial number’s length is equal
+                                    the setting before MP process
+
+SN_remain_value_enable=0            //0: Disable; 1: Enable the serial number remain value
+
+                        ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                        6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                             Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                   ASM246x MP Tool User manual
+SN_remain_value_length=8        //if enable serial number increase hex or dec, MP tool will auto
+                                increase the serial number without the setting digits
+                                e.g. serial_number_increase_HEX=1,
+                                serial_number=AABBCCDD0000, SN_remain_value_length=8,
+                                MP tool will keep the 8 digits value “AABBCCDD”, and
+                                increase the last 4 digits, from 0000 to FFFF
+standby_timer=0                  //Only for Asmedia internal test always set to 0
+hdd_standby=0                    //Only for Asmedia internal test always set to 0
+image0=1                        //Only for Asmedia internal test always set to 1
+
+
+                                                                        l
+image1=0                        //Only for Asmedia internal test always set to 0
+
+
+
+                                                                     i a
+crc32=0                         //Only for Asmedia internal test always set to 0
+
+[PCIE_USB_Config]
+
+                                                                   nt
+                                                                  e
+USBRemovable_enable=0           //Only for Asmedia internal test always set to 0
+
+
+
+                                                                 d
+eup_enable=0                    //Only for Asmedia internal test always set to 0
+
+
+
+                                                f i
+two_leds_enable=0               //Only for Asmedia internal test always set to 0
+
+
+
+                                               n
+WTG_enable=0                    //Only for Asmedia internal test always set to 0
+
+
+
+                                             o
+U1U2_enable=0                   //Only for Asmedia internal test always set to 0
+low_power_mode_enable=0         //Only for Asmedia internal test always set to 0
+2TB_enable=0
+                                            C
+                                //Only for Asmedia internal test always set to 0
+
+
+
+                            a
+slow_enumeration_enable=0       //Only for Asmedia internal test always set to 0
+LPIfIdle=0
+LPIfU3=3
+
+                         di     //Only for Asmedia internal test always set to 0
+                                //Only for Asmedia internal test always set to 3
+
+
+                        e
+PCIEASPM=3                      //Only for Asmedia internal test always set to 3
+
+
+
+             M
+PCIESpeed=3                     //Only for Asmedia internal test always set to 3
+
+
+
+            S
+PCIELane=3                      //Only for Asmedia internal test always set to 3
+
+
+
+           A
+[USB4_Config]
+USB4_VendorName=ASMedia
+USB4_ModelName=246x
+                                     //Setup for USB 4 vender Name
+                                     //Setup for USB 4 Model Name
+USB4_ComponentID=2901458992B         //Only for Asmedia internal test
+USB4_VendorID=174C                   //Setup for USB 4 Model ID
+USB4_ProductID=2463                  //Setup for USB 4 Product ID
+USB4_TestID=C0000666                 //Setup for USB 4 Test ID
+USB4_BcdProductFWRevision=1234       //Setup for USB 4 BCD ID
+
+                    ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                    6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                         Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+                                                                 ASM246x MP Tool User manual
+USB4_ProductHWRevision=5A          //Setup for USB 4 Prodcut HW Revision
+USB4_MinorFWVersion=FF             //Setup for USB 4 Minor FW version
+USB4_TBT3VendorID=00B8             //Setup for thunderbolt 3 Vendor ID
+USB4_TBT3ModelID=2463              //Setup for thunderbolt 3 Model ID
+USB4_TBT3ModelRevision=E3          //Setup for thunderbolt 3 Model Revesion
+USB4_U4Mode=3                      //Setup for USB4 Mode
+                                   0: Support PD + PCIe tunneling
+                                   1: Support PD + PCIe tunneling + Legacy USB
+                                   2: Support PD + USB3 tunneling + Legacy USB
+
+
+                                                                      l
+                                   3: Auto by reference host PD PCIe Supported bit (default)
+
+[PCIE]
+
+                                                                  ti a
+                                                                 n
+PCIE_Scan=1                        //0: Disable; 1: Enable pcie scanning
+
+
+
+                                                                e
+PCIE_VendorID=1B21                 //Setup for PCIE scan Vendor ID
+
+
+
+                                                               d
+PCIE_DeviceID=2463                 //Setup for PCIE scan Device ID
+
+
+
+                                              f i
+PCIE_SSDRelinkTime=10              //Only for Asmedia internal test
+
+
+
+
+                                           o n
+==========================INI file End==============================
+
+
+
+                                          C
+                          i a
+                        ed
+         SM
+        A
+
+                  ASMedia Technology, Inc. http：//www.asmedia.com.tw
+                  6F, No. 115, Minquan Rd., Xindian, Taipei, Taiwan, R.O.C.
+                       Tel：886-2-2219-6088 / Fax：886-2-2219-6080
+
