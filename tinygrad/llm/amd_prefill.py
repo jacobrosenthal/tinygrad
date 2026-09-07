@@ -656,8 +656,12 @@ def attn_decode_mq(cache:Tensor, q_raw:Tensor, k_raw:Tensor, v_raw:Tensor, qnw:T
   + attn_pfd (one workgroup per kv head x CH-position chunk scoring all T x G rows: the cache is read once per step, not once per token)
   + attn_merge_mq. same outputs as amd_gemv.attn_decode (T, H*D) f32 with the per-32 int8 quantization cached"""
   G = H // HKV
-  QT = 8
-  assert T <= QT
+  # QT is the per-workgroup query tile and drives LDS (qbuf holds QT*G rows): QT=8 ~fills RDNA3's 64 KB, QT=16 overflows it
+  # (measured 76288 B). So we KEEP QT small and instead tile T into ceil(T/QT) query blocks across workgroups -- the kernel already
+  # decodes a query-block index qb from wg_id (see _attn_pf_src), and the prefill launch already tiles this way. This lifts the old
+  # `assert T <= QT` (which capped MTP_K<=3) without growing per-workgroup LDS: each block still holds only QT rows.
+  QT = getenv("ATTN_QT", 8)
+  NQB = (T + QT - 1) // QT  # number of query blocks; block qb covers tokens [qb*QT, qb*QT+QT)
   NCH = (MAXC + CH - 1) // CH
   qk_norm = qnw is not None
   dev, arch = cache.device, _arch(cache.device)
@@ -684,7 +688,7 @@ def attn_decode_mq(cache:Tensor, q_raw:Tensor, k_raw:Tensor, v_raw:Tensor, qnw:T
   name = f"attn_pfd{sfx}_c{CH}"
   src = _attn_pf_src(H, HKV, D, RD, MAXC, gated, kvq, QT, CH).replace("KERNEL(attn_pfd,", f"KERNEL({name},")
   ir_pf = hip_to_ir(src, arch)
-  NWG, WGS = HKV * NCH, 32 * 2 * ((QT * G + 15) // 16)
+  NWG, WGS = NQB * HKV * NCH, 32 * 2 * ((QT * G + 15) // 16)  # +query-block dim: wg_id -> (chunk, qb, kvh); WGS = the kernel's WG
   def pfd_fxn(*params):
     sink = UOp.sink(UOp.special(NWG, "gidx0"), UOp.special(WGS, "lidx0"), *params,
                     arg=KernelInfo(name=name, estimates=Estimates(ops=T * H * MAXC * D * 4, mem=HKV * MAXC * kvq.bytes_per_pos)))
