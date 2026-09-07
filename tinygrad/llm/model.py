@@ -729,8 +729,12 @@ class Transformer:
     self._warming, self._ckpt_tokens = False, None
 
   # ---- recurrent-state checkpoints: a chat turn's next prompt extends the previous *prompt*, not the cached sequence (the template
-  # strips the reasoning of earlier answers), and GDN state cannot be rewound. so the state right after each prefill is kept aside and
-  # the next request resumes from it, prefilling only the stripped answer + the new message instead of the whole conversation ----
+  # strips the reasoning of earlier answers, a tool call comes back with its result appended), and GDN state cannot be rewound. so the
+  # state during each prefill is kept aside and the next request resumes from it, prefilling only the answer as the client renders it
+  # + the new message instead of the whole conversation.
+  # the checkpoint is taken one token BEFORE the end of the prompt. the tokenizer splits on special tokens, so everything up to the
+  # closing <|im_end|> re-tokenizes identically next turn, but the prompt's last token (the "\n" after the generation prompt's
+  # <think>) merges with whatever the answer starts with and comes back as a different id: a checkpoint that included it never matched ----
   def _state_tensors(self) -> list[tuple[str, Tensor]]:
     return [(f"{i}.{n}", t) for i, b in enumerate(self.blk) if isinstance(b, GatedDeltaNetBlock)
             for n in ("conv_state", "recurrent_state") if (t := getattr(b, n, None)) is not None]
@@ -842,15 +846,17 @@ class Transformer:
     out, prompt_len = None, len(tokens)
     while len(tokens) < self.max_context:
       n_toks = min(chunk_size, len(tokens) - start_pos)
+      # hold the prompt's last token back for a chunk of its own: the checkpoint is taken just before it (see _save_checkpoint)
+      if start_pos < prompt_len - 1 and start_pos + n_toks >= prompt_len: n_toks = prompt_len - 1 - start_pos
       sp, nt = v_start_pos.bind(start_pos), v_toks.bind(n_toks)
       if chunk_T and (start_pos < prompt_len or out is None):
         emb = self._emb_chunk(spans, start_pos, chunk_size) if self.image_pad_id is not None else None
         out = self(t[:, sp:sp+chunk_size], sp, temp, nt, emb).realize()
       else: out = self(t[:, sp:sp+nt] if start_pos < prompt_len or out is None else out, sp, temp).realize()
       start_pos += n_toks
+      if start_pos == prompt_len - 1: self._save_checkpoint(tokens[:start_pos])
       # chunked prefill: keep processing until all prompt tokens are consumed
       if start_pos < len(tokens): continue
-      if len(tokens) == prompt_len: self._save_checkpoint(tokens)
       tokens.append(int(out.item()))
       self._cached_tokens = tokens[:-1]
       yield tokens[-1]
@@ -869,13 +875,15 @@ class Transformer:
     # prefill: commit every valid token (n_keep = n_tok), fill the MTP KV cache, last chunk yields the first decode chunk
     while p < prompt_len:
       n_toks = min(chunk_T, prompt_len - p)
+      # hold the prompt's last token back for a chunk of its own: the checkpoint is taken just before it (see _save_checkpoint)
+      if p < prompt_len - 1 and p + n_toks == prompt_len: n_toks -= 1
       nt = v_toks.bind(n_toks)
       emb = self._emb_chunk(spans or [], p, chunk_T) if self.image_pad_id is not None else None
       res, cands = run(Tensor([tokens[p:p + n_toks] + [0] * (chunk_T - n_toks)], dtype="int32"), p, nt, nt, emb)
       p += n_toks
       self._cached_tokens = tokens[:p]
+      if p == prompt_len - 1: self._save_checkpoint(tokens[:p])
     first, drafts, chunk = res[n_toks - 1], res[-K:], cands[0]
-    self._save_checkpoint(tokens[:prompt_len])
     tokens.append(first)
     yield first
     # decode: chunk = U + drafts (a JIT output of the previous step), n_keep = len(U). res = [out[0..T-1], K new drafts]
