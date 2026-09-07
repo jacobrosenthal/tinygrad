@@ -1,5 +1,5 @@
 from __future__ import annotations
-import functools, json, pathlib, queue, re, socket, socketserver, threading, time, traceback, typing, uuid
+import base64, functools, json, pathlib, queue, re, socket, socketserver, threading, time, traceback, typing, urllib.request, uuid
 from typing import TYPE_CHECKING
 from tinygrad.helpers import DEBUG, colored, stderr_log
 from tinygrad.viz.serve import TCPServerWithReuse, Handler as VizHandler
@@ -47,6 +47,37 @@ def parse_tool_call(s:str, tools:list|None=None) -> tuple[str, typing.Any]|None:
         except json.JSONDecodeError: args[pm.group(1)] = value
       return fm.group(1), args
   return None
+
+def load_image_url(url:str) -> bytes:
+  # data: URLs (what chat clients send), http(s) URLs and local paths
+  if url.startswith("data:"):
+    header, _, payload = url.partition(",")
+    return base64.b64decode(payload) if ";base64" in header else payload.encode()
+  if url.startswith(("http://", "https://")):
+    with urllib.request.urlopen(url, timeout=30) as r: return r.read()
+  return pathlib.Path(url.removeprefix("file://")).read_bytes()
+
+def extract_images(messages:list[dict]) -> list[bytes]:
+  """image bytes in prompt order (the chat template renders one <|image_pad|> per image item, in the same order)"""
+  out = []
+  for m in messages:
+    if not isinstance(m.get("content"), list): continue
+    for item in m["content"]:
+      if not isinstance(item, dict): continue
+      if item.get("type") == "image_url" or "image_url" in item:
+        u = item["image_url"]
+        out.append(load_image_url(u["url"] if isinstance(u, dict) else u))
+      elif item.get("type") == "image" or "image" in item:
+        src = item.get("image") or item.get("source") or {}
+        if isinstance(src, str): out.append(load_image_url(src))
+        elif src.get("type") == "base64" or "data" in src: out.append(base64.b64decode(src["data"]))
+        elif "url" in src: out.append(load_image_url(src["url"]))
+  return out
+
+def dead_devices() -> list[str]:
+  # a device whose GPU was reset (or that hung unrecoverably) can never serve again
+  from tinygrad import Device
+  return [d for d in Device._opened_devices if getattr(Device[d], "error_state", None) is not None]
 
 def normalize_messages(messages:list[dict]) -> None:
   # chat templates expect tool_call arguments as dicts (OpenAI clients send JSON strings)
@@ -101,9 +132,10 @@ class StreamRouter:
 
 class Request:
   def __init__(self, ids:list[int], disconnected:typing.Callable[[], bool], max_tokens:int|None=None, temperature:float=0.0, log_prefix:str="",
-               tools:list|None=None):
+               tools:list|None=None, images:list[bytes]|None=None):
     self.ids, self.disconnected, self.max_tokens, self.temperature, self.log_prefix = ids, disconnected, max_tokens, temperature, log_prefix
-    self.tools = tools
+    self.tools, self.images, self.media = tools, images or [], typing.cast(list, [])
+    self.prompt_tokens = len(ids)  # generation appends to ids
     self.finish_reason = "stop"
     self.cached_tokens = 0
     self.error: Exception|None = None
@@ -113,15 +145,24 @@ class Handler(VizHandler):
   server: LLMServer
   def log_request(self, code='-', size='-'): pass
   def do_GET(self):
-    if self.path == "/v1/models": self.send_data(json.dumps({"object":"list","data":[{"id":self.server.model_name,"object":"model"}]}).encode())
+    if self.path in ("/health", "/v1/health"):
+      # report a dead device so launchers do not reuse this process
+      if (dead := dead_devices()):
+        from tinygrad import Device
+        self.send_data(f"device error: {dead[0]}: {Device[dead[0]].error_state}".encode(), content_type="text/plain", status_code=503)
+      else: self.send_data(b"ok")
+    elif self.path == "/props":
+      self.send_data(json.dumps({"default_generation_settings": {"n_ctx": self.server.model.max_context}}).encode())
+    elif self.path == "/v1/models":
+      self.send_data(json.dumps({"object":"list","data":[{"id":self.server.model_name,"object":"model"}]}).encode())
     elif self.path.startswith("/assets/"): super().do_GET()
     else: self.send_data((pathlib.Path(__file__).parent / "chat.html").read_bytes(), content_type="text/html")
   def run_model(self, req:Request, model_name:str, include_usage:bool=False, reasoning:bool=False, continuous_usage:bool=False):
     tok = self.server.tok
-    prompt_tokens = len(req.ids)
     tmpl = {"id":f"chatcmpl-{uuid.uuid4().hex[:24]}", "object":"chat.completion.chunk", "created":int(time.time()), "model":model_name}
     out: list[int] = []
     def usage():
+      prompt_tokens = req.prompt_tokens  # read late: images widen req.ids on the inference thread
       return {"prompt_tokens": prompt_tokens, "completion_tokens": len(out), "total_tokens": prompt_tokens + len(out),
               "prompt_tokens_details": {"cached_tokens": req.cached_tokens}}
     def chunk(d:dict, finish_reason:str|None=None):
@@ -163,8 +204,31 @@ class Handler(VizHandler):
     if self.path == "/v1/chat/completions":
       # render and tokenize
       normalize_messages(body["messages"])
-      rendered = self.server.template.render(messages=body["messages"], tools=body.get("tools"), add_generation_prompt=True, preserve_thinking=True)
+      # Feedthrough reasoning: keep prior <think> / reasoning_content in the prompt.
+      # Qwen3.8 chat template defaults effort to xhigh if omitted; daily default is medium.
+      ctk = body.get("chat_template_kwargs") or {}
+      effort = body.get("reasoning_effort") or ctk.get("reasoning_effort")
+      if effort is None and isinstance(body.get("reasoning"), dict):
+        effort = body["reasoning"].get("effort")
+      if effort is None: effort = self.server.reasoning_effort
+      enable = body.get("enable_thinking")
+      if enable is None: enable = ctk.get("enable_thinking")
+      if enable is None: enable = self.server.enable_thinking
+      preserve = body.get("preserve_thinking")
+      if preserve is None: preserve = ctk.get("preserve_thinking", True)
+      rendered = self.server.template.render(
+        messages=body["messages"], tools=body.get("tools"), add_generation_prompt=True,
+        preserve_thinking=bool(preserve), enable_thinking=bool(enable), reasoning_effort=str(effort))
       ids: list[int] = self.server.tok.encode(rendered)
+      # images: encode each one and widen its single <|image_pad|> token to one pad per embedding
+      if (images := extract_images(body["messages"])):
+        if self.server.vision is None or getattr(self.server.model, "image_pad_id", None) is None:
+          return self.send_data(json.dumps({"error":{"message":"this server has no vision encoder loaded (--mmproj)",
+            "type":"invalid_request_error", "param":"messages", "code":"unsupported_content"}}).encode(), status_code=400)
+        pad = self.server.model.image_pad_id
+        if ids.count(pad) != len(images):
+          return self.send_data(json.dumps({"error":{"message":f"{len(images)} images but the chat template produced {ids.count(pad)} image "
+            "placeholders", "type":"invalid_request_error", "param":"messages", "code":"invalid_images"}}).encode(), status_code=400)
       log_prefix += f"prep:{(time.perf_counter()-request_st)*1e3:5.0f} ms  {colored('--', 'BLACK')}  "
       if len(ids) >= self.server.model.max_context:
         stderr_log(log_prefix + f"{colored('context length exceeded', 'red')}  in:{len(ids):5d}  max:{self.server.model.max_context:5d}\n")
@@ -174,13 +238,13 @@ class Handler(VizHandler):
 
       # reply
       max_tokens = body.get("max_completion_tokens") or body.get("max_tokens")
-      req = Request(ids, functools.partial(disconnected, self.connection), max_tokens=max_tokens, temperature=float(body.get("temperature", 0.0)),
-                    log_prefix=log_prefix, tools=body.get("tools"))
+      req = Request(ids, functools.partial(disconnected, self.connection), max_tokens=max_tokens, temperature=float(body.get("temperature", 0.6)),
+                    log_prefix=log_prefix, tools=body.get("tools"), images=images)
       stream_options = body.get("stream_options", {})
       include_usage = not body.get("stream") or stream_options.get("include_usage", False)
       continuous_usage = include_usage and stream_options.get("continuous_usage_stats", False)
-      chunks = self.run_model(req, body["model"], include_usage, continuous_usage=continuous_usage,
-                              reasoning=rendered.rstrip().endswith(tuple(f[0] for f in StreamRouter.FORMATS)))
+      chunks = self.run_model(req, body.get("model") or self.server.model_name, include_usage, continuous_usage=continuous_usage,
+                              reasoning=bool(enable) or rendered.rstrip().endswith(tuple(f[0] for f in StreamRouter.FORMATS)))
       if body.get("stream"): self.stream_json(chunks)
       else:
         out, reasoning, tool_calls, finish_reason = [], [], [], "stop"
@@ -205,8 +269,10 @@ class Handler(VizHandler):
 
 class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
   daemon_threads = True
-  def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any):
-    self.model, self.model_name, self.tok, self.template = model, model_name, tok, template
+  def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any,
+               reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None):
+    self.model, self.model_name, self.tok, self.template, self.vision = model, model_name, tok, template, vision
+    self.reasoning_effort, self.enable_thinking = reasoning_effort, enable_thinking
     self.waiting: queue.Queue[Request|None] = queue.Queue()
     super().__init__(server_address, Handler)
 
@@ -221,6 +287,12 @@ class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
       except Exception as e:
         traceback.print_exc()
         req.error = e
+        # a device hang/reset is permanent for this process: exit now so the launcher restarts a fresh server (its stale queues cannot serve,
+        # and tearing them down later only triggers another GPU reset at a surprising moment)
+        if (dead := dead_devices()):
+          import os
+          stderr_log(f"\ndevice {dead[0]} is in error state: exiting\n")
+          os._exit(3)
       req.out.put(None)
 
   def shutdown(self):
@@ -228,14 +300,33 @@ class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
     super().shutdown()
     self.waiting.put(None)
 
+  def encode_images(self, req:Request):
+    # on the inference thread (the vision encoder runs on the GPU): encode each image and widen its single <|image_pad|> token to one pad
+    # per embedding
+    if not req.images: return
+    pad = self.model.image_pad_id
+    req.media = [self.vision.encode(img) for img in req.images]
+    expanded, k = [], 0
+    for t in req.ids:
+      if t == pad:
+        expanded += [pad] * req.media[k].n_tokens
+        k += 1
+      else: expanded.append(t)
+    req.ids, req.prompt_tokens = expanded, len(expanded)
+    req.log_prefix += f"img:{len(req.media)} ({sum(m.n_tokens for m in req.media)} tok)  {colored('--', 'BLACK')}  "
+    if len(req.ids) >= self.model.max_context: raise ValueError(f"prompt has {len(req.ids)} tokens with its images, but the model context is "
+                                                                f"{self.model.max_context}")
+
   def generate(self, req:Request):
     n, finished = 0, False
-    req.cached_tokens = cache_start_pos = self.model.get_start_pos(req.ids)
+    self.encode_images(req)
+    media_keys = tuple((s, m.key) for s, m in self.model._media_spans(req.ids, req.media)) if req.media else ()
+    req.cached_tokens = cache_start_pos = self.model.get_start_pos(req.ids, media_keys)
     stderr_log(req.log_prefix + f"in:{colored(f'{cache_start_pos:5d}', 'green')} +{len(req.ids)-cache_start_pos:5d}  {colored('--', 'BLACK')}  ")
     prompt_tokens = len(req.ids)
     st = pt = time.perf_counter()
     try:
-      for next_id in self.model.generate(req.ids, temperature=req.temperature):
+      for next_id in self.model.generate(req.ids, temperature=req.temperature, media=req.media):
         if n == 0: stderr_log(f"prefill:{(prompt_tokens-cache_start_pos)/((pt:=time.perf_counter())-st):4.0f} tok/s  {colored('--', 'BLACK')}  ")
         if self.tok.is_end(next_id): break
         if req.disconnected(): return
