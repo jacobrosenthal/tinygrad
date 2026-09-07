@@ -586,7 +586,10 @@ def attn_prefill(cache:Tensor, q_raw:Tensor, k_raw:Tensor, v_raw:Tensor, qnw:Ten
   """attention of a T-token chunk (positions start_pos.., tokens >= n_tok are padding) over the quantized kv cache, updated in place.
   returns (T, H*D) f32 (gated), int8 quantization (block 128) cached"""
   G = H // HKV
-  QT = getenv("ATTN_QT", 8)
+  # ATTN_QT_PF: prefill query rows per workgroup, separate from the decode kernel's ATTN_QT. A KV tile is dequantized once per
+  # 16-query-row tile, and the tiles of one workgroup share that work, so a wider tile cuts redundant dequantization -- but only
+  # if the chunk is wide enough to still fill the GPU with workgroups, which is why PREFILL_T moved to 1024 with it.
+  QT = getenv("ATTN_QT_PF", 32)
   qk_norm = qnw is not None
   dev, arch = cache.device, _arch(cache.device)
   sp_t = start_pos_tensor(start_pos, dev, T if n_tok is None else n_tok)

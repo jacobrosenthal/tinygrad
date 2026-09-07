@@ -553,7 +553,7 @@ def _grid_tensor(name:str, device:str) -> Tensor:
   return Tensor(flat, dtype=dtypes.uint32, device=device).realize()
 
 MAX_T = getenv("MAX_T", 8)  # tokens per batched gemv launch (weights stream once per T tokens)
-PREFILL_T = getenv("PREFILL_T", 256)  # prefill chunk: T > MAX_T tokens go through the dequant + tensor-core GEMM (amd_prefill)
+PREFILL_T = getenv("PREFILL_T", 1024)  # prefill chunk: T > MAX_T tokens go through the dequant + tensor-core GEMM (amd_prefill)
 def fused_T(T:int) -> bool:
   """token counts the fused kernels take: the decode gemv batch or a prefill chunk (multiple of 64 up to PREFILL_T)"""
   return T <= MAX_T or (T % 64 == 0 and T <= PREFILL_T)
