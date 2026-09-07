@@ -1,0 +1,5 @@
+branch: amd-qwen-on-master @ 1f3d594dc
+config: MTP K=3, max_context 8192, DEV=USB+AMD:LLVM, dock=ed4e39b(no-C450)+upstream copyin fix, governor=powersave
+launched pid 25946 ; log: /tmp/claude-1001/-home-jacob-z-tinygrad/bbbf3962-a9cf-4c32-800a-58c69b1ea8de/scratchpad/baseline-mtp.log
+
+[exited with code 0]

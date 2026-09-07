@@ -1,0 +1,19 @@
+=== ATTN_ABL=0 14:39:06
+words=48000 wall=137s | in:    0 +55064        gen:  49 tok/s    accept: 0.48 (2.44 tok/step)
+DONE 14:42:26
+=== ATTN_ABL=1 14:42:26
+words=48000 wall=137s | in:    0 +55064        gen:  44 tok/s    accept: 0.25 (1.76 tok/step)
+DONE 14:45:47
+=== ATTN_ABL=2 14:45:47
+words=48000 wall=138s | in:    0 +55064        gen:  43 tok/s    accept: 0.26 (1.78 tok/step)
+DONE 14:49:18
+=== ATTN_ABL=3 14:49:18
+words=48000 wall=138s | in:    0 +55064        gen:  45 tok/s    accept: 0.26 (1.78 tok/step)
+DONE 14:52:48
+=== ATTN_ABL=4 14:52:48
+words=48000 wall=142s | in:    0 +55064        gen:  26 tok/s    accept: 0.00 (1.00 tok/step)
+DONE 14:56:24
+=== ATTN_ABL=5 14:56:24
+words=48000 wall=138s | in:    0 +55064        gen:  41 tok/s    accept: 0.31 (1.92 tok/step)
+DONE 14:59:56
+ALL-DONE

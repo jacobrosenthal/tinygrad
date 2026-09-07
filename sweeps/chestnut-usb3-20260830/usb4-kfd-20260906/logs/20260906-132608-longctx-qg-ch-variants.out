@@ -1,0 +1,16 @@
+=== qg1-ch512
+qg1-ch512: words=20 wall=4s | in:    0 +   74    prefill: 152 tok/s    gen:  81 tok/s    accept: 0.56 (2.69 tok/step)
+qg1-ch512: words=1500 wall=6s | in:    0 + 1766    miss: live@50/115 ckpt@50/73    prefill: 858 tok/s    gen:  81 tok/s    accept: 0.57 (2.70 tok/step)
+qg1-ch512: words=6000 wall=13s | in:    0 + 6936    miss: live@1742/1880 ckpt@1742/1765    prefill: 818 tok/s    gen:  73 tok/s    accept: 0.53 (2.58 tok/step)
+qg1-ch512: words=24000 wall=47s | in: 4096 +23473    prefill: 555 tok/s    gen:  63 tok/s    accept: 0.54 (2.63 tok/step)
+qg1-ch512: words=48000 wall=121s | in:12288 +42776    prefill: 371 tok/s    gen:  54 tok/s    accept: 0.57 (2.71 tok/step)
+qg1-ch512: words=90000 wall=361s | in:12288 +90951    prefill: 257 tok/s    gen:  41 tok/s    accept: 0.57 (2.70 tok/step)
+qg1-ch512: DONE 13:38:58
+=== qg1-ch1024
+qg1-ch1024: words=20 wall=4s | in:    0 +   74    prefill: 151 tok/s    gen:  81 tok/s    accept: 0.56 (2.69 tok/step)
+qg1-ch1024: words=1500 wall=7s | in:    0 + 1766    miss: live@50/115 ckpt@50/73    prefill: 856 tok/s    gen:  73 tok/s    accept: 0.53 (2.58 tok/step)
+qg1-ch1024: words=6000 wall=13s | in:    0 + 6936    miss: live@1742/1876 ckpt@1742/1765    prefill: 816 tok/s    gen:  65 tok/s    accept: 0.48 (2.45 tok/step)
+qg1-ch1024: words=24000 wall=47s | in: 4096 +23473    prefill: 556 tok/s    gen:  58 tok/s    accept: 0.46 (2.39 tok/step)
+qg1-ch1024: words=48000 wall=122s | in:12288 +42776    prefill: 371 tok/s    gen:  53 tok/s    accept: 0.60 (2.80 tok/step)
+qg1-ch1024: words=90000 wall=362s | in:12288 +90951    prefill: 257 tok/s    gen:  41 tok/s    accept: 0.53 (2.60 tok/step)
+qg1-ch1024: DONE 13:49:16

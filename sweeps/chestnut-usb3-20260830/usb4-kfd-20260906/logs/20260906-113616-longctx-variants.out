@@ -1,0 +1,20 @@
+=== qt4 (ATTN_QT=4)
+qt4: server did not come up
+=== qt8-ch512 (ATTN_QT=8 AMD_ATTN_MQ_CH=512)
+qt8-ch512: words=20 wall=4s | in:    0 +   74    prefill: 152 tok/s    gen:  81 tok/s    accept: 0.56 (2.69 tok/step)
+qt8-ch512: words=1500 wall=6s | in:    0 + 1766    miss: live@50/115 ckpt@50/73    prefill: 861 tok/s    gen:  81 tok/s    accept: 0.57 (2.70 tok/step)
+qt8-ch512: words=6000 wall=13s | in:    0 + 6936    miss: live@1742/1880 ckpt@1742/1765    prefill: 820 tok/s    gen:  76 tok/s    accept: 0.53 (2.58 tok/step)
+qt8-ch512: words=24000 wall=47s | in: 4096 +23473    prefill: 557 tok/s    gen:  61 tok/s    accept: 0.54 (2.63 tok/step)
+qt8-ch512: words=48000 wall=121s | in:12288 +42776    prefill: 372 tok/s    gen:  53 tok/s    accept: 0.57 (2.71 tok/step)
+qt8-ch512: words=90000 wall=362s | in:12288 +90951    prefill: 257 tok/s    gen:  39 tok/s    accept: 0.57 (2.70 tok/step)
+qt8-ch512: DONE 12:11:36
+=== qt4-ch512 (ATTN_QT=4 AMD_ATTN_MQ_CH=512)
+qt4-ch512: server did not come up
+=== qt8-ch128 (ATTN_QT=8 AMD_ATTN_MQ_CH=128)
+qt8-ch128: words=20 wall=4s | in:    0 +   74    prefill: 153 tok/s    gen:  79 tok/s    accept: 0.52 (2.56 tok/step)
+qt8-ch128: words=1500 wall=6s | in:    0 + 1766    miss: live@50/78 ckpt@50/73    prefill: 861 tok/s    gen:  84 tok/s    accept: 0.53 (2.60 tok/step)
+qt8-ch128: words=6000 wall=12s | in:    0 + 6936    miss: live@1742/1828 ckpt@1742/1765    prefill: 820 tok/s    gen:  82 tok/s    accept: 0.59 (2.77 tok/step)
+qt8-ch128: words=24000 wall=48s | in: 4096 +23473    prefill: 557 tok/s    gen:  54 tok/s    accept: 0.42 (2.27 tok/step)
+qt8-ch128: words=48000 wall=121s | in:12288 +42776    prefill: 372 tok/s    gen:  51 tok/s    accept: 0.61 (2.83 tok/step)
+qt8-ch128: words=90000 wall=363s | in:12288 +90951    prefill: 257 tok/s    gen:  37 tok/s    accept: 0.59 (2.77 tok/step)
+qt8-ch128: DONE 12:46:57

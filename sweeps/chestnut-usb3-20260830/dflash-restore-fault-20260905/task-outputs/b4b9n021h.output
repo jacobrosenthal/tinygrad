@@ -1,0 +1,18 @@
+hangdbg launched pid 89176
+=== meanwhile: dflash dims + how hang_report names kernels ===
+--- dflash.dim / head dims (from a quick GGUF meta peek) ---
+tinygrad/runtime/support/hcq.py:400:    # (timeline value, what was submitted): eager kernels and graphs, read back by hang_report when the timeline stops advancing
+tinygrad/runtime/support/hcq.py:433:      self.hang_report(e)
+tinygrad/runtime/support/hcq.py:437:  def hang_report(self, err:Exception):
+tinygrad/runtime/support/hcq.py:457:        if (sig:=graph.progress_signals.get(self)) is None:
+tinygrad/runtime/ops_amd.py:689:        if time.perf_counter() - t0 > 10: raise RuntimeError(f"GPU failed to reach USB copyin fence {addr:#x} value {count} (10s, hung GPU?)")
+tinygrad/runtime/ops_amd.py:894:  def on_device_hang(self):
+tinygrad/runtime/ops_amd.py:987:  def on_device_hang(self):
+tinygrad/runtime/ops_amd.py:1183:  def on_device_hang(self): self.iface.on_device_hang()
+--- drafter Linears: do they use _ggml amd_gemv custom kernels? ---
+75:  def __call__(self, x:Tensor, start_pos:int, ctx:Tensor|None=None, ctx_pos=None) -> Tensor:
+102:    if hasattr(self.ffn_down, "_ggml"):
+103:      from tinygrad.llm import amd_gemv
+104:      f = self.ffn_down(amd_gemv.silu_mul_quant(self.ffn_gate(n), self.ffn_up(n)))
+
+[exited with code 0]

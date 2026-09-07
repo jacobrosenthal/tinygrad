@@ -1,0 +1,364 @@
+=== STASHES ===
+stash@{0}: WIP on amd-gemv-qwen38-jacob: 0f142f540 usbgpu: document copyin batching vs arm-ordering as two separate fixes
+stash@{1}: WIP on master: 4462ec301 remove sintify and sgep [PR] (#16879)
+
+=== ALL BRANCHES (local + remotes) ===
+  amd-gemv-qwen38-jacob                                     cdddd2188 llm: expose attn decode QT as ATTN_QT + document the LDS ceiling behind K<=3
+* amd-qwen-on-master                                        1f3d594dc amd/usb: adaptive busy-poll for signal waits (AMD_USB_SPIN_MS, +13% fwd rate)
+  chestnut-sweeps-docs                                      7f641ad96 sweeps: K=3 is a hardware LDS wall (QT=16/32 exceed RDNA3 64KB) -- lifting it is a kernel rewrite, not a tunable; pivot to lower-bpw quant
+  master                                                    a6c810eb0 [origin/master: behind 112] mi350p: fix pmc (#17858)
+  usb-copyin-guard                                          54ec54529 usbgpu: correct repro note -- reproduces at powersave on TB4, governor not the gate
+  remotes/jacob/amd-gemv-qwen38-jacob                       cdddd2188 llm: expose attn decode QT as ATTN_QT + document the LDS ceiling behind K<=3
+  remotes/origin/HEAD                                       -> origin/master
+  remotes/origin/abstractions_4                             4b960a62e work
+  remotes/origin/add_local_buffer                           e4ec4d2c5 remove noops
+  remotes/origin/after_qol                                  890897553 this work?
+  remotes/origin/algebraic_upat                             86d1e42ed Merge branch 'master' into algebraic_upat
+  remotes/origin/all_bv_no_idx                              1d55b5618 junk
+  remotes/origin/all_sink                                   2a0e7491f gemm assign
+  remotes/origin/amd_isel                                   1cd10a2e3 amd isel renderer
+  remotes/origin/amd_refac                                  113e15a81 line
+  remotes/origin/amd_smu_reset_patch                        1e1030205 match kernel
+  remotes/origin/amd_sqtt                                   2f8531972 Merge remote-tracking branch 'origin/master' into amd_sqtt
+  remotes/origin/amd_uop                                    f0b941643 Merge branch 'master' into amd_uop
+  remotes/origin/amd_uop_cleanups                           e6806015a colors
+  remotes/origin/ansip_para                                 369b9d0c2 add ansipad and PARALLEL contextvar
+  remotes/origin/assign_copy                                ca906371f fix assign copy
+  remotes/origin/assign_try_3                               ca36ef018 found_assign
+  remotes/origin/before2                                    dc68b7ef9 in_loop
+  remotes/origin/better_spec                                c24ac1684 more syntactic sugar for pyrender
+  remotes/origin/better_syn                                 37930867c Merge branch 'master' into better_syn
+  remotes/origin/bitcast_spec                               26f2049d4 Merge branch 'master' into bitcast_spec
+  remotes/origin/broadcast_shape_2                          770dac0e0 broadcast
+  remotes/origin/bt_ei                                      cb5d827ed use buf_target in expand_index
+  remotes/origin/buf_heur                                   9cd6e7c24 better cost function
+  remotes/origin/bump_fw                                    1d61368f6 bump amd firmware
+  remotes/origin/bump_nv_2404                               4fc25543a bump gpuocelot
+  remotes/origin/cache_reshape                              2c8ad1b41 _apply_movement_op cache
+  remotes/origin/call_inline                                2fe45b066 Merge branch 'master' into call_inline
+  remotes/origin/call_is_kernels                            a29986f07 small changes and test fixes from kernel is call
+  remotes/origin/callify                                    8395071f7 recursive stuff works
+  remotes/origin/cast_vec_as_cast                           bd9c4ab2e fix that
+  remotes/origin/cat_mop                                    37a40bf97 early lower cat
+  remotes/origin/changes_from_rangify                       260da2017 fix unit test dtypes
+  remotes/origin/check_clsetarg                             e0bc99b6c check clSetKernelArg
+  remotes/origin/check_dims                                 e051a3536 Merge branch 'master' into check_dims
+  remotes/origin/cifar_30                                   6e6977efe 16.4 seconds
+  remotes/origin/cifar_30_clean                             006637cf7 remove unmeasured CIFAR micro-optimizations
+  remotes/origin/clean_load                                 7a214c449 Merge branch 'master' into clean_load
+  remotes/origin/clean_spec                                 abb4d3047 hotfix: slightly looser load spec for AMD bfloat16
+  remotes/origin/clone_tg                                   f082cbcb3 respect the 8x8 tiles
+  remotes/origin/codegen2                                   d319b5f61 Merge branch 'master' into codegen2
+  remotes/origin/codegen_try_2                              30cc42691 order
+  remotes/origin/contig_on_after                            8548d9730 handle contig on after
+  remotes/origin/continue_mat                               0eec0e3dc continue work on amd_uop_matmul
+  remotes/origin/deepsek                                    e401546bf deepsek work
+  remotes/origin/default_late_allreduce                     e2e69dfe5 Merge branch 'master' into default_late_allreduce
+  remotes/origin/delete_kernel_py                           652e395ef not a part of regen
+  remotes/origin/delete_ones                                e738b2d4a Merge branch 'master' into delete_ones
+  remotes/origin/delete_slow_rangeify                       1b1752b6f Revert "remove the on_stack stuff and any retries"
+  remotes/origin/delta_attention_scan                       c9e15c7f9 Merge branch 'master' into delta_attention_scan
+  remotes/origin/demote_op                                  3cfd4c915 warp_num
+  remotes/origin/disable_rules                              8aea58353 start disabling rules there's no tests for
+  remotes/origin/dsp_search                                 dd5172879 fix all bugs
+  remotes/origin/dsp_search_merged                          07102624a Merge branch 'master' into dsp_search_merged
+  remotes/origin/dtype_shape                                cc2135142 move to SPEC=3
+  remotes/origin/dtype_shape_2                              35e13e08d improve shapes to make them behave like dtype.count, try 2
+  remotes/origin/earlier_gater                              42c1f4d5b fixes of load alt value
+  remotes/origin/early_contig_real                          6818b65d1 remove user contiguous in prepare
+  remotes/origin/emu_cdna                                   6e3a120c3 Fix cache invalidation check in _compile_smem
+  remotes/origin/emulate_ctx                                45bac1eee fix test amx
+  remotes/origin/end_all_ranges                             b4e2d1edd disable const folding tests
+  remotes/origin/endrange                                   50be175f8 store
+  remotes/origin/er_prioity                                 f215f8424 use end range count in priority
+  remotes/origin/execution_unit                             43c033e5e clean
+  remotes/origin/expand_in_prepare                          feb860a7b also skip casted consts in expand_broadcast
+  remotes/origin/failing_assign                             3128e1900 failing assign test
+  remotes/origin/fancy_usb                                  830a147a5 Revert "good stuff in USB"
+  remotes/origin/fast_llm                                   63c16143f fix test attention
+  remotes/origin/fix_amdflash                               6b914d1dd amdflash bugfixes
+  remotes/origin/fix_fa_fwd_clang_22                        5241ee5a6 fix: override rocm path
+  remotes/origin/fix_fuse                                   b349e55c6 fix fuse unique
+  remotes/origin/fix_llvm_cast                              11dc89575 more complex
+  remotes/origin/fix_range_merging_sd                       c3f4ab190 Merge branch 'master' into fix_range_merging_sd
+  remotes/origin/fix_rangeify_tests                         e7c7fdb47 now that needs rangeify 2 also
+  remotes/origin/fix_rc                                     2650f15c4 fix test_matmul_relu_cat
+  remotes/origin/fix_sched_copy                             9d5dc4a8f hotfix: name the shift rewrite better
+  remotes/origin/fix_slice_store                            4218cc925 fix spec
+  remotes/origin/fix_src_spec                               8612385cc add all codegen stages to spec_tensor
+  remotes/origin/fixup_fix_kernel                           29262a754 fine for ptx
+  remotes/origin/full_spec                                  5c20955c8 just use SPEC, not __debug__
+  remotes/origin/fun_w_egraphs                              e7c8aaed3 go
+  remotes/origin/gate-on-load-store                         c0c120bf5 cleanups
+  remotes/origin/gate_rewrite                               5fd81a7f6 add a gate to rewrite if there's no rules [pr]
+  remotes/origin/gemma4_gpt                                 19c0e4a11 gemma4 from GPT 5.4
+  remotes/origin/gen_pdf_fast                               7d82cd45a tests
+  remotes/origin/gh-pages                                   89fe01be1 Deployed 479e077 with MkDocs version: 1.6.1
+  remotes/origin/gl_dims                                    5ed146b52 global/locals from AxisType in range
+  remotes/origin/gldims                                     30b9c6ed2 global local dims in gpudims [pr]
+  remotes/origin/glm_flash                                  8c7975193 Q5_K
+  remotes/origin/grad_outerworld                            a0c8d04fe grad outerworld test
+  remotes/origin/grok_x86_novec                             22c3f069e Revert "clean up is_address"
+  remotes/origin/group_div_rules                            baa2f16bf revert
+  remotes/origin/heur_4096                                  db5313085 adjust upcast heuristic to 4096
+  remotes/origin/heur_group                                 4ec83a47e group heuristic
+  remotes/origin/hk_gemm                                    9540700bb direct lds
+  remotes/origin/http_threading                             bc589c017 add threading to the http server
+  remotes/origin/hwtest_fixes                               65aa41a11 hwtest fixes for rdna3 dsl
+  remotes/origin/id_store                                   5bc73e644 noop continue
+  remotes/origin/if_range_cleanups                          f55f48854 cleanups from if range branch
+  remotes/origin/ignore_oob                                 7aaa9b577 test with IGNORE_OOB=0
+  remotes/origin/image_idx_xy                               03daefc62 changes
+  remotes/origin/image_in_mc                                973e19cfa work
+  remotes/origin/image_no_vec                               b910f1d5c something
+  remotes/origin/image_refactors_stack                      81dccc51e stack
+  remotes/origin/index_to_slice                             2c8867c3e all cpu tests pass local
+  remotes/origin/invalid_try_3                              1a523193d Merge branch 'master' into invalid_try_3
+  remotes/origin/jinja_template                             6d8e8b646 more crap to fallback
+  remotes/origin/kernel4                                    c89fb841f cleanups
+  remotes/origin/kernel_is_call                             771a39524 Merge branch 'master' into kernel_is_call
+  remotes/origin/kernelless                                 e6945b90b test both
+  remotes/origin/kimi_slop                                  a0d4a2971 kimi linear working
+  remotes/origin/kitten_matmul                              df181f330 kitten matmul is running
+  remotes/origin/late_Locals                                6c66cbe5a move in optimize
+  remotes/origin/late_add_load                              89d8b7919 fix more tests
+  remotes/origin/late_allreduce                             4662fb413 works
+  remotes/origin/late_codegen                               d7563f3dd move into codegen late [pr]
+  remotes/origin/late_decomp_is_late                        00b9be45d Merge branch 'master' into late_decomp_is_late
+  remotes/origin/late_lower_idx                             7cb8fdd7a Merge branch 'master' into late_lower_idx
+  remotes/origin/late_view                                  fec7fbb82 fixup realize
+  remotes/origin/late_weakint                               9b5a6db68 move weakint stuff later
+  remotes/origin/lds_double_buffering                       a5afdcc79 add lds double buffering to amd_asm_matmul
+  remotes/origin/less_wmma_arg                              9a4f54a1f don't use the wmma args as much
+  remotes/origin/lil_dg_change                              797e74ba1 normal
+  remotes/origin/lil_rangeify_td                            c7ba7fcde ignore expand
+  remotes/origin/llama_trainer                              66676a1ac Merge branch 'master' into llama_trainer
+  remotes/origin/llm_262k_minimal                           475ad15f2 27b 935/47
+  remotes/origin/llm_flash_attn                             6b98cb351 minor bugfixes
+  remotes/origin/llm_qwen                                   49f70088a qwen work
+  remotes/origin/llm_serve_fixes                            02bb55516 error
+  remotes/origin/load_view_late                             4689d29f4 rewrite name
+  remotes/origin/local_cache                                6c370cd52 stuff
+  remotes/origin/locals_have_device                         48dd1d654 no long
+  remotes/origin/loop_end_op                                ac20b5e98 add Ops.LOOP + conditional Ops.END (kimi)
+  remotes/origin/loop_is_rng                                303c5d325 we don't float anymore
+  remotes/origin/low_rank_call                              6234b42cf low rank call in kernel graph
+  remotes/origin/lowerer_hacks                              5e433685b reorder
+  remotes/origin/mac_pytest                                 1019a3d8f Merge branch 'master' into mac_pytest
+  remotes/origin/manual_kernel_3                            ece460482 cleanups
+  remotes/origin/master                                     479e077ec hotfix: fix am_smi + tell agents to not insert kernel modules
+  remotes/origin/mega_lowerer                               954f30a1c work
+  remotes/origin/migrate_calL_expand                        e1f534921 Merge branch 'master' into migrate_calL_expand
+  remotes/origin/min_new_lin                                a861507d9 minimal new linearizer
+  remotes/origin/min_outer_range                            54ab6aa24 add (unused) outer range
+  remotes/origin/minigen                                    f597ec8d5 Merge branch 'master' into minigen
+  remotes/origin/minor_views                                27b7680e0 prereqs: move views to codegen
+  remotes/origin/mixins7                                    ee5f9cd29 lil cleanups
+  remotes/origin/mlperf_training_v4.1                       da42d422f add run results and update software versions
+  remotes/origin/mlperf_training_v5.0                       20ce1b5a3 branch
+  remotes/origin/mlperf_training_v6.0                       01848d1e1 feat: results
+  remotes/origin/modern_scan                                6eb1379f0 Merge branch 'master' into modern_scan
+  remotes/origin/more_apps                                  ee5f17bca cleaner
+  remotes/origin/more_early_comps                           63447d50e pickle
+  remotes/origin/more_folding_rules                         20c45eb70 guard c1.arg
+  remotes/origin/more_kernelcount                           1796f6bb5 more KernelCountException
+  remotes/origin/more_pcode                                 aec4d6524 ds compiled
+  remotes/origin/more_rangeify_pm_tests                     9de19ef89 add more rangeify pm tests
+  remotes/origin/more_ren_clean                             c7b6ee0c7 dt.count
+  remotes/origin/more_uop_gc_test                           68fa9b108 add more uop gc test
+  remotes/origin/more_uop_mm                                a164ec328 Merge branch 'master' into more_uop_mm
+  remotes/origin/more_vmap                                  50fd47d23 never mind, i don't like this
+  remotes/origin/move_devec                                 af0abe403 fix flaky
+  remotes/origin/move_dtype_decomps                         ca25160d5 move down dtype decomps
+  remotes/origin/move_expander                              d25c688fd Merge branch 'master' into move_expander
+  remotes/origin/move_gates_to_load_store                   b9be9fbc7 Merge branch 'master' into move_gates_to_load_store
+  remotes/origin/move_mop_cleanup                           38610b595 movement.py
+  remotes/origin/move_schedule                              150ee9eb6 sched docs
+  remotes/origin/move_simp_views                            1e07dff38 move simplify views to merge views
+  remotes/origin/moveleftright                              7ae02dea1 Merge branch 'master' into moveleftright
+  remotes/origin/mt_typing                                  147fd0e2c fix assign
+  remotes/origin/multi_range                                978502be4 experiments with multi being range
+  remotes/origin/multioutput                                c9f1ed10c gate MULTIOUTPUT
+  remotes/origin/new_ck                                     308eb13ea codegen
+  remotes/origin/new_devec                                  6a0533646 something
+  remotes/origin/new_expander                               f4c17ce25 Merge branch 'master' into new_expander
+  remotes/origin/new_invalid_and_image                      feaab7ee8 move decomp dtypes
+  remotes/origin/new_linearizer                             88f1d82be might end if
+  remotes/origin/new_shape                                  0b00981cd fix wmma
+  remotes/origin/new_test                                   17acc48b3 empty
+  remotes/origin/no_assign_2                                b1ed29323 go
+  remotes/origin/no_buf_0                                   392a21b82 don't bufferize 0s
+  remotes/origin/no_count_renderer                          cf3f67e0e more crap
+  remotes/origin/no_decimals                                206b46687 locals are different buffers
+  remotes/origin/no_late_simplify_marg                      017ba454a Merge branch 'master' into no_late_simplify_marg
+  remotes/origin/no_merge_ends                              93aa420f3 we don't support multi end yet
+  remotes/origin/no_merge_views                             576686519 Merge branch 'master' into no_merge_views
+  remotes/origin/no_mstack_in_allreduce                     3ccf458b7 remove MSTACK from allreduce
+  remotes/origin/no_one_ranges                              310ef1054 Merge branch 'master' into no_one_ranges
+  remotes/origin/no_sip_usbgpu                              4cde0d87d this works
+  remotes/origin/no_tsink_base                              7fa94ffa4 tsink_base wasn't needed
+  remotes/origin/no_tuplize                                 af80611ec remove tuplize
+  remotes/origin/no_user_ck_contig                          13afd14ec non removable
+  remotes/origin/no_vec_x86_4                               ff4e97c43 is grok good?
+  remotes/origin/no_weakint_variable                        12aa7a22a Merge branch 'master' into no_weakint_variable
+  remotes/origin/noop_index                                 82ec1ba57 NOOP index in mop_cleanup
+  remotes/origin/novecimg                                   ae6c2d2b9 remove dtype.vec(2) from image always
+  remotes/origin/num_batches_tracked_shape                  87affa866 num_batches_tracked has shape ()
+  remotes/origin/olmo3_support                              72fccb5f5 cleaner
+  remotes/origin/one_compiler                               2aec58654 one compiler path
+  remotes/origin/one_hcopt                                  8006595cd Clean up postrange.py by removing comments
+  remotes/origin/only_assign_buffers                        73331f4e5 print
+  remotes/origin/only_loop_backends                         0f7226da3 ptx also
+  remotes/origin/only_reg_emu                               05d27abcc tests pass
+  remotes/origin/only_reg_emu2                              7a1190b72 Merge origin/master into only_reg_emu2 (keep branch's Reg-based approach)
+  remotes/origin/outer_range                                db8c6d9a0 work
+  remotes/origin/outerworld_work                            30ff87eab realize sched
+  remotes/origin/pad_invalid_work                           b162ab15d pad invalid work (glm)
+  remotes/origin/pad_mixin                                  c43f8edc3 small diff
+  remotes/origin/param_call_is_function                     e336f3cf8 CALL with return value is FUNCTION
+  remotes/origin/parse_sqtt_more                            f8ff531b6 AQL in mmapeak
+  remotes/origin/pci_iommu                                  f06ed25cb Merge branch 'master' into pci_iommu
+  remotes/origin/port_nir                                   785f09aac lil cleanup
+  remotes/origin/postrange_hcopts                           8665d104a Merge branch 'master' into postrange_hcopts
+  remotes/origin/precompile_backward                        34d2ef644 Merge branch 'master' into precompile_backward
+  remotes/origin/prefill_qwen_fast                          ee7d44160 fixes
+  remotes/origin/print_special_ops                          28c277699 fix on OSX
+  remotes/origin/ps_clean                                   af62ad4e8 bitcast is a mop
+  remotes/origin/pyremu_try                                 ef3c614b4 Merge branch 'master' into pyremu_try
+  remotes/origin/python_prg                                 5d13dd112 refactor to u.
+  remotes/origin/python_speed                               82aa943cd fix that test
+  remotes/origin/q4k_support                                9ea9c40be add Q4_K GGUF quantization support
+  remotes/origin/qcom-openpilot-13ms                        7a9570892 optimize openpilot vision on qcom
+  remotes/origin/qcom_830                                   a8140a5c7 start support for adreno 830
+  remotes/origin/qcom_mmapeak                               6d082d46c fp32 paeak
+  remotes/origin/qcom_speed_codex                           10d207a6f work
+  remotes/origin/qol_string                                 1e7b29ff2 improve DEBUG=2 string with TB/s and TFLOPS [pr]
+  remotes/origin/qwen36_27b_amd_900                         0f5ad0b4b fix USB LLM warmup correctness
+  remotes/origin/qwen36_27b_amd_minimal                     c9e1d8210 llm: keep Qwen warmup changes scoped
+  remotes/origin/qwen36_amd_bugfixes                        92acbc3ac schedule: realize custom kernel inputs that don't resolve to a buffer state
+  remotes/origin/r_cleanups                                 5ddffb382 small cleanups to rangeify
+  remotes/origin/r_new_opt                                  2379d5e60 Merge branch 'master' into r_new_opt
+  remotes/origin/ranged_call                                b384c2731 ln
+  remotes/origin/rangeify_2                                 6eaea3c9d RANGEIFY=2 is partial contig
+  remotes/origin/rangeify_const_folding                     34ef44833 enable rangeify const folding
+  remotes/origin/rangeify_try_3                             825d0b930 delete them all
+  remotes/origin/rdna3_vibes                                170e8825c 3 tests fail
+  remotes/origin/rdna4_asm                                  103a00d4c Merge origin/master
+  remotes/origin/rdna4_gemm                                 35932239d Merge branch 'master' into rdna4_gemm
+  remotes/origin/real_pyrender                              36918a7d7 cleanups
+  remotes/origin/recurse_sub                                40f0acbc2 make that a single rewrite
+  remotes/origin/refactor_amd_emu_slop                      cbf41054a mypy
+  remotes/origin/reg_coalese                                39f24c477 stack is fine
+  remotes/origin/relu_pattern                               fbc7f4c12 only floats
+  remotes/origin/remove_assign                              34bd24bbf maybe
+  remotes/origin/remove_cast_hack                           d94bbc386 m_
+  remotes/origin/remove_ck_contig                           0b389b23c remove custom kernel contiguous
+  remotes/origin/remove_define_var                          eee8d261e Merge branch 'master' into remove_define_var
+  remotes/origin/remove_forced_re                           1fd14a088 assign
+  remotes/origin/remove_on_stack                            6fb74beb7 remove on_stack from graph_rewrite
+  remotes/origin/remove_programspec                         a07c9da26 Merge branch 'master' into remove_programspec
+  remotes/origin/remove_pylint                              de6a8f5bd how did that typecheck?
+  remotes/origin/remove_slow_tests                          2c90f3ea7 split test_advancedindex
+  remotes/origin/remove_vec_2                               691ec7b1b work
+  remotes/origin/remove_vec_3                               5b8ff231c Merge branch 'master' into remove_vec_3
+  remotes/origin/renderers_use_shapes_2                     f8a66639a junk
+  remotes/origin/replace_if_with_range                      bb7aa19d6 Merge branch 'master' into replace_if_with_range
+  remotes/origin/reprocess_node_experiments                 dde61c385 Revert "write tests for algebraic UPat"
+  remotes/origin/reshape_trait                              1255eeec6 confirm it works in amd_uop_matmul
+  remotes/origin/resnet-ci                                  0071d864f run_and_time for resnet ci
+  remotes/origin/returned-uop                               1b88f65ca Merge branch 'master' into returned-uop
+  remotes/origin/revert-11547-fix_mismatch_red              ede77facb Revert "fix mismatch reduce (#11547)"
+  remotes/origin/revert-11715-revert-11711-amd_llvm_tc_cast 2036361d4 Revert "Revert "fix the misused cast in amd llvm tc (#11711)" (#11715)"
+  remotes/origin/revert-11809-no_ki_in_gpudims              5f8526d2b Revert "remove KernelInfo from gpudims (#11809)"
+  remotes/origin/revert-11811-better_div_nesting            ec3b9e8db Revert "Better div nesting (#11811)"
+  remotes/origin/revert-11876-memplan_vbig                  17601c3a8 Revert "memplan: fix large buffers planning (#11876)"
+  remotes/origin/revert-12104-simplify_valid_in_symbolic    f52b977ca Revert "Simplify valid in symbolic (#12104)"
+  remotes/origin/revert-12308-bufferize_early               8b4a96378 Revert "Bufferize early, fix "children not making progress" on big graphs (#1…"
+  remotes/origin/revert-12731-jitlink_init_check            fabe7c984 Revert "nv: check if jitlink is avail (#12731)"
+  remotes/origin/revert-12813-after_cleanups                5e155d094 Revert "after clean up of locals (#12813)"
+  remotes/origin/revert-13046-better_cleanup_arange_buffers 69ae7c2b3 Revert "Better cleanup of arange bufferize (#13046)"
+  remotes/origin/revert-13311-prof_link_sqtt                df2f3457e Revert "hcq: add tag to exec events (#13311)"
+  remotes/origin/revert-13583-rocr_desc_2                   dec2ea8a2 Revert "amd: use correct structs (#13583)"
+  remotes/origin/revert-14734-tload                         839e8305f Revert "use zip_extract and tar_extract in torch load (#14734)"
+  remotes/origin/revert-17141-full_rewrite_to_sink          34a967d02 Revert "reorder sym in full_rewrite_to_sink [pr] (#17141)"
+  remotes/origin/revert-17408-_broadcasted-weak             1c4a3134d Revert "don't cast weak in _broadcasted [pr] (#17408)"
+  remotes/origin/revert-17538-disk_uring_poll               2d9ed0ad3 Revert "disk: neable polling (#17538)"
+  remotes/origin/revert-9438-simple_matmul_np_rand          71b9bf1c5 Revert "`simple_matmul.py` uses np to generate random (#9438)"
+  remotes/origin/revert_wrong_ck_fix                        eec82b0db revert wrong custom kernel fix
+  remotes/origin/rewrite_rangeify2                          13455c1fd Merge branch 'master' into rewrite_rangeify2
+  remotes/origin/rtoposort                                  1a780f285 error
+  remotes/origin/scan_assign                                278ca0388 scan with assign
+  remotes/origin/scan_op_8                                  efc7d5f1b scan op work
+  remotes/origin/sched_cache                                d1223922b fixed and test is real
+  remotes/origin/sched_lin                                  721ad48dc Merge branch 'master' into sched_lin
+  remotes/origin/sd_load_simple                             aef4a496b failing tests
+  remotes/origin/self_type                                  6ffd33e1e fix later
+  remotes/origin/set_testpath                               ccd753e1a set testpath on pytest
+  remotes/origin/shrink_in_render                           e76de4111 fixes
+  remotes/origin/simp_spec                                  77aadcb01 more
+  remotes/origin/simple_gidxs                               ee0e6b59b okay to skip that test
+  remotes/origin/simple_pool                                7c4971f34 ONE_POOL
+  remotes/origin/simple_priority                            6809ff8fe simplify priority
+  remotes/origin/simple_rangeify                            904b21373 Merge branch 'master' into simple_rangeify
+  remotes/origin/simpler-sd-compile                         d4bce5be8 can't allocate this at once, need parts back
+  remotes/origin/simpler_callify2                           ce8677357 cleanups
+  remotes/origin/simpler_end                                076bfa50e fix that
+  remotes/origin/simpler_fusion                             d3c8f0957 fix lil failure
+  remotes/origin/simpler_image                              f34efbe9f Merge branch 'master' into simpler_image
+  remotes/origin/simpler_postrange                          0e0be99b5 Merge branch 'master' into simpler_postrange
+  remotes/origin/simpler_reduce                             872ca998d simpler reduce that just removes ones
+  remotes/origin/slice_like_shrink                          e3535abe9 make SLICE like SHRINK
+  remotes/origin/spec_3                                     f76a6c884 unused
+  remotes/origin/spec_cleanup                               99fd9ff79 more explicit
+  remotes/origin/spec_ren                                   7e4cf3992 check spec in test, cleanup vectorize render
+  remotes/origin/speed_one_linear                           f50d40014 faster devectorizer with one line
+  remotes/origin/split_buf_idx                              167d7fe87 split devectorizing of buf/index
+  remotes/origin/split_decomp_pass                          1e740b115 restore that
+  remotes/origin/split_sub                                  061a17ee4 split pm_substitute_recurse
+  remotes/origin/stack_0                                    009b484dc bump
+  remotes/origin/store_is_void                              50e5c7781 sink PTRCAT
+  remotes/origin/string_ranges                              8ba57c324 we name the warp warp now
+  remotes/origin/support_opts_in_contig                     a8dca47fb fix
+  remotes/origin/swizzle_in_kernel                          b2017dec0 move that
+  remotes/origin/sym_llm                                    4fb38e94a symbolic llm with prefill (ai slop)
+  remotes/origin/sym_work                                   6eee1a161 Merge branch 'master' into sym_work
+  remotes/origin/symbolic-chunk-split                       d30e3b3ca fix dim resolution order in split/chunk
+  remotes/origin/szdiff_bot_test                            1ec33e2ef wip: test change, do not merge
+  remotes/origin/tc_is_heur                                 bf6feb7dc flip that sign
+  remotes/origin/tensor_graph_single_sink                   6435b7e62 tensor graph is a single sink
+  remotes/origin/test_amd_crash                             b25d3b143 less sketch tests
+  remotes/origin/test_fa                                    70a112683 ugh
+  remotes/origin/test_from_postopt                          f150e27ad reraise is fine
+  remotes/origin/test_hgemm                                 96c71378d dsp skip
+  remotes/origin/test_unit                                  66634c643 test unit should pass on NULL device
+  remotes/origin/tiny_scan                                  7ab5b5b86 outer
+  remotes/origin/tmr                                        e7cfac01f test_mismatch_reduce
+  remotes/origin/tool_call_support                          7b19732a7 gpt fixes
+  remotes/origin/topoprop                                   9d8a2bd21 toposort recursive_property is faster
+  remotes/origin/ttomsa-new_linearizer                      5d66fa479 linearize API
+  remotes/origin/tuplegtuple                                e4d8e0395 more test
+  remotes/origin/two_stage_remove                           45032b5c9 fixups
+  remotes/origin/typed_checks                               9e0a42ec0 typed
+  remotes/origin/typing_work                                dbf8e641a binop also
+  remotes/origin/unused_permute_arg                         d39b854a2 unused permute arg on r
+  remotes/origin/uop_prg                                    9d4e74a52 comments
+  remotes/origin/upd_test4                                  15309ea0d cleanup tests, bump caches
+  remotes/origin/update_benchmark                           3c0aba981 cl
+  remotes/origin/update_benchmark_search                    04a8eca8e add TestKernelOpts.test_tensor_core_opts run in benchmarks
+  remotes/origin/update_mlperf                              b1f58cd5c remove AMD_LLVM=0 in mlperf and search ci
+  remotes/origin/user_failure                               8a3d451ee failing test from application
+  remotes/origin/vecless_x86_glm                            c7f011f88 fixes
+  remotes/origin/verify_sink_dims_clean                     c85dfe150 improve verify_sink_dims
+  remotes/origin/vf_ish                                     ad7e74438 vf MI350X passthrough mode driver
+  remotes/origin/view_after_const                           2e59c5c3a move view after const
+  remotes/origin/view_in_codegen                            5fcdd2a48 fix st_vars
+  remotes/origin/viz_cbroadcast                             00dec1c55 limit src lines
+  remotes/origin/warp_fun                                   383c0bf05 notes
+  remotes/origin/wgpu-f16-packed                            fc9ae53a0 Progress with pack/unpack wgsl built-ins
+  remotes/origin/working_postopt                            f4e1b9322 fix beam
+  remotes/origin/x86_moves                                  1568c92f7 cleanups
+  remotes/origin/x86_numel                                  7252a38b0 Merge branch 'master' into x86_numel
+
+=== fetch jacob remote refs (in case newer) ===
+cdddd218891ee8a1986d80062f3e790097fba57e	refs/heads/amd-gemv-qwen38-jacob
+f5b00de3199f2d7fc0ce2d568dd9103aa200cc85	refs/heads/master

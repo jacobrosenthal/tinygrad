@@ -1,0 +1,4 @@
+imports OK
+confirmation test launched pid 279271 (SPIN_MS=0 fault-hunt with sp_t-as-compute fix; expect 0 faults)
+
+[exited with code 0]

@@ -1,0 +1,4 @@
+=== ATTN_ABL=6 15:01:26
+words=48000 wall=132s | in:    0 +55064        gen:  42 tok/s    accept: 0.33 (2.00 tok/step)
+DONE 15:04:42
+ALL-DONE

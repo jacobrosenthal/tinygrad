@@ -1,0 +1,45 @@
+DEBUG imported
+=== CYCLE A (proof): AMD_SCRATCH_KEEP_OLD=0 SCRATCH_DEBUG=1 23:32:19 ===
+--- 20260905-233219-restore-cycle.log
+SERVED run 1 kind=warmup startup=590s 23:42:13
+SERVED run 2 kind=restore startup=150s 23:45:26
+FAULT run 2 (restore) req 1
+DONE 23:47:43
+regrow events:
+amd: scratch regrow for private_segment 128 B/thread: 0x200001000000+24M realloced=True kept_old=False
+amd: scratch regrow for private_segment 220 B/thread: 0x200001000000+24M -> 0x2000d4000000+42M realloced=True kept_old=False
+amd: scratch regrow for private_segment 320 B/thread: 0x2000d4000000+42M -> 0x2000f2000000+60M realloced=True kept_old=False
+amd: scratch regrow for private_segment 424 B/thread: 0x2000f2000000+60M -> 0x200114000000+80M realloced=True kept_old=False
+amd: scratch regrow for private_segment 524 B/thread: 0x200114000000+80M -> 0x200134000000+100M realloced=True kept_old=False
+amd: scratch regrow for private_segment 128 B/thread: 0x200001000000+24M realloced=True kept_old=False
+amd: scratch regrow for private_segment 220 B/thread: 0x200001000000+24M -> 0x2000ac000000+42M realloced=True kept_old=False
+amd: scratch regrow for private_segment 320 B/thread: 0x2000ac000000+42M -> 0x2000b0000000+60M realloced=True kept_old=False
+amd: scratch regrow for private_segment 424 B/thread: 0x2000b0000000+60M -> 0x2000b4000000+80M realloced=True kept_old=False
+amd: scratch regrow for private_segment 524 B/thread: 0x2000b4000000+80M -> 0x2000bc000000+100M realloced=True kept_old=False
+hang-report scratch lines:
+      4     baked scratch base 0x2000b4000000 (+80M, tmpring 0x6a200)  <-- STALE: not the device's current scratch
+      1   scratch: current 0x2000bc000000+100M tmpring=0x83200; previous (regrown): none; last fault va=0x0
+
+=== CYCLE B (fix): AMD_SCRATCH_KEEP_OLD=1 SCRATCH_DEBUG=1, 3 restores x 8 requests 23:47:43 ===
+--- 20260905-234743-restore-cycle.log
+SERVED run 1 kind=restore startup=150s 23:50:17
+SERVED run 2 kind=restore startup=151s 23:54:08
+SERVED run 3 kind=restore startup=150s 23:57:58
+DONE 23:59:15
+regrow events:
+amd: scratch regrow for private_segment 128 B/thread: 0x200001000000+24M realloced=True kept_old=False
+amd: scratch regrow for private_segment 220 B/thread: 0x200001000000+24M -> 0x2000ac000000+42M realloced=True kept_old=True
+amd: scratch regrow for private_segment 320 B/thread: 0x2000ac000000+42M -> 0x2000b0000000+60M realloced=True kept_old=True
+amd: scratch regrow for private_segment 424 B/thread: 0x2000b0000000+60M -> 0x2000b4000000+80M realloced=True kept_old=True
+amd: scratch regrow for private_segment 524 B/thread: 0x2000b4000000+80M -> 0x2000bc000000+100M realloced=True kept_old=True
+amd: scratch regrow for private_segment 128 B/thread: 0x200001000000+24M realloced=True kept_old=False
+amd: scratch regrow for private_segment 220 B/thread: 0x200001000000+24M -> 0x2000ac000000+42M realloced=True kept_old=True
+amd: scratch regrow for private_segment 320 B/thread: 0x2000ac000000+42M -> 0x2000b0000000+60M realloced=True kept_old=True
+amd: scratch regrow for private_segment 424 B/thread: 0x2000b0000000+60M -> 0x2000b4000000+80M realloced=True kept_old=True
+amd: scratch regrow for private_segment 524 B/thread: 0x2000b4000000+80M -> 0x2000bc000000+100M realloced=True kept_old=True
+amd: scratch regrow for private_segment 128 B/thread: 0x200001000000+24M realloced=True kept_old=False
+amd: scratch regrow for private_segment 220 B/thread: 0x200001000000+24M -> 0x2000ac000000+42M realloced=True kept_old=True
+hang-report scratch lines:
+=== done 23:59:15 ===
+
+[exited with code 0]

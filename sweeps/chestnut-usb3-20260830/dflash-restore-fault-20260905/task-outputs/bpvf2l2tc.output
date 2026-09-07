@@ -1,0 +1,30 @@
+  ...2s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...34s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...66s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...98s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...130s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...162s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...194s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...226s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...258s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...290s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...322s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...354s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...385s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...417s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...449s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...481s: DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+  ...513s: SERVED 19:05:28
+  ...545s:   ...25 done, 25 ok, no fault 19:06:06
+  ...577s:   ...50 done, 50 ok, no fault 19:06:43
+=== SOAK RESULT ===
+DFlash SOAK XCTX=0 SPIN_MS=0 (HCQ core acquire fix) 18:57:07
+SERVED 19:05:28
+  ...25 done, 25 ok, no fault 19:06:06
+  ...50 done, 50 ok, no fault 19:06:43
+  ...75 done, 75 ok, no fault 19:07:20
+=== fault check ===
+0
+hang reports ^
+
+[exited with code 0]

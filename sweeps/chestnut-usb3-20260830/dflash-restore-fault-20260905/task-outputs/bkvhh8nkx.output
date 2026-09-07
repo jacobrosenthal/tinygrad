@@ -1,0 +1,13 @@
+=== milestone ===
+drops=0
+run 1 req 8 20:48:21  drops=0  gen:  57 tok/s
+=== RESTART 2 20:48:21 ===
+SERVED run 2 20:50:55  drops-so-far=0
+run 2 req 1 20:51:39  drops=0  gen:  57 tok/s
+FAULT run 2 req 1
+=== RESTART 3 20:51:39 ===
+/v1/chat/completions  --  prep:    0 ms  --  in:    0 +   25  --  prefill:   9 tok/s  --  === hang report for AMD: Wait timeout: 30000 ms! (the signal is not set to 37990, but 37986)
+  last submit's host->GPU writes (deferred check):
+    all landed
+
+[exited with code 0]

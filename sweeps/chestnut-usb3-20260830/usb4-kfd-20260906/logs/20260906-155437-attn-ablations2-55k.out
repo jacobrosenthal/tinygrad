@@ -1,0 +1,10 @@
+=== ATTN_ABL=0 15:54:37
+words=48000 wall=118s | 55064        gen:  55 tok/s    accept: 0.48 (2.44 tok/step)
+=== ATTN_ABL=1 15:57:37
+words=48000 wall=117s | 55064        gen:  49 tok/s    accept: 0.25 (1.76 tok/step)
+=== ATTN_ABL=3 16:00:38
+words=48000 wall=119s | 55064        gen:  45 tok/s    accept: 0.26 (1.78 tok/step)
+=== ATTN_ABL=4 16:03:49
+words=48000 wall=123s | 55064        gen:  25 tok/s    accept: 0.00 (1.00 tok/step)
+=== ATTN_ABL=5 16:07:06
+words=48000 wall=118s | 55064        gen:  47 tok/s    accept: 0.31 (1.92 tok/step)

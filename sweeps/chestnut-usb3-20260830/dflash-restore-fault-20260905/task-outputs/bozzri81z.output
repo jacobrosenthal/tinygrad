@@ -1,0 +1,11 @@
+hammering live server with fresh-prefill requests until fault...
+  ...10 requests, no fault yet
+  ...20 requests, no fault yet
+  ...30 requests, no fault yet
+  ...40 requests, no fault yet
+  ...50 requests, no fault yet
+server down at i=51 (faulted?)
+=== wait for wave dump to finish ===
+=== WAVE lines ===
+
+[exited with code 0]

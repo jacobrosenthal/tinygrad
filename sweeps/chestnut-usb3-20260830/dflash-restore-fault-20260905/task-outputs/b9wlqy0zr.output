@@ -1,0 +1,26 @@
+detector done 22:22:02
+=== 1. reader test (GPU alive) ===
+adev: AMDev large_bar: True
+meta: PCIAllocationMeta -> VirtMapping paddrs: [(24154112, 65536)]
+readback matches: True | first 16: 000102030405060708090a0b0c0d0e0f | via numpy: True
+=== 2. repro.py unfixed fw, back-to-back ===
+0/800 transfers differ (sizes 8192-16384 B, gap 0.0 s, 5.0 s upload)
+=== 3. repro.py GAP=0.01 control ===
+0/800 transfers differ (sizes 8192-16384 B, gap 0.01 s, 13.3 s upload)
+=== 4. relaunch warmup+restore cycle 22:22:28 ===
+=== FAULT + CODE VERDICT 22:36:59 ===
+SERVED run 2 22:36:13  drops-so-far=0
+run 2 req 1 22:36:58  drops=0  gen:  57 tok/s
+FAULT run 2 req 1
+=== RESTART 3 22:36:58 ===
+=== VERDICTS ===
+      1     sp_p of k[8] attn_prep_24_4_256_64_8204_11_k4jv4 @0x200014800000: [start_pos, n_tok, n_keep] = (29, 10, 5); kernels touching it: [0, 8, 9, 10, 18, 19, 27, 28, 37, 38, 46, 47]
+      1     sp_p of k[8] attn_prep_24_4_256_64_8204_11_k4jv4 @0x200014800000: [start_pos, n_tok, n_keep] = (29, 10, 5); kernels touching it: [0, 8, 9, 10, 18, 19, 27, 28, 36, 37, 45, 46]
+      1     sp_p of k[3] attn_prep_24_4_256_64_8204_11_k4jv4 @0x200014800000: [start_pos, n_tok, n_keep] = (29, 10, 5); kernels touching it: [3, 4, 5, 13, 14, 22, 23, 31, 32, 40, 41, 42]
+      1     sp_p of k[19] attn_prep_24_4_256_64_8204_11_k4jv4 @0x200014800000: [start_pos, n_tok, n_keep] = (29, 10, 5); kernels touching it: [1, 2, 10, 11, 19, 20, 21, 29, 30, 38, 39, 47]
+      1     kernel code images verified: 73, corrupted: 0
+      1     kernel code images verified: 36, corrupted: 0
+      1     kernel code images verified: 31, corrupted: 0
+      1     kernel code images verified: 23, corrupted: 0
+
+[exited with code 0]

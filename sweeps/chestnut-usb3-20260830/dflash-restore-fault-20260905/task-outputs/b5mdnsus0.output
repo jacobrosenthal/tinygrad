@@ -1,0 +1,29 @@
+detector finished 22:04:08; relaunching
+=== FAULT + CODE VERDICT 22:18:41 ===
+=== RESTART 2 22:15:21 ===
+SERVED run 2 22:17:55  drops-so-far=0
+run 2 req 1 22:18:39  drops=0  gen:  57 tok/s
+FAULT run 2 req 1
+=== RESTART 3 22:18:39 ===
+llm cache: loaded warmed-up model from /home/jacob/.cache/tinygrad/llm/f520608d0b15e154.pk
+=== VERDICTS ===
+      4     kernel code images verified: 0, corrupted: 0
+      4     code check k[9] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+      4     code check k[5] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+      4     code check k[4] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+      4     code check k[3] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+      4     code check k[2] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+      4     code check k[1] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+      4     code check k[0] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+      3     code check k[8] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+      3     code check k[7] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+      3     code check k[18] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+      2     code check k[6] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+      2     code check k[54] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+      2     code check k[53] failed: RuntimeError('buffer has no physical mapping to read (VirtMapping)')
+=== gemv k[20] + its code-check line ===
+    k[20] gemv_q5k_5120_6144_t10_r2_u2_w128_g640_res code=0x20001e73c000 lib=[0x20001e73c000,+0x4000) img=0x38e8 kernargs=0x200005abe520
+    k[20] gemv_q6k_5120_6144_t10_r2_u2_w128_g640_res code=0x20001e70c000 lib=[0x20001e70c000,+0x4000) img=0x3068 kernargs=0x20001eb94520
+am usb:2-9: WAVE se0 sa0 wgp0 simd0 w0: status=0x30818820 pc=0x20001e73c27c trapsts=0x10000100 hwid1=0x20000000 hwid2=0x00000100
+
+[exited with code 0]

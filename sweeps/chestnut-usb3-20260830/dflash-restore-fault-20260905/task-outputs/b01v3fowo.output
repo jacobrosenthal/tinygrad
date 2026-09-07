@@ -1,0 +1,49 @@
+=== FAULT + REPORT ===
+=== RESTART 3 21:35:09 ===
+SERVED run 3 21:37:43  drops-so-far=0
+run 3 req 1 21:38:28  drops=0  gen:  57 tok/s
+FAULT run 3 req 1
+am usb:2-9: FAULTMAP fault_va=0x2000b67c9000 n_used_blocks=1894
+DONE 21:38:28
+=== VERDICTS ===
+/v1/chat/completions  --  prep:    0 ms  --  in:    0 +   25  --  prefill:   9 tok/s  --  === hang report for AMD: Wait timeout: 30000 ms! (the signal is not set to 37990, but 37986)
+    build-time kernarg slots checked: 468, mismatched: 0
+    hw_page packet dwords checked: 3555, mismatched: 0
+    build-time kernarg slots checked: 945, mismatched: 0
+    hw_page packet dwords checked: 7075, mismatched: 0
+    build-time kernarg slots checked: 1884, mismatched: 0
+    hw_page packet dwords checked: 14115, mismatched: 0
+    build-time kernarg slots checked: 1817, mismatched: 0
+    hw_page packet dwords checked: 17800, mismatched: 0
+  last submit's host->GPU writes (deferred check):
+    all landed
+=== attn kernels: code/kernarg addrs ===
+    k[8] attn_prep_24_4_256_64_8204_11_k4jv4 code=0x20001e35a000 lib=[0x20001e35a000,+0x3000) img=0x26e8 kernargs=0x200005abe1f0
+    k[46] attn_prep_24_4_256_64_8204_11_k4jv4 code=0x20001e35a000 lib=[0x20001e35a000,+0x3000) img=0x26e8 kernargs=0x200005abeb10
+    k[19] attn_prep_24_4_256_64_8204_11_k4jv4 code=0x20001e35a000 lib=[0x20001e35a000,+0x3000) img=0x26e8 kernargs=0x200005b3c4b0
+    k[56] attn_prep_24_4_256_64_8204_11_k4jv4 code=0x20001e35a000 lib=[0x20001e35a000,+0x3000) img=0x26e8 kernargs=0x200005b3cdd0
+    k[93] attn_prep_24_4_256_64_8204_11_k4jv4 code=0x20001e35a000 lib=[0x20001e35a000,+0x3000) img=0x26e8 kernargs=0x200005b3d6e0
+    k[3] attn_prep_24_4_256_64_8204_11_k4jv4 code=0x20001e35a000 lib=[0x20001e35a000,+0x3000) img=0x26e8 kernargs=0x20001e7f80b0
+    k[40] attn_prep_24_4_256_64_8204_11_k4jv4 code=0x20001e35a000 lib=[0x20001e35a000,+0x3000) img=0x26e8 kernargs=0x20001e7f89c0
+    k[77] attn_prep_24_4_256_64_8204_11_k4jv4 code=0x20001e35a000 lib=[0x20001e35a000,+0x3000) img=0x26e8 kernargs=0x20001e7f92d0
+    k[115] attn_prep_24_4_256_64_8204_11_k4jv4 code=0x20001e35a000 lib=[0x20001e35a000,+0x3000) img=0x26e8 kernargs=0x20001e7f9bf0
+    k[152] attn_prep_24_4_256_64_8204_11_k4jv4 code=0x20001e35a000 lib=[0x20001e35a000,+0x3000) img=0x26e8 kernargs=0x20001e7fa500
+    k[189] attn_prep_24_4_256_64_8204_11_k4jv4 code=0x20001e35a000 lib=[0x20001e35a000,+0x3000) img=0x26e8 kernargs=0x20001e7fae10
+    k[226] attn_prep_24_4_256_64_8204_11_k4jv4 code=0x20001e35a000 lib=[0x20001e35a000,+0x3000) img=0x26e8 kernargs=0x20001e7fb720
+=== WAVEDUMP waves (first 8) ===
+am usb:2-9: GCVM_L2_PROTECTION_FAULT_STATUS: {'more_faults': 1, 'walker_error': 0, 'permission_faults': 1, 'mapping_error': 0, 'cid': 8, 'rw': 1, 'atomic': 0, 'vmid': 0, 'vf': 0, 'vfid': 0, 'prt': 0} 0x2000b67c9000
+am usb:2-9: FAULTMAP fault_va=0x2000b67c9000 n_used_blocks=1894
+am usb:2-9: WAVE se0 sa0 wgp0 simd0 w0: status=0x30818820 pc=0x20001e73c274 trapsts=0x10000100 hwid1=0x20000000 hwid2=0x00000100
+am usb:2-9:   SGPR s0-31: 0x05abe520 0x00002000 0x00000138 0x00141c00 0x14960f00 0x00002000 0xabea3200 0x00002004 0x148f9d00 0x00002000 0x14800100 0x00002000 0x14801f00 0x00002000 0x1492ef00 0x00002000 0xabea4280 0x00002004 0x148fb500 0x00002000 0x148fcd00 0x00002000 0x148fe500 0x00002000 0x14803100 0x00002000 0x148ffd00 0x00002000 0x14803700 0x00002000 0x14901500 0x00002000
+am usb:2-9:   VGPR v0-15 (lane0): 0x11ab0280 0xf0f2bafc 0xb3a8bff2 0x30af6d9e 0x137f0342 0xaeade6b3 0xa2aae462 0xbe09ff9b 0x00000000 0x00000000 0x00000000 0x00000000 0x00000004 0x00000000 0x00000001 0x00000000
+am usb:2-9: WAVE se0 sa0 wgp0 simd0 w1: status=0x30818820 pc=0x20001e73c274 trapsts=0x10000100 hwid1=0x20000001 hwid2=0x001f0100
+am usb:2-9:   SGPR s0-31: 0x05abe520 0x00002000 0x000002b8 0x002cdc00 0x14960f00 0x00002000 0xac02f200 0x00002004 0x148f9d00 0x00002000 0x14800100 0x00002000 0x14801f00 0x00002000 0x1492ef00 0x00002000 0xac030280 0x00002004 0x148fb500 0x00002000 0x148fcd00 0x00002000 0x148fe500 0x00002000 0x14803100 0x00002000 0x148ffd00 0x00002000 0x14803700 0x00002000 0x14901500 0x00002000
+am usb:2-9:   VGPR v0-15 (lane0): 0x113502f1 0xb2b0bfb9 0xbfaff89e 0xfdd92886 0x10e302ad 0xb8b5bffa 0xff7cfafe 0x4ff6ca63 0x00000000 0x00000000 0x00000000 0x00000000 0x00000004 0x00000000 0x00000001 0x00000000
+am usb:2-9: WAVE se0 sa0 wgp0 simd0 w2: status=0x30818820 pc=0x20001e73c248 trapsts=0x10000100 hwid1=0x20000002 hwid2=0x00010100
+am usb:2-9:   SGPR s0-31: 0x05abe520 0x00002000 0x00000438 0x00459c00 0x14960f00 0x00002000 0xac1bb200 0x00002004 0x148f9d00 0x00002000 0x14800100 0x00002000 0x14801f00 0x00002000 0x1492ef00 0x00002000 0xac1bc280 0x00002004 0x148fb500 0x00002000 0x148fcd00 0x00002000 0x148fe500 0x00002000 0x14803100 0x00002000 0x148ffd00 0x00002000 0x14803700 0x00002000 0x14901500 0x00002000
+am usb:2-9:   VGPR v0-15 (lane0): 0x11c902a0 0xfffbbebe 0xffaeb7fe 0x32ba561f 0x123102b9 0xfffcf2f3 0xe7aba9e1 0xfe16c488 0x00000000 0x00000000 0x00000000 0x00000000 0x00000004 0x00000000 0x00000001 0x00000000
+am usb:2-9: WAVE se0 sa0 wgp0 simd0 w3: status=0x30818820 pc=0x20001e73c220 trapsts=0x10000100 hwid1=0x20000003 hwid2=0x001e0100
+am usb:2-9:   SGPR s0-31: 0x05abe520 0x00002000 0x000005b8 0x005e5c00 0x14960f00 0x00002000 0xac347200 0x00002004 0x148f9d00 0x00002000 0x14800100 0x00002000 0x14801f00 0x00002000 0x1492ef00 0x00002000 0xac348280 0x00002004 0x148fb500 0x00002000 0x148fcd00 0x00002000 0x148fe500 0x00002000 0x14803100 0x00002000 0x148ffd00 0x00002000 0x14803700 0x00002000 0x14901500 0x00002000
+am usb:2-9:   VGPR v0-15 (lane0): 0x11df02c8 0xffb5edf4 0xfff9a8ac 0x29ab91f1 0x115502d9 0xb2ffaaee 0xbfbfa7a5 0x56fc5d62 0x00000000 0x00000000 0x00000000 0x00000000 0x00000004 0x00000000 0x00000001 0x00000000
+
+[exited with code 0]

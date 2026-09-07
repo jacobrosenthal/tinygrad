@@ -1,0 +1,5 @@
+dock check:
+3801 1 add1 0
+dflash XCTX=16 timing launched pid 50619
+
+[exited with code 0]

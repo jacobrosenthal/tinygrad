@@ -1,0 +1,115 @@
+From 5495b31c2639c144f86a9e660629dda673294e19 Mon Sep 17 00:00:00 2001
+From: Jacob Rosenthal <jacobrosenthal@gmail.com>
+Date: Sun, 6 Sep 2026 08:40:04 -0700
+Subject: [PATCH] amd: keep the old scratch mapped on regrowth, bound queues
+ bake its base
+
+AMDComputeQueue.exec writes dev.scratch.va_addr / tmpring_size into the dispatch packets; a bound queue (and any cached command
+stream, e.g. the USB path) re-submits those packets as-is. _ensure_has_local_memory freed the old scratch when a later program needed
+a larger private segment, so such queues spilled into freed memory: corruption once the range is reused, GCVM_L2_PROTECTION_FAULT
+once it is unmapped. Seen with cache-restored LLM decode graphs on a 7900 XTX over USB. Keep the old buffer mapped: the baked bases
+stay valid and each queue's own tmpring keeps its waves inside it.
+
+test (KFD, 7900 XTX): bound queue with a 260 B-private kernel, a 2052 B one regrows the scratch, free_cache, victims on the freed
+range, re-submit: 4096 corrupted words before the fix, 0 after.
+---
+ test/test_scratch_regrow.py | 68 +++++++++++++++++++++++++++++++++++++
+ tinygrad/runtime/ops_amd.py |  7 +++-
+ 2 files changed, 74 insertions(+), 1 deletion(-)
+ create mode 100644 test/test_scratch_regrow.py
+
+diff --git a/test/test_scratch_regrow.py b/test/test_scratch_regrow.py
+new file mode 100644
+index 000000000..432c96d34
+--- /dev/null
++++ b/test/test_scratch_regrow.py
+@@ -0,0 +1,68 @@
++import unittest
++from tinygrad import Tensor, Device, dtypes, Variable
++from tinygrad.uop.ops import UOp, Ops, KernelInfo, ProgramInfo, graph_rewrite
++from tinygrad.codegen import pm_to_program
++from tinygrad.engine.realize import get_runtime
++
++# a [n x i32] private array with volatile accesses: never promoted to registers, so the kernel's private segment is n*4 bytes
++def scratch_ir(name:str, n:int) -> str:
++  return f'''target triple = "amdgcn-amd-amdhsa"
++define amdgpu_kernel void @{name}(ptr addrspace(1) %out) #0 {{
++entry:
++  %arr = alloca [{n} x i32], align 4, addrspace(5)
++  %lid = tail call i32 @llvm.amdgcn.workitem.id.x()
++  br label %loop
++loop:
++  %i = phi i32 [0, %entry], [%inext, %loop]
++  %p = getelementptr inbounds [{n} x i32], ptr addrspace(5) %arr, i32 0, i32 %i
++  %v = add i32 %i, %lid
++  store volatile i32 %v, ptr addrspace(5) %p, align 4
++  %inext = add nuw nsw i32 %i, 1
++  %done = icmp eq i32 %inext, {n}
++  br i1 %done, label %exit, label %loop
++exit:
++  %idx = urem i32 %lid, {n}
++  %q = getelementptr inbounds [{n} x i32], ptr addrspace(5) %arr, i32 0, i32 %idx
++  %r = load volatile i32, ptr addrspace(5) %q, align 4
++  %o = getelementptr inbounds i32, ptr addrspace(1) %out, i32 %lid
++  store i32 %r, ptr addrspace(1) %o, align 4
++  ret void
++}}
++declare i32 @llvm.amdgcn.workitem.id.x()
++attributes #0 = {{ nounwind "amdgpu-flat-work-group-size"="1,64" }}
++!llvm.module.flags = !{{!0}}
++!0 = !{{i32 1, !"amdhsa_code_object_version", i32 500}}
++'''
++
++def scratch_program(dev, name:str, n:int):
++  sink = UOp.sink(UOp.special(1, "gidx0"), UOp.special(64, "lidx0"), UOp.placeholder((64,), dtypes.int32, 0), arg=KernelInfo(name=name))
++  prg = UOp(Ops.PROGRAM, src=(sink, UOp(Ops.LINEAR, src=()), UOp(Ops.SOURCE, arg=scratch_ir(name, n))), arg=ProgramInfo.from_sink(sink, dev.renderer.target))
++  return get_runtime(dev.device, graph_rewrite(prg, pm_to_program, ctx=dev.renderer))
++
++@unittest.skipUnless(Device.DEFAULT == "AMD" and "LLVM" in type(Device["AMD"].renderer).__name__, "AMD with the LLVM renderer")
++class TestScratchRegrow(unittest.TestCase):
++  def test_bound_queue_survives_scratch_regrowth(self):
++    # a bound queue keeps the dispatch packets it was built with, including COMPUTE_DISPATCH_SCRATCH_BASE. a later program with a
++    # bigger private segment regrows the scratch: the old buffer must stay mapped or the re-submitted queue spills into freed memory
++    dev = Device["AMD"]
++    out = Tensor.zeros(64, dtype=dtypes.int32).contiguous().realize()
++    small = scratch_program(dev, "scratch_small", 64)
++    sig_val = Variable("sig_val", 0, 0xffffffff, dtypes.uint32)
++    q = dev.hw_compute_queue_t().exec(small, small.fill_kernargs([out.uop.buffer._buf]), (1, 1, 1), (64, 1, 1))
++    q.signal(dev.timeline_signal, sig_val).bind(dev)
++    def run():
++      q.submit(dev, {sig_val.expr: dev.timeline_value}); dev.timeline_signal.wait(dev.timeline_value, timeout=10000); dev.timeline_value += 1
++    run()
++    self.assertEqual(out.tolist(), [2 * i for i in range(64)])
++    base, size = dev.scratch.va_addr, dev.scratch.size
++    scratch_program(dev, "scratch_big", 512)   # 2052 B private segment: regrowth
++    self.assertNotEqual(dev.scratch.va_addr, base, "the second program should have regrown the scratch")
++    dev.allocator.free_cache()                 # the LRU allocator keeps freed buffers mapped until it needs the memory
++    # victims: allocations of the freed range's size land on it first-fit; the re-submitted queue's spills must not touch them
++    victims = [Tensor.full(sz // 4, 0x1234567, dtype=dtypes.int32).contiguous().realize() for sz in [64 << 10] * 8 + [512 << 10] * 4 + [size]]
++    run()
++    self.assertEqual(out.tolist(), [2 * i for i in range(64)])
++    self.assertEqual([int((v != 0x1234567).sum().item()) for v in victims], [0] * len(victims), "the queue spilled into freed, reallocated memory")
++
++if __name__ == "__main__":
++  unittest.main()
+diff --git a/tinygrad/runtime/ops_amd.py b/tinygrad/runtime/ops_amd.py
+index 38feba3eb..9585a0ebc 100644
+--- a/tinygrad/runtime/ops_amd.py
++++ b/tinygrad/runtime/ops_amd.py
+@@ -1137,7 +1137,12 @@ class AMDDevice(HCQCompiled):
+     mem_alignment_size = 256 if self.target[0] != 9 else 1024
+     size_per_thread = round_up(private_segment_size, mem_alignment_size // lanes_per_wave)
+     size_per_xcc = size_per_thread * lanes_per_wave * self.iface.props['max_slots_scratch_cu'] * self.cu_cnt
+-    self.scratch, ok = self._realloc(getattr(self, 'scratch', None), size_per_xcc * self.xccs)
++    # HCQ graphs bake the scratch base into their dispatch packets (exec), so the old buffer must stay mapped after a regrowth
++    old = getattr(self, 'scratch', None)
++    try: self.scratch, ok = self.allocator.alloc(size_per_xcc * self.xccs), True
++    except MemoryError:
++      if old is None: raise
++      self.scratch, ok = old, False
+     if ok:
+       # NOTE: xcc logic is correct only for GFX9.
+       max_scratch_waves = self.cu_cnt * self.iface.props['max_slots_scratch_cu'] * self.xccs
+-- 
+2.48.1
+

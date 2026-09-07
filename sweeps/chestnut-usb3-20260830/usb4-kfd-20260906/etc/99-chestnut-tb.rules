@@ -1,0 +1,11 @@
+# chestnut over USB4/TB: keep the tunnel path out of runtime suspend (yesterday's sessions died in "lost during suspend"),
+# and keep the display server off the AMD card so amdgpu can be reloaded without a reboot (KFD leaves dead topology nodes after
+# a hot-unplug; a module reload is the only way to clear them short of rebooting).
+# install: sudo cp 99-chestnut-tb.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x8086", ATTR{class}=="0x0c0340", ATTR{power/control}="on"
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x8086", ATTR{class}=="0x060400", ATTR{power/control}="on"
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x1b21", ATTR{power/control}="on"
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x1002", ATTR{power/control}="on"
+ACTION=="add", SUBSYSTEM=="thunderbolt", ATTR{power/control}="on"
+# the AMD card is compute-only here: take it out of seat0 so mutter/gnome-shell never open it
+SUBSYSTEM=="drm", KERNEL=="card*", ATTRS{vendor}=="0x1002", TAG-="seat", TAG-="master-of-seat", ENV{ID_SEAT}="seat-compute"
