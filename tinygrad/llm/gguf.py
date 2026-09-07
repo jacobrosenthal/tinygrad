@@ -89,6 +89,35 @@ def ggml_data_to_tensor(t: Tensor, n: int, ggml_type: int) -> Tensor:
       scales = blocks[:,192:208].bitcast(dtypes.int8).unsqueeze(-1).expand((-1, 16, 16)).reshape((-1, 256))
       d = blocks[:,-2:].bitcast(dtypes.float16).cast(dtypes.float32)
       return d * (xl.bitwise_or(xh).bitcast(dtypes.int8) - 32).flatten(-2) * scales
+    if ggml_type in (16, 17):
+      # IQ2_XXS (66B) / IQ2_XS (74B): 8 groups of 32, 4 x 8-value grids with signs.
+      ksigns = Tensor(list(_ggml.ksigns_iq2xs), dtype=dtypes.uint8, device=t.device)
+      kmask = Tensor.const((1, 2, 4, 8, 16, 32, 64, 128), dtypes.uint8)
+      d = blocks[:, :2].bitcast(dtypes.float16).cast(dtypes.float32).reshape((-1, 1, 1, 1))
+      if ggml_type == 16:
+        pair = blocks[:, 2:].bitcast(dtypes.uint32).reshape((-1, 8, 2))
+        db = d * (pair[:, :, 1].rshift(28).cast(dtypes.float32) + 0.5).reshape((-1, 8, 1, 1)) * 0.25
+        idx = pair[:, :, 0].bitcast(dtypes.uint8).reshape((-1, 8, 4)).cast(dtypes.int32)
+        grid = _ggml_iq_grid(t.device, _ggml.iq2xxs_grid, (256, 8))[idx]
+        sign_idx = pair[:, :, 1].unsqueeze(-1).rshift(Tensor.const((0, 7, 14, 21), dtypes.uint32)).bitwise_and(127)
+      else:
+        qs16 = blocks[:, 2:66].bitcast(dtypes.uint16).reshape((-1, 8, 4))
+        sc = blocks[:, 66:74]
+        db0 = (sc.bitwise_and(0xF).cast(dtypes.float32) + 0.5) * 0.25
+        db1 = (sc.rshift(4).cast(dtypes.float32) + 0.5) * 0.25
+        db = d * Tensor.stack(db0, db0, db1, db1, dim=-1).reshape((-1, 8, 4, 1))
+        idx = qs16.bitwise_and(511).cast(dtypes.int32)
+        grid = _ggml_iq_grid(t.device, _ggml.iq2xs_grid, (512, 8))[idx]
+        sign_idx = qs16.rshift(9)
+      signs = (ksigns[sign_idx.cast(dtypes.int32)].unsqueeze(-1).bitwise_and(kmask) != 0).where(-1.0, 1.0)
+      return (db * grid * signs).flatten(-3)
+    if ggml_type == 20:
+      # IQ4_NL: 32 elements per 18-byte block (d:2, qs:16). element j is the low nibble of qs[j], j+16 the high nibble
+      d = blocks[:, :2].bitcast(dtypes.float16).cast(dtypes.float32).reshape((-1, 1, 1))
+      lut = Tensor(list(_ggml.kvalues_iq4nl), dtype=dtypes.float32, device=t.device)
+      # NOTE: the contiguous keeps the nibble unpack out of the gather kernel, fusing them miscompiles (nondeterministic zeros) on AMD
+      q = blocks[:, 2:].unsqueeze(1).rshift(Tensor.const((0, 4), dtypes.uint8).reshape(1, 2, 1)).bitwise_and(0xF).contiguous()
+      return (d * lut[q]).flatten(-2)
     if ggml_type == 18:
       d = blocks[:, :2].bitcast(dtypes.float16).cast(dtypes.float32).reshape((-1, 1, 1, 1))
       scale_words = blocks[:, 66:98].bitcast(dtypes.uint32)
@@ -127,9 +156,6 @@ def ggml_data_to_tensor(t: Tensor, n: int, ggml_type: int) -> Tensor:
       grid = _ggml_iq_grid(t.device, _ggml.iq1s_grid, (2048, 8))[q].reshape((-1, 8, 4, 8))
       grid = (grid > 127).where(grid - 256, grid)
       return (dl * (grid + delta)).flatten(-3)
-    if ggml_type == 20:
-      d = blocks[:, :2].bitcast(dtypes.float16).cast(dtypes.float32)
-      return d * Tensor.const(tuple(_ggml.kvalues_iq4nl), dtypes.float32)[q_to_uint8(blocks[:, 2:], 4)]
     if ggml_type == 21:
       d = blocks[:, :2].bitcast(dtypes.float16).cast(dtypes.float32).reshape((-1, 1, 1, 1))
       scales = (1 + 2 * q_to_uint8(blocks[:, 106:110].reshape((-1, 4, 1)), 4).reshape((-1, 8))).cast(dtypes.float32).reshape((-1, 8, 1, 1))
@@ -229,7 +255,36 @@ def gguf_parse(fn: Tensor|str|pathlib.Path) -> tuple[dict, dict[str, tuple[Tenso
       state_dict[name] = (tensor[start:start+nbytes], tuple(reversed(dims)), typ)
   return kv_data, state_dict
 
-def gguf_load(fn: Tensor|str|pathlib.Path) -> tuple[dict, dict[str, Tensor]]:
+# the fork's kernels read the packed weights directly: with raw_out, gguf_load also returns raw_out[name] = (bytes, ggml_type, (rows, cols))
+# and records every device buffer that holds weights in base_registry as (buffer, source path, file offset) so the llm cache can
+# re-upload them. GGUF_ONE_COPY=1 (default) uploads each file's weights in one copy and views into it; 0 uses upstream's per-tensor copies.
+base_registry: list[tuple[Any, str|None, int]] = []
+
+def _load_raw(entries:dict[str, tuple[Tensor, tuple[int, ...], int]], raw_out:dict) -> dict[str, Tensor]:
+  from tinygrad.device import Buffer
+  from tinygrad.helpers import getenv
+  from tinygrad.uop.ops import UOp
+  from tinygrad.runtime.support.hcq2 import unwrap_view
+  def src_path(base:UOp) -> str|None: return d[5:] if isinstance(d:=base.device, str) and d.startswith("DISK:") else None
+  loc = {name: unwrap_view(data.uop) for name, (data, _, _) in entries.items()}  # name -> (file buffer, byte offset)
+  srcs: dict[str, Tensor] = {}
+  if getenv("GGUF_ONE_COPY", 1):
+    for f in dict.fromkeys(fb for fb, _ in loc.values()):
+      names = [n for n in entries if loc[n][0] is f]
+      lo, hi = min(loc[n][1] for n in names), max(loc[n][1] + entries[n][0].nbytes() for n in names)
+      base = Tensor(f)[lo:hi].to(None).contiguous().realize().uop.buffer
+      base_registry.append((base, src_path(f), lo))
+      for n in names:
+        srcs[n] = Tensor(UOp.from_buffer(Buffer(base.device, entries[n][0].nbytes(), dtypes.uint8, base=base, offset=loc[n][1] - lo)))
+  else:
+    srcs = {name: data.to(None) for name, (data, _, _) in entries.items()}
+    if srcs: Tensor.realize(*srcs.values())
+    for n, t in srcs.items(): base_registry.append((t.uop.buffer, src_path(loc[n][0]), loc[n][1]))
+  for n, (_, shape, typ) in entries.items():
+    if len(shape) == 2 and (typ in _GGML_QUANT or typ in (0, 1)): raw_out[n] = (srcs[n], typ, shape)
+  return {n: ggml_data_to_tensor(srcs[n], prod(shape), typ).reshape(shape) for n, (_, shape, typ) in entries.items()}
+
+def gguf_load(fn: Tensor|str|pathlib.Path, raw_out: dict|None=None) -> tuple[dict, dict[str, Tensor]]:
   """
   Loads a .gguf file, returning the `kv_data` and `state_dict`. Multi-part splits are auto-merged when loaded by path.
 
@@ -245,6 +300,7 @@ def gguf_load(fn: Tensor|str|pathlib.Path) -> tuple[dict, dict[str, Tensor]]:
   Packed weights are copied to the default device before constructing the lazy decoding expressions.
   """
   kv, entries = gguf_parse(fn)
+  if raw_out is not None: return kv, _load_raw(entries, raw_out)
   packed = {name: data.to(None) for name, (data, _, _) in entries.items()}
   if packed: Tensor.realize(*packed.values())
   return kv, {name: ggml_data_to_tensor(packed[name], prod(shape), typ).reshape(shape) for name, (_, shape, typ) in entries.items()}

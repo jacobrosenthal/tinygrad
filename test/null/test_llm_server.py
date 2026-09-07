@@ -58,7 +58,8 @@ class TestLLMServer(unittest.TestCase):
     from tinygrad.llm.cli import FallbackTemplate
     from tinygrad.llm.serve import LLMServer
 
-    cls.server = LLMServer(('127.0.0.1', 0), cls.mock_model, "test-model", cls.mock_tok, FallbackTemplate(cls.mock_tok))
+    cls.server = LLMServer(('127.0.0.1', 0), cls.mock_model, "test-model", cls.mock_tok, FallbackTemplate(cls.mock_tok),
+                           enable_thinking=False)  # the fork defaults to thinking on: every token would be reasoning_content
     cls.port = cls.server.server_address[1]
     cls.server_thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
     cls.server_thread.start()
@@ -141,7 +142,8 @@ class TestLLMServer(unittest.TestCase):
         {"role":"tool", "tool_call_id":"call_1", "content":"result"},
       ], stream=True)
       self.assertEqual(list(response)[-1].choices[0].finish_reason, "stop")
-      self.mock_tok.encode.assert_called_with('<|im_start|>user\nHello world<|im_end|>\n'
+      # the fork's server encodes again after the answer (prefix cache resync), so the prompt is not the last call
+      self.mock_tok.encode.assert_any_call('<|im_start|>user\nHello world<|im_end|>\n'
                                               '<|im_start|>assistant\n<|im_end|>\n<|im_start|>tool\nresult<|im_end|>\n')
 
   def test_content_is_streamed(self):
@@ -258,7 +260,8 @@ class TestLLMToolCalls(unittest.TestCase):
     # .items() matches tool-aware templates and ensures OpenAI JSON argument strings are normalized before rendering the next turn.
     template = jinja2.Template("""{% for m in messages %}{{ m.content or '' }}{% for tc in m.tool_calls or [] %}
       {% for key, value in tc.function.arguments.items() %}{{ key }}={{ value }}{% endfor %}{% endfor %}{% endfor %}""")
-    cls.server = LLMServer(('127.0.0.1', 0), cls.mock_model, "tool-model", cls.mock_tok, template)
+    cls.server = LLMServer(('127.0.0.1', 0), cls.mock_model, "tool-model", cls.mock_tok, template,
+                           enable_thinking=False)  # the fork defaults to thinking on: every token would be reasoning_content
     cls.port = cls.server.server_address[1]
     cls.server_thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
     cls.server_thread.start()
