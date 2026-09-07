@@ -54,6 +54,8 @@ class TestLLMServer(unittest.TestCase):
     cls.mock_model.max_context = 4
     cls.mock_model.generate = Mock(side_effect=lambda ids, **kwargs: iter([300, 301, 999]))
     cls.mock_model.get_start_pos = Mock(return_value=0)
+    # the prefix-cache state the real model always has (a Mock attribute is truthy and not a list)
+    cls.mock_model._cached_tokens, cls.mock_model._ckpt_tokens = [], None
 
     from tinygrad.llm.cli import FallbackTemplate
     from tinygrad.llm.serve import LLMServer
@@ -254,6 +256,8 @@ class TestLLMToolCalls(unittest.TestCase):
     cls.mock_model = Mock()
     cls.mock_model.max_context = 4
     cls.mock_model.get_start_pos = Mock(return_value=0)
+    # the prefix-cache state the real model always has (a Mock attribute is truthy and not a list)
+    cls.mock_model._cached_tokens, cls.mock_model._ckpt_tokens = [], None
 
     from tinygrad.llm.serve import LLMServer
     import jinja2
