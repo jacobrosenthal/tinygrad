@@ -21,7 +21,12 @@ def _without_main():
   with _spawn_lock:
     saved = {name:getattr(main, name, _missing) for name in ("__file__", "__spec__")}
     try:
-      for name in saved: setattr(main, name, None)
+      # __file__ is deleted, not set to None: get_preparation_data reads it with getattr(...,None) so both hide it, but a None
+      # __file__ makes inspect.getfile() raise TypeError and inspect.getmodule() walks all of sys.modules, so every other thread's
+      # inspect.stack() (DEBUG>=1 scheduling, TRACEMETA) raises for as long as a worker is spawning. __spec__ stays None because
+      # get_preparation_data reads main_module.__spec__ directly.
+      if saved["__file__"] is not _missing: del main.__file__
+      main.__spec__ = None
       yield
     finally:
       for name,value in saved.items(): delattr(main, name) if value is _missing else setattr(main, name, value)
