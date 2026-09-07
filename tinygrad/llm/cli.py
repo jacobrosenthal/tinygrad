@@ -1,5 +1,5 @@
 from __future__ import annotations
-import sys, argparse, codecs, itertools, typing, re, unicodedata, json, time
+import os, sys, argparse, codecs, itertools, typing, re, unicodedata, json, time
 from typing import TYPE_CHECKING
 from tinygrad import nn
 from tinygrad.uop.ops import UOp, Ops
@@ -91,9 +91,14 @@ class SimpleTokenizer:
   def decode(self, ids:list[int]) -> str: return b''.join(self._tok2bytes[tid] for tid in ids).decode(errors='replace')
   def stream_decoder(self) -> typing.Callable[..., str]:
     dec = codecs.getincrementaldecoder('utf-8')('replace')
-    def _decode(tid:int|None=None) -> str: return dec.decode(self._tok2bytes[tid]) if tid is not None else dec.decode(b'', final=True)
+    def _decode(tid:int|None=None) -> str:
+      if tid is None: return dec.decode(b'', final=True)
+      raw = self._tok2bytes.get(tid)
+      if raw is None: return ""
+      return dec.decode(raw)
     return _decode
-  def is_end(self, token_id:int) -> bool: return token_id in (self.eos_id, self.eot_id)
+  def is_end(self, token_id:int) -> bool:
+    return token_id in (self.eos_id, self.eot_id) or token_id not in self._tok2bytes
 
 models = {
   "llama3.2:1b": "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q6_K.gguf",
@@ -153,26 +158,60 @@ class FallbackTemplate:
 
 from tinygrad.llm.serve import LLMServer
 
+def find_mmproj(model_path, arg:str) -> str|None:
+  if arg in ("none", "0", ""): return None
+  if arg != "auto": return arg
+  import pathlib
+  return next((str(p) for p in sorted(pathlib.Path(model_path).parent.glob("mmproj*.gguf"))), None)
+
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument("--model", "-m", default=list(models.keys())[0], help=f"Model choice ({', '.join(models.keys())}) or path to a local GGUF file")
   parser.add_argument("--max_context", type=int, default=4096, help="Max Context Length")
   parser.add_argument("--serve", nargs='?', type=int, const=8000, metavar="PORT", help="Run OpenAI compatible API (optional port, default 8000)")
+  parser.add_argument("--host", default="127.0.0.1", help="Bind address for --serve")
   parser.add_argument("--warmup", action="store_true", help="warmup the JIT")
   parser.add_argument("--benchmark", nargs='?', type=int, const=20, metavar="COUNT", help="Benchmark tok/s (optional count, default 20)")
   parser.add_argument("--no_chat_template", action="store_true", help="Don't use the model's chat template, always use the fallback template")
+  parser.add_argument("--reasoning-effort", default="medium", choices=["low","medium","xhigh","none"],
+                      help="Qwen thinking depth (chat template). none disables thinking.")
+  parser.add_argument("--mmproj", default="auto", metavar="PATH",
+                      help="vision projector GGUF for image input (auto: mmproj*.gguf next to the model, none: disabled)")
   args = parser.parse_args()
+
+  # SIGTERM/SIGINT: drain the devices before exiting. python's default action exits without cleanup, and on AMD (MES queues) tearing a
+  # process down with kernels in flight page-faults the running waves and can wedge the firmware into a full GPU reset
+  import signal
+  def _graceful_exit(signum, frame):
+    from tinygrad import Device
+    for d in list(Device._opened_devices):
+      try: Device[d].synchronize()
+      except Exception: pass
+    os._exit(128 + signum)
+  for sig in (signal.SIGTERM, signal.SIGINT): signal.signal(sig, _graceful_exit)
 
   # load the model
   with Context(DEBUG=max(DEBUG.value, 2 if args.serve else 0)):
-    model, kv = Transformer.from_gguf(fetch(models.get(args.model, args.model)), args.max_context)
-  model_name = kv.get('general.name') or kv.get('general.basename') or args.model
+    model_path = fetch(models.get(args.model, args.model))
+    mmproj = find_mmproj(model_path, args.mmproj)
+    model, kv = Transformer.from_gguf(model_path, args.max_context, vision=mmproj is not None)
+  model_name = os.environ.get("QWEN_MODEL_ID") or kv.get('general.name') or kv.get('general.basename') or args.model
   file_sizes = [y.nbytes() for y in UOp.sink(*[x.uop for x in nn.state.get_parameters(model)]).toposort() if y.op is Ops.BUFFER]
   print(f"using model \"{model_name}\" with {sum(file_sizes):,} bytes and {sum(x.numel() for x in nn.state.get_parameters(model)):,} params, "
         f"max context {args.max_context} on {nn.state.get_parameters(model)[0].device}")
 
   # get tokenizer
   tok = SimpleTokenizer.from_gguf_kv(kv)
+
+  # vision encoder: images become embeddings at the <|image_pad|> tokens (must be attached before warmup: the prefill jits take that input)
+  vision = None
+  if mmproj is not None:
+    from tinygrad.llm.vision import VisionEncoder
+    if (pad_id := tok._special_tokens.get("<|image_pad|>")) is None: print(f"warning: {mmproj} ignored, the model has no <|image_pad|> token")
+    else:
+      vision = VisionEncoder(mmproj)
+      model.image_pad_id = pad_id
+      print(f"vision: {mmproj} ({vision.n_layers} layers, up to {vision.max_tokens} tokens per image)")
 
   # use the model's chat template if jinja2 is available (enables model-specific formatting)
   template: jinja2.Template|FallbackTemplate = FallbackTemplate(tok)
@@ -188,16 +227,26 @@ def main():
       template = env.from_string(ct)
     except ImportError: print("warning: jinja2 is not installed, the model's chat template is disabled")
 
-  # warmup the JIT
-  if args.warmup or args.serve:
+  # warmup the JIT (skipped when the whole warmed-up model came from the llm cache)
+  if (args.warmup or args.serve) and not getattr(model, "_from_cache", False):
     with Context(DEBUG=max(DEBUG.value, 1)): model.warmup()
+    from tinygrad.llm.cache import save_llm_cache
+    save_llm_cache(model, kv, str(model_path), args.max_context, "vision" if vision is not None else "")
+  if vision is not None and (args.warmup or args.serve):
+    with Context(DEBUG=max(DEBUG.value, 1)): vision.warmup()
 
   # start server
-  if args.serve: LLMServer(('', args.serve), model, model_name, tok, template).serve_forever()
+  if args.serve:
+    enable_thinking = args.reasoning_effort != "none"
+    effort = "medium" if args.reasoning_effort == "none" else args.reasoning_effort
+    LLMServer((args.host, args.serve), model, model_name, tok, template,
+              reasoning_effort=effort, enable_thinking=enable_thinking, vision=vision).serve_forever()
 
   # do benchmark
   if args.benchmark is not None:
     gen = model.generate(toks:=[tok.bos_id or 0])
+    import time
+    st = time.perf_counter()
     for i in range(args.benchmark):
       profile_marker(f"decode @ {i}")
       GlobalCounters.reset()
@@ -208,6 +257,9 @@ def main():
         if log:
           with WallTimeEvent(BenchEvent.STEP): next(gen)
         else: next(gen)
+    # speculative decoding yields several tokens per model step, so the per-token lines alternate: report the overall rate too
+    print(f"{args.benchmark} tokens in {(dt:=time.perf_counter()-st)*1e3:.1f} ms: {args.benchmark/dt:.2f} tok/s" +
+          (f" (mtp accepted {a}/{n} drafts)" if (acc:=getattr(model, '_mtp_accept', None)) and (a:=acc[0]) is not None and (n:=acc[1]) else ""))
     exit(0)
 
   # interactive chat

@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json, pathlib, re, time, typing, uuid
+import base64, json, pathlib, re, time, typing, urllib.request, uuid
 from typing import TYPE_CHECKING
 from tinygrad.helpers import DEBUG, colored, stderr_log
 from tinygrad.viz.serve import TCPServerWithReuse, HTTPRequestHandler
@@ -23,6 +23,32 @@ def parse_tool_call(s:str) -> tuple[str, typing.Any]|None:
       except json.JSONDecodeError: args[pm.group(1)] = value
     return fm.group(1), args
   return None
+
+def load_image_url(url:str) -> bytes:
+  # data: URLs (what chat clients send), http(s) URLs and local paths
+  if url.startswith("data:"):
+    header, _, payload = url.partition(",")
+    return base64.b64decode(payload) if ";base64" in header else payload.encode()
+  if url.startswith(("http://", "https://")):
+    with urllib.request.urlopen(url, timeout=30) as r: return r.read()
+  return pathlib.Path(url.removeprefix("file://")).read_bytes()
+
+def extract_images(messages:list[dict]) -> list[bytes]:
+  """image bytes in prompt order (the chat template renders one <|image_pad|> per image item, in the same order)"""
+  out = []
+  for m in messages:
+    if not isinstance(m.get("content"), list): continue
+    for item in m["content"]:
+      if not isinstance(item, dict): continue
+      if item.get("type") == "image_url" or "image_url" in item:
+        u = item["image_url"]
+        out.append(load_image_url(u["url"] if isinstance(u, dict) else u))
+      elif item.get("type") == "image" or "image" in item:
+        src = item.get("image") or item.get("source") or {}
+        if isinstance(src, str): out.append(load_image_url(src))
+        elif src.get("type") == "base64" or "data" in src: out.append(base64.b64decode(src["data"]))
+        elif "url" in src: out.append(load_image_url(src["url"]))
+  return out
 
 def normalize_messages(messages:list[dict]) -> None:
   # chat templates expect tool_call arguments as dicts (OpenAI clients send JSON strings)
@@ -64,13 +90,22 @@ class Handler(HTTPRequestHandler):
   server: LLMServer
   def log_request(self, code='-', size='-'): pass
   def do_GET(self):
-    if self.path == "/v1/models": self.send_data(json.dumps({"object":"list","data":[{"id":self.server.model_name,"object":"model"}]}).encode())
+    if self.path in ("/health", "/v1/health"):
+      # a device whose GPU was reset (or that hung unrecoverably) can never serve again: report it so launchers do not reuse this process
+      from tinygrad import Device
+      dead = [d for d in Device._opened_devices if getattr(Device[d], "error_state", None) is not None]
+      if dead: self.send_data(f"device error: {dead[0]}: {Device[dead[0]].error_state}".encode(), content_type="text/plain", status_code=503)
+      else: self.send_data(b"ok")
+    elif self.path == "/props":
+      self.send_data(json.dumps({"default_generation_settings": {"n_ctx": self.server.model.max_context}}).encode())
+    elif self.path == "/v1/models":
+      self.send_data(json.dumps({"object":"list","data":[{"id":self.server.model_name,"object":"model"}]}).encode())
     else: self.send_data((pathlib.Path(__file__).parent / "chat.html").read_bytes(), content_type="text/html")
   def run_model(self, ids:list[int], model_name:str, include_usage=False, max_tokens:int|None=None, temperature:float=0.0,
-                reasoning:bool=False):
+                reasoning:bool=False, media:list|None=None):
     model, tok = self.server.model, self.server.tok
     prompt_tokens = len(ids)
-    cache_start_pos = model.get_start_pos(ids)
+    cache_start_pos = model.get_start_pos(ids, tuple((s, m.key) for s, m in model._media_spans(ids, media)) if media else ())
     stderr_log(f"in:{colored(f'{cache_start_pos:5d}', 'green')} +{len(ids)-cache_start_pos:5d}  {colored('--', 'BLACK')}  ")
     tmpl = {"id":f"chatcmpl-{uuid.uuid4().hex[:24]}", "object":"chat.completion.chunk", "created":int(time.time()), "model":model_name}
     def chunk(d:dict): return {"choices": [{"index":0, "delta":d, "finish_reason":None}], **tmpl}
@@ -87,7 +122,7 @@ class Handler(HTTPRequestHandler):
     completed = False
     try:
       yield chunk({"role":"assistant", "content":""})
-      for next_id in model.generate(ids, temperature=temperature):
+      for next_id in model.generate(ids, temperature=temperature, media=media):
         if len(out) == 0:
           stderr_log(f"prefill:{(prompt_tokens-cache_start_pos)/((pt:=time.perf_counter())-st):4.0f} tok/s  {colored('--', 'BLACK')}  ")
         if tok.is_end(next_id): break
@@ -118,6 +153,16 @@ class Handler(HTTPRequestHandler):
     except GeneratorExit:
       if not completed: log_stats(interrupted=True)
       raise
+    except Exception as e:
+      # a device hang/reset is permanent for this process: exit now so the launcher restarts a fresh server (its stale queues cannot serve,
+      # and tearing them down later only triggers another GPU reset at a surprising moment)
+      from tinygrad import Device
+      dead = [d for d in Device._opened_devices if getattr(Device[d], "error_state", None) is not None]
+      if dead:
+        import os
+        stderr_log(f"\ndevice {dead[0]} is in error state ({Device[dead[0]].error_state}): exiting\n")
+        os._exit(3)
+      raise
 
   def do_POST(self):
     request_st = time.perf_counter()
@@ -128,8 +173,41 @@ class Handler(HTTPRequestHandler):
     if self.path == "/v1/chat/completions":
       # render and tokenize
       normalize_messages(body["messages"])
-      rendered = self.server.template.render(messages=body["messages"], tools=body.get("tools"), add_generation_prompt=True, preserve_thinking=True)
+      # Feedthrough reasoning: keep prior <think> / reasoning_content in the prompt.
+      # Qwen3.8 chat template defaults effort to xhigh if omitted; daily default is medium.
+      ctk = body.get("chat_template_kwargs") or {}
+      effort = body.get("reasoning_effort") or ctk.get("reasoning_effort")
+      if effort is None and isinstance(body.get("reasoning"), dict):
+        effort = body["reasoning"].get("effort")
+      if effort is None: effort = getattr(self.server, "reasoning_effort", "medium")
+      enable = body.get("enable_thinking")
+      if enable is None: enable = ctk.get("enable_thinking")
+      if enable is None: enable = getattr(self.server, "enable_thinking", True)
+      preserve = body.get("preserve_thinking")
+      if preserve is None: preserve = ctk.get("preserve_thinking", True)
+      rendered = self.server.template.render(
+        messages=body["messages"], tools=body.get("tools"), add_generation_prompt=True,
+        preserve_thinking=bool(preserve), enable_thinking=bool(enable), reasoning_effort=str(effort))
       ids: list[int] = self.server.tok.encode(rendered)
+      # images: encode each one and widen its single <|image_pad|> token to one pad per embedding
+      media: list = []
+      if (images := extract_images(body["messages"])):
+        if self.server.vision is None or self.server.model.image_pad_id is None:
+          return self.send_data(json.dumps({"error":{"message":"this server has no vision encoder loaded (--mmproj)",
+            "type":"invalid_request_error", "param":"messages", "code":"unsupported_content"}}).encode(), status_code=400)
+        pad = self.server.model.image_pad_id
+        if ids.count(pad) != len(images):
+          return self.send_data(json.dumps({"error":{"message":f"{len(images)} images but the chat template produced {ids.count(pad)} image "
+            "placeholders", "type":"invalid_request_error", "param":"messages", "code":"invalid_images"}}).encode(), status_code=400)
+        media = [self.server.vision.encode(img) for img in images]
+        expanded, k = [], 0
+        for t in ids:
+          if t == pad:
+            expanded += [pad] * media[k].n_tokens
+            k += 1
+          else: expanded.append(t)
+        ids = expanded
+        stderr_log(f"img:{len(media)} ({sum(m.n_tokens for m in media)} tok)  {colored('--', 'BLACK')}  ")
       stderr_log(f"prep:{(time.perf_counter()-request_st)*1e3:5.0f} ms  {colored('--', 'BLACK')}  ")
       if len(ids) >= self.server.model.max_context:
         stderr_log(f"{colored('context length exceeded', 'red')}  in:{len(ids):5d}  max:{self.server.model.max_context:5d}\n")
@@ -139,9 +217,10 @@ class Handler(HTTPRequestHandler):
 
       # reply
       max_tokens = body.get("max_completion_tokens") or body.get("max_tokens")
-      chunks = self.run_model(ids, body["model"], not body.get("stream") or body.get("stream_options",{}).get("include_usage", False),
-                              max_tokens=max_tokens, temperature=float(body.get("temperature", 0.0)),
-                              reasoning=rendered.rstrip().endswith("<think>"))
+      chunks = self.run_model(ids, body.get("model") or self.server.model_name,
+                              not body.get("stream") or body.get("stream_options",{}).get("include_usage", False),
+                              max_tokens=max_tokens, temperature=float(body.get("temperature", 0.6)),
+                              reasoning=bool(enable) or rendered.rstrip().endswith("<think>"), media=media)
       if body.get("stream"): self.stream_json(chunks)
       else:
         out, reasoning, tool_calls, finish_reason = [], [], [], "stop"
@@ -162,6 +241,8 @@ class Handler(HTTPRequestHandler):
       raise RuntimeError(f"unhandled path {self.path}")
 
 class LLMServer(TCPServerWithReuse):
-  def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any):
-    self.model, self.model_name, self.tok, self.template = model, model_name, tok, template
+  def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any,
+               reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None):
+    self.model, self.model_name, self.tok, self.template, self.vision = model, model_name, tok, template, vision
+    self.reasoning_effort, self.enable_thinking = reasoning_effort, enable_thinking
     super().__init__(server_address, Handler)
