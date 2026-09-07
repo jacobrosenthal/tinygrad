@@ -200,8 +200,13 @@ class Handler(HTTPRequestHandler):
     def log_stats(interrupted:bool=False):
       et = time.perf_counter()
       total = f"total:{et-st:6.2f}s"
+      # MTP acceptance: _mtp_accept=(n_acc, n_step) accumulates in the spec-decode loop; the JIT-captured
+      # serve path bypasses model.py's periodic DEBUG print, so surface it here (harmless when MTP is off).
+      acc, astr = getattr(model, '_mtp_accept', None), ""
+      if acc and acc[0] is not None and acc[1] and (K:=getattr(model, 'mtp_k', 0)):
+        astr = f"accept:{acc[0]/(acc[1]*K):5.2f} ({acc[0]/acc[1]+1:.2f} tok/step)  {colored('--', 'BLACK')}  "
       stderr_log(f"gen:{len(out)/(et-pt) if len(out) > 1 else 0:4.0f} tok/s  {colored('--', 'BLACK')}  "
-                 f"out:{len(out):5d}  {colored('--', 'BLACK')}  {colored(total, 'red') if interrupted else total}\n")
+                 f"{astr}out:{len(out):5d}  {colored('--', 'BLACK')}  {colored(total, 'red') if interrupted else total}\n")
     completed = False
     try:
       yield chunk({"role":"assistant", "content":""})
@@ -230,8 +235,17 @@ class Handler(HTTPRequestHandler):
       completed = True
       yield {"choices": [{"index":0, "delta":{},"finish_reason":finish_reason}], **tmpl}
       if include_usage:
+        # decode_seconds: pure generation time (excludes prep + prefill), the same et-pt this
+        # process already computes for its own "gen: N tok/s" log line (see log_stats below).
+        # A client deriving tok/s from wall-clock request duration (prep+prefill+decode) reads
+        # low whenever prefill dominates -- a cold/partially-cached prompt makes generation look
+        # slow even though decode speed never changed. Exposing the server's own already-computed
+        # decode-only duration lets a client compute a tok/s figure that means the same thing
+        # "gen:" does, instead of reinventing a worse version of it from timestamps.
         yield {"choices": [], "usage": {"prompt_tokens": prompt_tokens, "completion_tokens": len(out),
-                                        "total_tokens": prompt_tokens + len(out)}, **tmpl}
+                                        "total_tokens": prompt_tokens + len(out),
+                                        "prompt_tokens_details": {"cached_tokens": cache_start_pos},
+                                        "decode_seconds": time.perf_counter() - pt}, **tmpl}
       log_stats()
     except GeneratorExit:
       if not completed: log_stats(interrupted=True)
@@ -252,6 +266,11 @@ class Handler(HTTPRequestHandler):
     stderr_log(f"{self.path}  {colored('--', 'BLACK')}  ")
     raw_body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
     body: dict[str, typing.Any] = json.loads(raw_body.decode("utf-8"))
+    if self.server.record_dir:  # --record-requests DIR: exact traces of real traffic, for offline replay
+      try:
+        with open(pathlib.Path(self.server.record_dir) / f"requests-{time.strftime('%Y%m%d')}.jsonl", "a") as f:
+          f.write(json.dumps({"ts": time.time(), "path": self.path, "body": body}) + "\n")
+      except OSError as e: stderr_log(f"{colored(f'record failed: {e}', 'red')}  {colored('--', 'BLACK')}  ")
     if DEBUG >= 1: print(json.dumps(body, indent=2))
     if self.path == "/v1/chat/completions":
       # render and tokenize
@@ -355,7 +374,7 @@ class Handler(HTTPRequestHandler):
 class LLMServer(TCPServerWithReuse):
   def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any,
                reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None, temperature:float=1.0,
-               host_snapshots:int=0, host_snapshot_gb:float=16.0):
+               host_snapshots:int=0, host_snapshot_gb:float=16.0, record_dir:str=""):
     self.model, self.model_name, self.tok, self.template, self.vision = model, model_name, tok, template, vision
     self.reasoning_effort, self.enable_thinking, self.temperature = reasoning_effort, enable_thinking, temperature
     self.snapshots: list = []  # StateSnapshot, oldest first; see Handler._pick_prefix_state
@@ -363,5 +382,7 @@ class LLMServer(TCPServerWithReuse):
     # copied to host memory instead of dropped. A snapshot is ~2.2 GB at max_context 98304, so this needs real RAM headroom
     self.host_snapshots: list = []
     self.max_host_snapshots, self.max_host_bytes = host_snapshots, int(host_snapshot_gb * 1e9)
+    self.record_dir = record_dir
+    if record_dir: pathlib.Path(record_dir).mkdir(parents=True, exist_ok=True)
     self.max_snapshots, self.snapshot_min_tokens = getenv("PREFIX_SNAPSHOTS", 1), getenv("PREFIX_SNAPSHOT_MIN", 1024)
     super().__init__(server_address, Handler)
