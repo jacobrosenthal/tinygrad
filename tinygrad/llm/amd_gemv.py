@@ -684,6 +684,14 @@ def linear_decode(lin:nn.Linear, x:Tensor, residual:Tensor|None=None) -> Tensor:
   if lin.bias is not None: y = y.reshape(T, gw.N) + lin.bias
   return y.reshape(*x.shape[:-1], gw.N)
 
+def linear_decode_raw(gw:GGMLWeight, x:Tensor) -> Tensor:
+  """Linear (no bias) on <= MAX_T tokens straight from a GGMLWeight (e.g. a row-prefix slice of a Linear's weight)"""
+  T = _tokens(x, gw.K)
+  assert 0 < T <= MAX_T, f"linear_decode_raw: {T} tokens"
+  xq, xs, xsum16 = quantize_x_cached(x.reshape(T, gw.K), xblk(T))
+  y = gemv(gw.raw, gw.ggml_type, gw.N, gw.K, xq, xs, xsum16, None, T)
+  return y.cast(x.dtype if dtypes.is_float(x.dtype) else dtypes.float32).reshape(*x.shape[:-1], gw.N)
+
 def _gather_src(T:int, RB:int) -> str:
   return PRELUDE + rf"""
 KERNEL(gather_rows, 256)(u8* __restrict__ out, const u8* __restrict__ raw, const i32* __restrict__ idx) {{
