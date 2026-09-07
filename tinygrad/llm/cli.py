@@ -227,11 +227,13 @@ def main():
       template = env.from_string(ct)
     except ImportError: print("warning: jinja2 is not installed, the model's chat template is disabled")
 
-  # warmup the JIT (skipped when the whole warmed-up model came from the llm cache)
-  if (args.warmup or args.serve) and not getattr(model, "_from_cache", False):
+  # warmup the JIT. after an llm cache load the jits are already captured and this only replays them, which pays the first-call
+  # costs (buffer allocation, kernel loads: ~12 s measured) at startup instead of on the first request
+  if args.warmup or args.serve:
     with Context(DEBUG=max(DEBUG.value, 1)): model.warmup()
-    from tinygrad.llm.cache import save_llm_cache
-    save_llm_cache(model, kv, str(model_path), args.max_context, "vision" if vision is not None else "")
+    if not getattr(model, "_from_cache", False):
+      from tinygrad.llm.cache import save_llm_cache
+      save_llm_cache(model, kv, str(model_path), args.max_context, "vision" if vision is not None else "")
   if vision is not None and (args.warmup or args.serve):
     with Context(DEBUG=max(DEBUG.value, 1)): vision.warmup()
 
