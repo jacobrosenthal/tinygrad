@@ -738,15 +738,19 @@ class Transformer:
   def _state_tensors(self) -> list[tuple[str, Tensor]]:
     return [(f"{i}.{n}", t) for i, b in enumerate(self.blk) if isinstance(b, GatedDeltaNetBlock)
             for n in ("conv_state", "recurrent_state") if (t := getattr(b, n, None)) is not None]
-  def _save_checkpoint(self, tokens:list[int]):
-    if not self.has_recurrent_block or self._warming: return
+  def _ckpt_pairs(self) -> list[tuple[Tensor, Tensor]]:
+    """(live state tensor, its checkpoint buffer) per recurrent state tensor, allocating the checkpoint buffers on first use"""
     st = self._state_tensors()
     if len(self._ckpt) != len(st):
       self._ckpt = {k: {k.split(".")[-1]: Tensor.empty(*t.shape, dtype=t.dtype, device=t.device).contiguous().realize()} for k, t in st}
-    Tensor.realize(*[self._ckpt[k][k.split(".")[-1]].assign(t) for k, t in st])
+    return [(t, self._ckpt[k][k.split(".")[-1]]) for k, t in st]
+  def _save_checkpoint(self, tokens:list[int]):
+    if not self.has_recurrent_block or self._warming: return
+    # direct device-to-device copies: an assign + realize walks every live Tensor in the process (~0.2 s per request here)
+    for t, c in self._ckpt_pairs(): c.uop.buffer.ensure_allocated().copy_from(t.uop.buffer.ensure_allocated())
     self._ckpt_tokens = list(tokens)
   def _restore_checkpoint(self):
-    Tensor.realize(*[t.assign(self._ckpt[k][k.split(".")[-1]]) for k, t in self._state_tensors()])
+    for t, c in self._ckpt_pairs(): t.uop.buffer.ensure_allocated().copy_from(c.uop.buffer.ensure_allocated())
 
   def get_start_pos(self, tokens:list[int], media_key:tuple=()) -> int:
     # image tokens are all the same pad id: the cached prefix only counts up to the first image that differs from the cached request
@@ -861,25 +865,46 @@ class Transformer:
       self._cached_tokens = tokens[:-1]
       yield tokens[-1]
 
+  def _prompt_tensor(self, tokens:list[int], chunk_T:int) -> Tensor:
+    """the prompt in one persistent device buffer (padded to max_context + chunk_T), written with a direct copy: Buffer.copy_from runs
+    a single copy op without going through Tensor.realize, which would walk every live Tensor in the process (~0.2 s here)"""
+    import array
+    from tinygrad.device import Buffer
+    n = self.max_context + chunk_T
+    if getattr(self, "_prompt_buf", None) is None or self._prompt_buf.shape[1] != n:
+      self._prompt_buf = Tensor.empty(1, n, dtype=dtypes.int32).contiguous().realize()
+    src = memoryview(array.array("i", tokens + [0] * (n - len(tokens))))
+    # Tensor.empty().realize() does not allocate (the tensor already has buffer identity): allocate before the direct copy
+    self._prompt_buf.uop.buffer.ensure_allocated().copy_from(Buffer("PYTHON", n, dtypes.int32, opaque=src).ensure_allocated())
+    return self._prompt_buf
+
   def _generate_spec(self, tokens:list[int], chunk_T:int, temperature:float=0.0, spans:list|None=None, start_pos:int|None=None):
     K = self.mtp_k
     v_start_pos = UOp.variable("start_pos", 0, self.max_context-1)
     v_toks = UOp.variable("toks", 1, chunk_T)
-    temp = Tensor([temperature])
+    # one realized tensor per distinct temperature: a fresh Tensor([temperature]) per request is realized by the first jit call,
+    # and every realize walks all live Tensors (~0.2 s here)
+    if not hasattr(self, "_temp_tensors"): self._temp_tensors: dict[float, Tensor] = {}
+    if (temp := self._temp_tensors.get(float(temperature))) is None:
+      temp = self._temp_tensors[float(temperature)] = Tensor([float(temperature)]).realize()
     p, prompt_len = self.get_start_pos(tokens) if start_pos is None else start_pos, len(tokens)
     n_acc = n_step = 0
     def run(chunk:Tensor, start_pos:int, n_tok:int|UOp, n_keep:int|UOp, emb:Tensor|None=None) -> tuple[list[int], tuple[Tensor, ...]]:
       kw = {} if emb is None else {"emb": emb}
       res, *cands = self._spec_jit(int(chunk.shape[1]))(chunk, v_start_pos.bind(start_pos), temp, n_tok, n_keep, **kw)
       return res.tolist(), tuple(cands)
-    # prefill: commit every valid token (n_keep = n_tok), fill the MTP KV cache, last chunk yields the first decode chunk
+    # prefill: commit every valid token (n_keep = n_tok), fill the MTP KV cache, last chunk yields the first decode chunk.
+    # the whole prompt goes to the device once and each chunk is a symbolic slice of it (like generate()): a fresh Tensor per
+    # chunk has to be realized by the jit, and a realize walks every live Tensor in the process (~250K here, ~0.2 s per chunk
+    # of pure Python, 2026-08-26 cProfile: 6.4 of 11.4 s of a 2202-token prefill in _apply_map_to_tensors)
+    t = self._prompt_tensor(tokens, chunk_T) if p < prompt_len else None
     while p < prompt_len:
       n_toks = min(chunk_T, prompt_len - p)
       # hold the prompt's last token back for a chunk of its own: the checkpoint is taken just before it (see _save_checkpoint)
       if p < prompt_len - 1 and p + n_toks == prompt_len: n_toks -= 1
-      nt = v_toks.bind(n_toks)
+      sp, nt = v_start_pos.bind(p), v_toks.bind(n_toks)
       emb = self._emb_chunk(spans or [], p, chunk_T) if self.image_pad_id is not None else None
-      res, cands = run(Tensor([tokens[p:p + n_toks] + [0] * (chunk_T - n_toks)], dtype="int32"), p, nt, nt, emb)
+      res, cands = run(t[:, sp:sp + chunk_T], p, nt, nt, emb)
       p += n_toks
       self._cached_tokens = tokens[:p]
       if p == prompt_len - 1: self._save_checkpoint(tokens[:p])
