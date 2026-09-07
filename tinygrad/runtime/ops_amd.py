@@ -993,6 +993,12 @@ class AMDDevice(Compiled):
       mem_alignment_size = 256 if self.target[0] != 9 else 1024
       size_per_thread = round_up(private_segment_size, mem_alignment_size // lanes_per_wave)
       size_per_xcc = size_per_thread * lanes_per_wave * self.iface.props['max_slots_scratch_cu'] * self.cu_cnt
+      # bound queues and graphs bake the scratch base into their dispatch packets (exec), so the old buffer must stay mapped
+      # after a regrowth. The old allocator-based fix (c3650579e) relied on allocator.alloc() not explicitly freeing `old`,
+      # which happened to linger in the allocator's own LRU-reuse cache until free_cache(). This Buffer is nolru=True (a
+      # deliberate choice for AMD swap, #18036 -- not something to disable), so there is no such cushion: Buffer.__del__
+      # deallocates as soon as the last reference drops. Hold the old buffer explicitly instead.
+      if hasattr(self, 'scratch'): self.__dict__.setdefault('_old_scratch', []).append(self.scratch)
       self.scratch = Buffer(self.device, size_per_xcc * self.xccs, dtypes.uint8, options=BufferSpec(nolru=True), preallocate=True)
       self.max_private_segment_size = private_segment_size
       if hasattr(self, 'aql_desc'): self.aql_scratch()
