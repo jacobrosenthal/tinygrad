@@ -1099,7 +1099,8 @@ class Transformer:
     if self._repeat_buf is None: self._repeat_buf = Tensor.empty(1, n, dtype=dtypes.int32).contiguous().realize()
     window = tokens[-n:]
     padded = [-1] * (n - len(window)) + window
-    src = memoryview(array.array("i", padded))
+    # cast to bytes: opaque buffers are expected in byte format (Buffer._host_mv forces a 'B' view for a host-visible dest)
+    src = memoryview(array.array("i", padded)).cast('B')
     self._repeat_buf.uop.buffer.ensure_allocated().copy_from(Buffer("PYTHON", n, dtypes.int32, opaque=src).ensure_allocated())
     return self._repeat_buf
 
@@ -1150,7 +1151,8 @@ class Transformer:
     n = self.max_context + chunk_T
     if getattr(self, "_prompt_buf", None) is None or self._prompt_buf.shape[1] != n:
       self._prompt_buf = Tensor.empty(1, n, dtype=dtypes.int32).contiguous().realize()
-    src = memoryview(array.array("i", tokens + [0] * (n - len(tokens))))
+    # cast to bytes: opaque buffers are expected in byte format (Buffer._host_mv forces a 'B' view for a host-visible dest)
+    src = memoryview(array.array("i", tokens + [0] * (n - len(tokens)))).cast('B')
     # Tensor.empty().realize() does not allocate (the tensor already has buffer identity): allocate before the direct copy
     self._prompt_buf.uop.buffer.ensure_allocated().copy_from(Buffer("PYTHON", n, dtypes.int32, opaque=src).ensure_allocated())
     return self._prompt_buf
