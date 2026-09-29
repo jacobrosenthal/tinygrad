@@ -7,7 +7,13 @@ if TYPE_CHECKING:
   from tinygrad.llm.cli import SimpleTokenizer
   from tinygrad.llm.model import Transformer
 
-def parse_tool_call(s:str) -> tuple[str, typing.Any]|None:
+def _param_types(tools:list|None, name:str) -> dict[str, typing.Any]:
+  """declared JSON-schema type of each parameter of tool `name` (from the request's OpenAI `tools`)"""
+  for t in tools or []:
+    if (f := t.get("function", t)).get("name") == name: return {k: v.get("type") for k, v in f.get("parameters", {}).get("properties", {}).items()}
+  return {}
+
+def parse_tool_call(s:str, tools:list|None=None) -> tuple[str, typing.Any]|None:
   s = s.strip()
   if s.startswith("{"):  # hermes JSON format: {"name": ..., "arguments": {...}}
     try:
@@ -21,9 +27,15 @@ def parse_tool_call(s:str) -> tuple[str, typing.Any]|None:
     (r"([\w.-]+)\s*((?:<arg_key>[^<]+</arg_key>\s*<arg_value>.*?</arg_value>\s*)*)$", r"<arg_key>([^<]+)</arg_key>\s*<arg_value>(.*?)</arg_value>"))
   for call_pattern, arg_pattern in patterns:
     if (fm := re.match(call_pattern, s, re.DOTALL)):
-      args = {}
+      args, types = {}, _param_types(tools, fm.group(1))
       for pm in re.finditer(arg_pattern, fm.group(2), re.DOTALL):
         value = re.sub(r"^\r?\n|\r?\n\Z", "", pm.group(2))
+        # XML values are bare text: a parameter the schema declares a string stays one even when it parses as JSON ("42", "true",
+        # a JSON file's content) -- only a quoted JSON string is unquoted; other types (or no schema) are decoded when they parse
+        if types.get(pm.group(1)) == "string" or (isinstance(t := types.get(pm.group(1)), list) and t and all(x in ("string", "null") for x in t)):
+          try: args[pm.group(1)] = dec if isinstance(dec := json.loads(value), str) else value
+          except json.JSONDecodeError: args[pm.group(1)] = value
+          continue
         try: args[pm.group(1)] = json.loads(value)
         except json.JSONDecodeError: args[pm.group(1)] = value
       return fm.group(1), args
@@ -205,7 +217,7 @@ class Handler(VizHandler):
       stderr_log(f"{colored(f'prefix snapshots paused {getenv("PREFIX_SNAPSHOT_PAUSE_S", 600)}s: {e}', 'red')}  {colored('--', 'BLACK')}  ")
 
   def run_model(self, ids:list[int], model_name:str, include_usage=False, max_tokens:int|None=None, temperature:float=0.0,
-                reasoning:bool=False, media:list|None=None):
+                reasoning:bool=False, media:list|None=None, tools:list|None=None):
     model, tok = self.server.model, self.server.tok
     prompt_tokens = len(ids)
     cache_start_pos = model.get_start_pos(ids, tuple((s, m.key) for s, m in model._media_spans(ids, media)) if media else ())
@@ -247,7 +259,7 @@ class Handler(VizHandler):
       for field, delta in router.route(dec(), final=True): yield chunk({field:delta})
       tool_calls: list[dict] = []
       for m in re.finditer(r"<tool_call>\s*(.*?)\s*(?:</tool_call>|$)", router.buf, re.DOTALL):
-        if (parsed := parse_tool_call(m.group(1))) is None:
+        if (parsed := parse_tool_call(m.group(1), tools)) is None:
           stderr_log(f"failed to parse tool call: {m.group(1)[:200]}")
           yield chunk({"content":m.group(0)})  # don't silently drop output the client can't use
         else:
@@ -377,7 +389,7 @@ class Handler(VizHandler):
       chunks = self.run_model(ids, body.get("model") or self.server.model_name,
                               not body.get("stream") or body.get("stream_options",{}).get("include_usage", False),
                               max_tokens=max_tokens, temperature=float(body.get("temperature", self.server.temperature)),
-                              reasoning=bool(enable) or rendered.rstrip().endswith("<think>"), media=media)
+                              reasoning=bool(enable) or rendered.rstrip().endswith("<think>"), media=media, tools=body.get("tools"))
       def accumulate(chunks):
         # shared by both branches: collect content/reasoning/tool_calls while passing chunks through untouched,
         # so the prefix cache (see _recache_for_next_turn) can be kept in sync for streaming requests too
