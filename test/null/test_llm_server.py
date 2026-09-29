@@ -54,11 +54,14 @@ class TestLLMServer(unittest.TestCase):
     cls.mock_model.max_context = 4
     cls.mock_model.generate = Mock(side_effect=lambda ids, **kwargs: iter([300, 301, 999]))
     cls.mock_model.get_start_pos = Mock(return_value=0)
+    # the prefix-cache and spec-decode state the real model always has (a Mock attribute is truthy and not a list)
+    cls.mock_model._cached_tokens, cls.mock_model._ckpt_tokens, cls.mock_model._mtp_accept, cls.mock_model._mtp_drafts = [], None, None, None
 
     from tinygrad.llm.cli import FallbackTemplate
     from tinygrad.llm.serve import LLMServer
 
-    cls.server = LLMServer(('127.0.0.1', 0), cls.mock_model, "test-model", cls.mock_tok, FallbackTemplate(cls.mock_tok))
+    cls.server = LLMServer(('127.0.0.1', 0), cls.mock_model, "test-model", cls.mock_tok, FallbackTemplate(cls.mock_tok),
+                           enable_thinking=False)  # the fork defaults to thinking on: every token would be reasoning_content
     cls.port = cls.server.server_address[1]
     cls.server_thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
     cls.server_thread.start()
@@ -237,13 +240,16 @@ class TestLLMToolCalls(unittest.TestCase):
     cls.mock_model = Mock()
     cls.mock_model.max_context = 4
     cls.mock_model.get_start_pos = Mock(return_value=0)
+    # the prefix-cache and spec-decode state the real model always has (a Mock attribute is truthy and not a list)
+    cls.mock_model._cached_tokens, cls.mock_model._ckpt_tokens, cls.mock_model._mtp_accept, cls.mock_model._mtp_drafts = [], None, None, None
 
     from tinygrad.llm.serve import LLMServer
     import jinja2
     # .items() matches tool-aware templates and ensures OpenAI JSON argument strings are normalized before rendering the next turn.
     template = jinja2.Template("""{% for m in messages %}{{ m.content or '' }}{% for tc in m.tool_calls or [] %}
       {% for key, value in tc.function.arguments.items() %}{{ key }}={{ value }}{% endfor %}{% endfor %}{% endfor %}""")
-    cls.server = LLMServer(('127.0.0.1', 0), cls.mock_model, "tool-model", cls.mock_tok, template)
+    cls.server = LLMServer(('127.0.0.1', 0), cls.mock_model, "tool-model", cls.mock_tok, template,
+                           enable_thinking=False)  # the fork defaults to thinking on: every token would be reasoning_content
     cls.port = cls.server.server_address[1]
     cls.server_thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
     cls.server_thread.start()
