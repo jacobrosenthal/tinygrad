@@ -1,3 +1,53 @@
+# This fork: Qwen3.8-27B on a single RX 7900 XTX
+
+Branch `amd-qwen-on-master` of [jacobrosenthal/tinygrad](https://github.com/jacobrosenthal/tinygrad). Upstream tinygrad's README follows below.
+
+## What it adds on top of upstream
+- Custom gfx1100 decode kernels that read the quantized GGUF weights directly (Q3_K–Q8_0, IQ4_XS) at close to full memory bandwidth, with fused Gated DeltaNet and attention kernels
+- Tensor-core chunked prefill (1024-token chunks, width picked per prompt)
+- MTP speculative decoding with the model's own draft head, verified losslessly
+- Quantized KV cache: 98K context fits in 24 GB
+- Prefix snapshots and checkpoints, so long agent conversations keep their cache when other requests interleave
+- LLM cache: the loaded, compiled model persists across restarts (warm restart in 10–20 s)
+
+## Requirements
+- AMD RX 7900 XTX (gfx1100), 24 GB
+- `Qwen3.8-27B-UD-Q4_K_XL.gguf` (unsloth)
+
+## Install
+```bash
+git clone -b amd-qwen-on-master https://github.com/jacobrosenthal/tinygrad.git
+cd tinygrad && python -m venv .venv && .venv/bin/pip install -e .
+```
+
+## Run
+```bash
+DEV=KFD+AMD:LLVM LLM_CACHE=1 MTP_DRAFT_VOCAB=65536 \
+.venv/bin/python -m tinygrad.llm.cli \
+  --model Qwen3.8-27B-UD-Q4_K_XL.gguf \
+  --mmproj none \
+  --repeat-penalty 1.0 \
+  --max_context 98304 \
+  --host 0.0.0.0 \
+  --host-snapshots 2 \
+  --serve 8080
+```
+
+The first start compiles and captures the kernels (a few minutes); later starts load them from the LLM cache. The server speaks the
+OpenAI chat completions API (`/v1/chat/completions`) on port 8080, plus Ollama's model-listing endpoints.
+
+| flag / env | what it does |
+|---|---|
+| `DEV=KFD+AMD:LLVM` | AMD backend through the KFD interface, LLVM compiler |
+| `LLM_CACHE=1` | persist the loaded model and captured graphs across restarts |
+| `MTP_DRAFT_VOCAB=65536` | draft passes score only the first 64K vocab rows (cheaper drafts, same output) |
+| `--mmproj none` | text only: no vision projector (the default `auto` loads an `mmproj*.gguf` found next to the model) |
+| `--repeat-penalty 1.0` | penalties off (sampling is fixed by the server) |
+| `--max_context 98304` | 96K-token context |
+| `--host-snapshots 2` | keep 2 evicted conversation states in host memory for fast resume |
+
+---
+
 <div align="center">
 
 <picture>
