@@ -301,6 +301,13 @@ class TestLLMToolCalls(unittest.TestCase):
     self.assertEqual([json.loads(tc.function.arguments)["path"] for tc in response.choices[0].message.tool_calls], ["a", "b"])
     self.assertEqual(response.choices[0].finish_reason, "tool_calls")
 
+  def test_xml_string_parameter_stays_string(self):
+    # a string-typed parameter whose text happens to be valid JSON must not be decoded into a number / bool / object
+    self.set_output("<tool_call><function=read><parameter=path>42</parameter></function></tool_call>"
+                    "<tool_call><function=read><parameter=path>{\"a\": 1}</parameter></function></tool_call>")
+    response = self.client.chat.completions.create(model="tool-model", messages=[{"role":"user", "content":"Read"}], tools=self.tools())
+    self.assertEqual([json.loads(tc.function.arguments)["path"] for tc in response.choices[0].message.tool_calls], ["42", '{"a": 1}'])
+
   def test_streaming_glm_tool_calls(self):
     self.set_output("before<tool_call>read<arg_key>path</arg_key><arg_value>a</arg_value></tool_call>"
                     "<tool_call>read\n<arg_key>path</arg_key>\n<arg_value>\nb\n</arg_value>\n</tool_call>")
