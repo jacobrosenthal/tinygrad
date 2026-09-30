@@ -1037,7 +1037,11 @@ class Transformer:
     with Context(TRACEMETA=0):
       for w in sorted({256, 512, chunk_T}):
         if 256 < w <= chunk_T:
-          for _ in range(2): list(zip(range(1), self.generate([0] * w)))
+          for _ in range(2):
+            # from position 0: the previous warmup prompt (all zeros too) is a cached prefix of this one, and resuming from it would run
+            # the rest at a narrower width -- the widest was never captured and the first long request after a restart paid a 13-28 s capture
+            self._cached_tokens, self._ckpt_tokens, self._ckpts, self._pfx_tokens = [], None, [], None
+            list(zip(range(1), self.generate([0] * w)))
     self._cached_tokens = []  # the extra calls rewrote the state at position 0
     self._warming, self._ckpt_tokens, self._ckpts = False, None, []
 
