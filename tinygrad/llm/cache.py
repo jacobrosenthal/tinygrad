@@ -100,7 +100,7 @@ def save_llm_cache(model, kv:dict, path:str, max_context:int|None, extra:str="")
     for _, p, _ in _gguf.base_registry:
       if p is None: raise RuntimeError("model was loaded from a Tensor, not a path: no way to reference the weights")
     meta = {"key": _cache_key(path, max_context, extra), "max_slot": next(UOp.unique_num),
-            "bases": [(p, off, b.size) for b, p, off in _gguf.base_registry]}
+            "bases": [(p, off, b.nbytes) for b, p, off in _gguf.base_registry]}
     (cf:=_cache_file(path, max_context, extra)).parent.mkdir(parents=True, exist_ok=True)
     tmp = cf.with_suffix(f".tmp{os.getpid()}")
     keep, transient = _model_buffers(model)
