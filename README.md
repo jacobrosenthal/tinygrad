@@ -7,29 +7,30 @@ Branch `amd-qwen-on-master` of [jacobrosenthal/tinygrad](https://github.com/jaco
 - Tensor-core chunked prefill (1024-token chunks, width picked per prompt)
 - MTP speculative decoding with the model's own draft head, verified losslessly
 - Quantized KV cache: 98K context fits in 24 GB
-- Prefix snapshots and checkpoints, so long agent conversations keep their cache when other requests interleave
+- Recurrent-state checkpoints (periodic, and one right after the system prompt), so a request that extends a cached conversation or shares its system prompt skips that part of the prefill
 - LLM cache: the loaded, compiled model persists across restarts (warm restart in 10–20 s)
 
 ## Requirements
-- AMD RX 7900 XTX (gfx1100), 24 GB
-- `Qwen3.8-27B-UD-Q4_K_XL.gguf` (unsloth)
+- AMD RX 7900 XTX (gfx1100), 24 GB -- measured as an eGPU over a USB4 dock
+- `Qwen3.8-27B-UD-Q4_K_XL.gguf` ([unsloth](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF))
+- `Qwen3.8-27B-DFlash2-Q4_K_M.gguf`, the DFlash2 drafter ([z-lab](https://huggingface.co/z-lab/Qwen3.8-27B-DFlash2-GGUF), 1.1 GB)
 
 ## Install
 ```bash
-git clone -b amd-qwen-on-master https://github.com/jacobrosenthal/tinygrad.git
+git clone -b amd-qwen-on-master-next https://github.com/jacobrosenthal/tinygrad.git
 cd tinygrad && python -m venv .venv && .venv/bin/pip install -e .
 ```
 
 ## Run
 ```bash
 DEV=KFD+AMD:LLVM LLM_CACHE=1 MTP_DRAFT_VOCAB=65536 \
+GDN_REPLAY=1 SPEC_ASYNC=1 MTP_K=5 DFLASH=Qwen3.8-27B-DFlash2-Q4_K_M.gguf \
 .venv/bin/python -m tinygrad.llm.cli \
   --model Qwen3.8-27B-UD-Q4_K_XL.gguf \
   --mmproj none \
   --repeat-penalty 1.0 \
   --max_context 98304 \
   --host 0.0.0.0 \
-  --host-snapshots 2 \
   --serve 8080
 ```
 
@@ -41,10 +42,34 @@ OpenAI chat completions API (`/v1/chat/completions`) on port 8080, plus Ollama's
 | `DEV=KFD+AMD:LLVM` | AMD backend through the KFD interface, LLVM compiler |
 | `LLM_CACHE=1` | persist the loaded model and captured graphs across restarts |
 | `MTP_DRAFT_VOCAB=65536` | draft passes score only the first 64K vocab rows (cheaper drafts, same output) |
+| `GDN_REPLAY=1` | accepted drafts are replayed into the Gated DeltaNet state from a tape instead of re-running the model on them |
+| `SPEC_ASYNC=1` | the next decode step is queued before the host reads the current one, so the GPU never waits on Python |
+| `MTP_K=5` | drafts per step |
+| `DFLASH=...gguf` | the DFlash2 block drafter drafts all K tokens in one pass, using the last 2048 tokens of context, instead of the MTP head |
 | `--mmproj none` | text only: no vision projector (the default `auto` loads an `mmproj*.gguf` found next to the model) |
 | `--repeat-penalty 1.0` | penalties off (sampling is fixed by the server) |
 | `--max_context 98304` | 96K-token context |
-| `--host-snapshots 2` | keep 2 evicted conversation states in host memory for fast resume |
+
+Prefix snapshots (saving a whole conversation's state when another request evicts it) need a full copy of the kv cache in free
+VRAM, ~2 GB per snapshot at 98K context, so on a 24 GB card they only work at roughly 40K context or less. At 98K the server falls
+back to the checkpoints above.
+
+## What the speculative decoding switches buy
+All off by default (the run command above turns them on). Measured on the 7900 XTX with MTP_DRAFT_VOCAB=65536, decode tok/s vs plain
+MTP (`MTP_K=3`, no switches):
+
+| config | code gen | code edit | agent | prose |
+|---|---|---|---|---|
+| `GDN_REPLAY=1 SPEC_ASYNC=1 MTP_K=4` (greedy) | +23% | +19% | +14% | +5% |
+| `GDN_REPLAY=1 SPEC_ASYNC=1 MTP_K=5 DFLASH=...` (greedy) | +38% | +32% | +26% | +4% |
+
+Under sampling (production temperature) DFlash2 at `MTP_K=5` is +18% code gen, +13% code edit, +13% agent and +6% prose on top of
+the `MTP_K=4` async config.
+
+On real traffic (a batch of short structured requests), the run command above decodes at ~134 tok/s on average, peaking at 160,
+against 84 tok/s for plain MTP.
+
+Output is lossless: drafts only change speed, every token is sampled by the target model.
 
 ---
 
