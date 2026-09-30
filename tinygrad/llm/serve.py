@@ -7,7 +7,13 @@ if TYPE_CHECKING:
   from tinygrad.llm.cli import SimpleTokenizer
   from tinygrad.llm.model import Transformer
 
-def parse_tool_call(s:str) -> tuple[str, typing.Any]|None:
+def _param_types(tools:list|None, name:str) -> dict[str, typing.Any]:
+  """declared JSON-schema type of each parameter of tool `name` (from the request's OpenAI `tools`)"""
+  for t in tools or []:
+    if (f := t.get("function", t)).get("name") == name: return {k: v.get("type") for k, v in f.get("parameters", {}).get("properties", {}).items()}
+  return {}
+
+def parse_tool_call(s:str, tools:list|None=None) -> tuple[str, typing.Any]|None:
   s = s.strip()
   # Kimi-K3 format: tool="name" index="1"<|sep|><|open|>argument key="key" type="string"<|sep|>value<|close|>argument<|sep|>...
   if (m := re.fullmatch(r'tool="([^"]+)"(?: index="\d+")?<\|sep\|>(.*)', s, re.DOTALL)):
@@ -28,9 +34,15 @@ def parse_tool_call(s:str) -> tuple[str, typing.Any]|None:
     (r"([\w.-]+)\s*((?:<arg_key>[^<]+</arg_key>\s*<arg_value>.*?</arg_value>\s*)*)$", r"<arg_key>([^<]+)</arg_key>\s*<arg_value>(.*?)</arg_value>"))
   for call_pattern, arg_pattern in patterns:
     if (fm := re.match(call_pattern, s, re.DOTALL)):
-      args = {}
+      args, types = {}, _param_types(tools, fm.group(1))
       for pm in re.finditer(arg_pattern, fm.group(2), re.DOTALL):
         value = re.sub(r"^\r?\n|\r?\n\Z", "", pm.group(2))
+        # XML values are bare text: a parameter the schema declares a string stays one even when it parses as JSON ("42", "true",
+        # a JSON file's content) -- only a quoted JSON string is unquoted; other types (or no schema) are decoded when they parse
+        if types.get(pm.group(1)) == "string" or (isinstance(t := types.get(pm.group(1)), list) and t and all(x in ("string", "null") for x in t)):
+          try: args[pm.group(1)] = dec if isinstance(dec := json.loads(value), str) else value
+          except json.JSONDecodeError: args[pm.group(1)] = value
+          continue
         try: args[pm.group(1)] = json.loads(value)
         except json.JSONDecodeError: args[pm.group(1)] = value
       return fm.group(1), args
@@ -88,8 +100,10 @@ class StreamRouter:
     if found: self.mode, self.buf = "tool", self.end_content + self.buf
 
 class Request:
-  def __init__(self, ids:list[int], disconnected:typing.Callable[[], bool], max_tokens:int|None=None, temperature:float=0.0, log_prefix:str=""):
+  def __init__(self, ids:list[int], disconnected:typing.Callable[[], bool], max_tokens:int|None=None, temperature:float=0.0, log_prefix:str="",
+               tools:list|None=None):
     self.ids, self.disconnected, self.max_tokens, self.temperature, self.log_prefix = ids, disconnected, max_tokens, temperature, log_prefix
+    self.tools = tools
     self.finish_reason = "stop"
     self.cached_tokens = 0
     self.error: Exception|None = None
@@ -128,7 +142,7 @@ class Handler(VizHandler):
     for field, delta in router.route(dec(), final=True): yield chunk({field:delta})
     tool_calls: list[dict] = []
     for m in re.finditer(router.call, router.buf, re.DOTALL):
-      if (parsed := parse_tool_call(m.group(1))) is None:
+      if (parsed := parse_tool_call(m.group(1), req.tools)) is None:
         stderr_log(f"{colored('failed to parse tool call', 'red')}: {m.group(1)[:200]}\n")
         yield chunk({"content":m.group(0)})  # don't silently drop output the client can't use
       else:
@@ -161,7 +175,7 @@ class Handler(VizHandler):
       # reply
       max_tokens = body.get("max_completion_tokens") or body.get("max_tokens")
       req = Request(ids, functools.partial(disconnected, self.connection), max_tokens=max_tokens, temperature=float(body.get("temperature", 0.0)),
-                    log_prefix=log_prefix)
+                    log_prefix=log_prefix, tools=body.get("tools"))
       stream_options = body.get("stream_options", {})
       include_usage = not body.get("stream") or stream_options.get("include_usage", False)
       continuous_usage = include_usage and stream_options.get("continuous_usage_stats", False)
