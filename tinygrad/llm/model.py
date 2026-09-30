@@ -1051,7 +1051,38 @@ class Transformer:
     self._ckpt_tokens = list(tokens)
   def _restore_checkpoint(self):
     for t, c in self._ckpt_pairs(): t.uop.buffer.ensure_allocated().copy_from(c.uop.buffer.ensure_allocated())
-  FIRST_MSG_MIN = 256  # below this a first-message checkpoint saves less prefill than its copy costs
+  FIRST_MSG_MIN = 256  # below this a prefix checkpoint saves less prefill than its copy costs
+  # ---- the shared-prefix checkpoint: one dedicated slot (outside the --checkpoints budget, which long agent conversations need deep
+  # in the conversation), kept across conversations. Requests that share a leading prefix with the previous one (a batch of prompts
+  # with a common system prompt, sub-agents with the same tools) diverge somewhere in it; the recurrent state can't be reused past
+  # a divergence, so prefill checkpoints the state at the shared part and the next such request resumes from there.
+  _pfx_tokens: list[int]|None = None
+  _div_hint: int = 0
+  def _pfx_pairs(self) -> list[tuple[Tensor, Tensor]]:
+    """(live state tensor, its prefix-slot buffer), allocated once (~0.23 GB: the GDN states + the dflash rings)"""
+    st = self._state_tensors()
+    if len(getattr(self, "_pfx", {})) != len(st):
+      self._pfx = {k: Tensor.empty(*t.shape, dtype=t.dtype, device=t.device).contiguous() for k, t in st}
+      Tensor.realize(*self._pfx.values())
+    return [(t, self._pfx[k]) for k, t in st]
+  def _take_prefix_ckpt(self, tokens:list[int]):
+    if not self.has_recurrent_block or self._warming: return
+    try:
+      for t, c in self._pfx_pairs(): c.uop.buffer.ensure_allocated().copy_from(t.uop.buffer.ensure_allocated())
+    except MemoryError: return
+    self._pfx_tokens = list(tokens)
+  def _resume_from_prefix(self) -> int:
+    for t, c in self._pfx_pairs(): t.uop.buffer.ensure_allocated().copy_from(c.uop.buffer.ensure_allocated())
+    self._cached_tokens = list(self._pfx_tokens)
+    self._ckpts = [c for c in self._ckpts if len(c[0]) <= len(self._pfx_tokens)]
+    return len(self._pfx_tokens)
+  def _prefix_boundary(self, tokens:list[int], p:int, prompt_len:int) -> int|None:
+    """where this prefill should checkpoint the shared prefix: the divergence from the previous request rounded down to 64 (the part
+    the next request most likely shares too), else the end of the first message; None if no useful boundary or it's already held"""
+    d = self._div_hint
+    b = d // 64 * 64 if d >= self.FIRST_MSG_MIN else self._first_msg_end(tokens)
+    if b is None or not (p < b < prompt_len - 1): return None
+    return None if self._pfx_tokens is not None and self._pfx_tokens == tokens[:b] else b
   def _first_msg_end(self, tokens:list[int]) -> int|None:
     """position just after the first message's end token (e.g. the system prompt's <|im_end|>), when set via end_msg_id"""
     if (e := getattr(self, "end_msg_id", None)) is None: return None
@@ -1088,7 +1119,13 @@ class Transformer:
       for c in self._ckpts:
         n = len(c[0])
         if (cut is None or cut >= n) and n < len(tokens) and tokens[:n] == c[0] and self._cached_tokens[:n] == c[0] and (best is None or n > len(best[0])): best = c
-      if best is not None: return self._resume_from_periodic(best)
+      pf = self._pfx_tokens
+      pfx_ok = pf is not None and (cut is None or cut >= len(pf)) and len(pf) < len(tokens) and tokens[:len(pf)] == pf and \
+               self._cached_tokens[:len(pf)] == pf
+      if best is not None and (not pfx_ok or len(best[0]) >= len(pf)): return self._resume_from_periodic(best)
+      # where this request diverges from the live state: the prefix it shares with the previous request, a checkpoint target (_generate_spec)
+      self._div_hint = sum(1 for _ in itertools.takewhile(lambda ab: ab[0] == ab[1], zip(tokens, self._cached_tokens)))
+      if pfx_ok: return self._resume_from_prefix()
       return 0
     prefix_len = sum(1 for _ in itertools.takewhile(lambda ab: ab[0] == ab[1], zip(tokens[:-1], cached)))
     return min(block._reusable_prefix_len(prefix_len, len(self._cached_tokens)) for block in self.blk)
@@ -1354,8 +1391,8 @@ class Transformer:
     # can't reuse the recurrent state past the divergence, and the periodic checkpoints (every 4096 tokens) never land in a short
     # prompt. So end a prefill chunk exactly after the first message's end token and checkpoint there; get_start_pos resumes the
     # next such request from it (production 09-29: every request diverged at ~440 tokens, 650-1100 token prompts)
-    fb = self._first_msg_end(tokens)
-    fb = fb if fb is not None and p < fb < prompt_len - 1 and not any(len(c[0]) == fb and c[0] == tokens[:fb] for c in self._ckpts) else None
+    fb = self._prefix_boundary(tokens, p, prompt_len)
+    self._div_hint = 0
     while p < prompt_len:
       left = prompt_len - p - (1 if p < prompt_len - 1 else 0)  # the last token is held back for a chunk of its own
       if fb is not None and p < fb: left = fb - p
@@ -1371,7 +1408,8 @@ class Transformer:
       p_prev, p = p, p + n_toks
       self._cached_tokens = tokens[:p]
       if p == prompt_len - 1: self._save_checkpoint(tokens[:p])
-      elif self._ckpt_max and (p == fb or p // self._ckpt_every > p_prev // self._ckpt_every): self._take_periodic_checkpoint(tokens[:p])
+      elif p == fb: self._take_prefix_ckpt(tokens[:p])
+      elif self._ckpt_max and p // self._ckpt_every > p_prev // self._ckpt_every: self._take_periodic_checkpoint(tokens[:p])
     first, drafts, chunk = res[n_toks - 1], res[-K:], cands[0]
     tokens.append(first)
     yield first
