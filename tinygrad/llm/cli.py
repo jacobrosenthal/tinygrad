@@ -227,6 +227,8 @@ def main():
 
   # get tokenizer
   tok = SimpleTokenizer.from_gguf_kv(kv)
+  # the chat template's message end token: prefill checkpoints the state right after the first message (see Transformer._first_msg_end)
+  model.end_msg_id = tok._special_tokens.get("<|im_end|>")
 
   # vision encoder: images become embeddings at the <|image_pad|> tokens (must be attached before warmup: the prefill jits take that input)
   vision = None
