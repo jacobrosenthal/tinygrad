@@ -20,6 +20,7 @@ class StateSnapshot:
   ckpt_tokens: list[int]|None  # the prefill checkpoint that belongs to this state (see Transformer._save_checkpoint), if one was taken
   ckpt_bufs: list
   ckpts: list = dataclasses.field(default_factory=list)  # periodic checkpoints (token prefix, buffers), see Transformer._ckpts
+  segs: list = dataclasses.field(default_factory=list)  # per bufs entry: None (whole buffer) or [(offset, nbytes)] packed into a compact buffer
   def nbytes(self) -> int: return sum(b.nbytes for b in self.bufs + self.ckpt_bufs) + sum(b.nbytes for _, bs in self.ckpts for b in bs)
   @property
   def on_host(self) -> bool: return bool(self.bufs) and bool(getattr(self.bufs[0].options, "host", False))
@@ -29,6 +30,22 @@ class StateSnapshot:
     # either direction. A "PYTHON" buffer instead goes through _copyout's chunked staging loop (~0.2 GB/s measured, 2026-08-26)
     from tinygrad.device import Buffer, BufferSpec
     return Buffer(b.device, b.size, b.dtype, options=BufferSpec(host=True)).ensure_allocated().copy_from(b)
+  @staticmethod
+  def _host_pack(src, segs:list):
+    """the byte ranges segs of device buffer src, packed into one pinned host buffer"""
+    from tinygrad.device import Buffer, BufferSpec
+    from tinygrad import dtypes
+    hb = Buffer(src.device, max(1, sum(n for _, n in segs)), dtypes.uint8, options=BufferSpec(host=True)).ensure_allocated()
+    o = 0
+    for off, n in segs:
+      if n: hb.view(n, dtypes.uint8, o).ensure_allocated().copy_from(src.view(n, dtypes.uint8, off).ensure_allocated()); o += n
+    return hb
+  @staticmethod
+  def _host_unpack(dst, hb, segs:list):
+    from tinygrad import dtypes
+    o = 0
+    for off, n in segs:
+      if n: dst.view(n, dtypes.uint8, off).ensure_allocated().copy_from(hb.view(n, dtypes.uint8, o).ensure_allocated()); o += n
   def to_host(self) -> "StateSnapshot":
     """the same snapshot with every buffer copied to host memory (frees the device copies)"""
     if self.on_host: return self
@@ -1147,6 +1164,23 @@ class Transformer:
         if (t := getattr(b, name, None)) is not None: out.append(t)
     if self.dflash is not None: out += [t for pair in self.dflash.rings for t in pair]
     return out
+  def snapshot_segments(self, L:int) -> list:
+    """per snapshot_tensors() entry: the byte ranges of a kv cache that hold positions [0, L) (one per head and plane), or None for a
+    buffer copied whole. A kv cache is sized for max_context (1.8 GB at 98K), a conversation usually fills a few percent of it"""
+    out: list = []
+    for b in self.blk + ([self.mtp.blk] if self.mtp is not None and self.dflash is None else []):
+      for name in ("cache_kv", "cache_k", "conv_state", "recurrent_state"):
+        if getattr(b, name, None) is None: continue
+        if name != "cache_kv" or not hasattr(b, "kv_maxc"): out.append(None); continue
+        c, maxc, kq = b.config, b.kv_maxc, getattr(b, "kv_quant", None)
+        if kq is not None:  # per head: planar arrays [maxc][bytes] (amd_gemv.KVQuant)
+          offs = kq.offsets(maxc)
+          out.append([(h * maxc * kq.bytes_per_pos + offs[pn], L * pb) for h in range(c.n_kv_heads) for pn, pb in kq.planes.items()])
+        else:  # (2, 1, hkv, maxc, D) half
+          row = c.head_dim * 2
+          out.append([((kv * c.n_kv_heads + h) * maxc * row, L * row) for kv in range(2) for h in range(c.n_kv_heads)])
+    if self.dflash is not None: out += [None] * (2 * len(self.dflash.rings))
+    return out
   @staticmethod
   def _device_copy_buf(src):
     from tinygrad.device import Buffer
@@ -1160,17 +1194,23 @@ class Transformer:
     PREFIX_SNAPSHOT_HOST=1 (default): copied straight into pinned host memory, one DMA per buffer. A device copy needs ~2 GB of free VRAM
     at max_context 98304 (16 attention kv caches x 112.5 MB + recurrent state), which the 24 GB card never has with this model: every
     snapshot attempt failed and paused the feature (221x in production 09-10..09-29), host tier included."""
-    cp = (lambda t: StateSnapshot._host_copy(t.uop.buffer.ensure_allocated())) if getenv("PREFIX_SNAPSHOT_HOST", 1) else self._device_copy
-    cpb = StateSnapshot._host_copy if getenv("PREFIX_SNAPSHOT_HOST", 1) else self._device_copy_buf
-    bufs = [cp(t) for t in self.snapshot_tensors()]
+    host = bool(getenv("PREFIX_SNAPSHOT_HOST", 1))
+    cp = (lambda t: StateSnapshot._host_copy(t.uop.buffer.ensure_allocated())) if host else self._device_copy
+    cpb = StateSnapshot._host_copy if host else self._device_copy_buf
+    tens = self.snapshot_tensors()
+    segs = self.snapshot_segments(len(self._cached_tokens)) if host else [None] * len(tens)
+    bufs = [cp(t) if sg is None else StateSnapshot._host_pack(t.uop.buffer.ensure_allocated(), sg) for t, sg in zip(tens, segs)]
     ckpt_bufs = [cp(c) for _, c in self._ckpt_pairs()] if self._ckpt_tokens is not None else []
     ckpts = [(list(t), [cpb(b) for b in bs]) for t, bs in self._ckpts]
-    return StateSnapshot(list(self._cached_tokens), self._cached_media, bufs, list(self._ckpt_tokens) if self._ckpt_tokens is not None else None, ckpt_bufs, ckpts)
+    return StateSnapshot(list(self._cached_tokens), self._cached_media, bufs, list(self._ckpt_tokens) if self._ckpt_tokens is not None else None, ckpt_bufs,
+                         ckpts, segs)
   def restore_state(self, snap:StateSnapshot) -> None:
     """write a snapshot (device or host copy) back into the live state buffers"""
     live = self.snapshot_tensors()
     assert len(live) == len(snap.bufs), "snapshot does not match the model's state layout"
-    for t, b in zip(live, snap.bufs): t.uop.buffer.ensure_allocated().copy_from(b)
+    for i, (t, b) in enumerate(zip(live, snap.bufs)):
+      if snap.segs and (sg := snap.segs[i]) is not None: StateSnapshot._host_unpack(t.uop.buffer.ensure_allocated(), b, sg)
+      else: t.uop.buffer.ensure_allocated().copy_from(b)
     if snap.ckpt_bufs:
       for (_, c), b in zip(self._ckpt_pairs(), snap.ckpt_bufs): c.uop.buffer.ensure_allocated().copy_from(b)
     self._cached_tokens, self._cached_media = list(snap.tokens), snap.media
