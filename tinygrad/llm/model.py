@@ -31,6 +31,7 @@ class StateSnapshot:
     return Buffer(b.device, b.size, b.dtype, options=BufferSpec(host=True)).ensure_allocated().copy_from(b)
   def to_host(self) -> "StateSnapshot":
     """the same snapshot with every buffer copied to host memory (frees the device copies)"""
+    if self.on_host: return self
     return StateSnapshot(self.tokens, self.media, [self._host_copy(b) for b in self.bufs], self.ckpt_tokens, [self._host_copy(b) for b in self.ckpt_bufs],
                          [(t, [self._host_copy(b) for b in bs]) for t, bs in self.ckpts])
 
@@ -1155,10 +1156,15 @@ class Transformer:
   def snapshot_state(self) -> StateSnapshot:
     """copy the whole decode state, and the prefill checkpoint with it: a conversation almost always comes back extending its
     previous prompt rather than the generated sequence, so the checkpoint is what a restored snapshot gets resumed from.
-    Direct buffer copies (see StateSnapshot); a MemoryError from the allocation is the caller's to handle."""
-    bufs = [self._device_copy(t) for t in self.snapshot_tensors()]
-    ckpt_bufs = [self._device_copy(c) for _, c in self._ckpt_pairs()] if self._ckpt_tokens is not None else []
-    ckpts = [(list(t), [self._device_copy_buf(b) for b in bs]) for t, bs in self._ckpts]
+    Direct buffer copies (see StateSnapshot); a MemoryError from the allocation is the caller's to handle.
+    PREFIX_SNAPSHOT_HOST=1 (default): copied straight into pinned host memory, one DMA per buffer. A device copy needs ~2 GB of free VRAM
+    at max_context 98304 (16 attention kv caches x 112.5 MB + recurrent state), which the 24 GB card never has with this model: every
+    snapshot attempt failed and paused the feature (221x in production 09-10..09-29), host tier included."""
+    cp = (lambda t: StateSnapshot._host_copy(t.uop.buffer.ensure_allocated())) if getenv("PREFIX_SNAPSHOT_HOST", 1) else self._device_copy
+    cpb = StateSnapshot._host_copy if getenv("PREFIX_SNAPSHOT_HOST", 1) else self._device_copy_buf
+    bufs = [cp(t) for t in self.snapshot_tensors()]
+    ckpt_bufs = [cp(c) for _, c in self._ckpt_pairs()] if self._ckpt_tokens is not None else []
+    ckpts = [(list(t), [cpb(b) for b in bs]) for t, bs in self._ckpts]
     return StateSnapshot(list(self._cached_tokens), self._cached_media, bufs, list(self._ckpt_tokens) if self._ckpt_tokens is not None else None, ckpt_bufs, ckpts)
   def restore_state(self, snap:StateSnapshot) -> None:
     """write a snapshot (device or host copy) back into the live state buffers"""

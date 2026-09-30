@@ -198,7 +198,8 @@ class Handler(VizHandler):
         snap = (srv.host_snapshots if best_host else srv.snapshots).pop(best_i)
         if live_worth_keeping: srv.snapshots.append(model.snapshot_state())
         model.restore_state(snap)
-        if best_host: srv.snapshots.append(model.snapshot_state())  # it is live again; keep a device copy so the next switch is cheap
+        if best_host and not getenv("PREFIX_SNAPSHOT_HOST", 1): srv.snapshots.append(model.snapshot_state())  # live again: keep a device copy
+        elif best_host: srv.snapshots.append(snap)  # host snapshots: the restored copy stays valid as this conversation's snapshot
         stderr_log(f"{colored(f'restored snapshot ({best} tok, {'host' if best_host else 'vram'}, {(time.perf_counter()-t0)*1e3:.0f} ms)', 'cyan')}  {colored('--', 'BLACK')}  ")
       elif live_worth_keeping:
         srv.snapshots.append(snap := model.snapshot_state())
