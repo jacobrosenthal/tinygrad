@@ -560,6 +560,7 @@ class Transformer:
     self._pos_dirty = False
     self.mtp: MTPModule|None = None
     self.mtp_k, self.gdn_replay, self.spec_async = 1, False, False
+    self.dflash = None  # DFLASH: DFlash2 block drafter (dflash.py) in place of the MTP draft passes
     # top_p/top_k: server-fixed (see _apply_top_pk), set by from_gguf from the --top-p/--top-k CLI flags.
     # disabled (1.0 / 0) unless set -- matches the old temperature-only sampling behavior.
     self.top_p, self.top_k = 1.0, 0
@@ -695,7 +696,8 @@ class Transformer:
     # then [sampled token] + drafts, n_keep = 1); returns (res, n_acc, next chunk) so n_acc can be fed back as the next step's n_rep
     amd_gemv.new_forward(n_keep, n_rep)
     x = self._embed(tokens, emb)
-    for block in self.blk:
+    df, hs = self.dflash, []  # DFLASH: the residual stream after the drafter's target blocks, for every row of the chunk
+    for bi, block in enumerate(self.blk):
       x = block(x, start_pos, n_tok)
       # long chunks: realize per block outside the JIT. the eager (first, pre-capture) run cannot memory-plan the custom kernels' in/out
       # buffers, so one schedule for the whole chunk would allocate every layer's intermediates at once (~7 GB at T=256). inside a capture
@@ -704,6 +706,7 @@ class Transformer:
       if T > amd_gemv.MAX_T and not capturing:
         x = x.realize()
         gc.collect(1)
+      if df is not None and bi in df.target_layers: hs.append(x.contiguous())
     chunk, idx = tokens.reshape(T), Tensor.arange(T, dtype=dtypes.int32)
     if prefill:  # only the last valid row is sampled (the output projection of a long chunk would be the biggest GEMM of the step)
       lastx = x.shrink((None, (n_tok - 1, n_tok), None)).contiguous() if isinstance(n_tok, int) else \
@@ -727,20 +730,18 @@ class Transformer:
         m = (idx == j.reshape(())).reshape(*([1, T] if t.ndim == 3 else [T]), *([1] * (t.ndim - 2 if t.ndim == 3 else 0)))
         return (m.where(t, 0)).sum(axis=1 if t.ndim == 3 else 0, keepdim=True)
       return t.shrink(((None,) if t.ndim == 3 else ()) + ((j, j + 1),) + ((None,) if t.ndim == 3 else ())).contiguous()
-    # MTP pass 1 over the chunk rows (fills its KV cache), then K-1 single-row passes chained on its own hidden state and draft
-    amd_gemv.new_forward(n_keep if prefill else n_keep + n_acc)
-    mx = self.mtp(x, self.token_embd(next_toks).float(), start_pos, n_tok)
-    h = pick(mx, j_last)
-    drafts = [Transformer._sample_rows(self._draft_logits(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k, window,
-                                        self.repeat_penalty, self.frequency_penalty, self.presence_penalty).reshape(1).cast(dtypes.int32)]
-    for k in range(1, K):
-      amd_gemv.new_forward(1)
-      h = self.mtp(h, self.token_embd(drafts[-1].reshape(1, 1)).float(), (j_last + start_pos) + k, 1)  # Tensor + UOp works, not UOp + Tensor
-      drafts.append(Transformer._sample_rows(self._draft_logits(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k, window,
-                                              self.repeat_penalty, self.frequency_penalty, self.presence_penalty).reshape(1).cast(dtypes.int32))
-    draft = drafts[0].cat(*drafts[1:]) if K > 1 else drafts[0]
-    # candidate next chunks: L accepted -> U = drafts[:L] + [out[n_keep-1+L]], chunk = U + new drafts
     last = pick(out, j_last)
+    if df is not None:
+      # DFLASH: every chunk row's context K/V into the drafter rings, then one block pass [anchor, MASK x K] at pos0 = the anchor's position,
+      # the full target lm_head on the K mask rows and the lattice walk (dflash.py). Replaces the MTP passes
+      sp = start_pos.reshape(1) if isinstance(start_pos, Tensor) else (Tensor.zeros(1, dtype=dtypes.int32) + start_pos).cast(dtypes.int32)
+      rings = df.inject(hs, sp)
+      pos0 = (sp + j_last + 1).reshape(1).cast(dtypes.int32)
+      block = last.reshape(1).cat(Tensor.full((K,), df.mask_id, dtype=dtypes.int32))
+      hN = df.draft(self.token_embd(block.reshape(1, K + 1)).float().reshape(K + 1, -1), pos0, rings)[1:].contiguous()  # own buffer: amd_gemv caches activation quantization by base
+      draft = df.select(hN, amd_gemv.linear_decode(self.output, hN), last).reshape(K).cast(dtypes.int32)
+    else: draft = self._mtp_drafts(x, next_toks, start_pos, n_tok, n_keep, n_acc, j_last, prefill, temperature, window, pick)
+    # candidate next chunks: L accepted -> U = drafts[:L] + [out[n_keep-1+L]], chunk = U + new drafts
     if prefill or n_rep is not None: cands = [last.cat(draft).reshape(1, 1 + K).contiguous()]
     else: cands = [chunk[n_keep:n_keep+L].cat(out[n_keep-1+L:n_keep+L], draft).reshape(1, L + 1 + K).contiguous() for L in range(T - n_keep + 1)]
     res = out.cat(draft).contiguous()
@@ -753,6 +754,22 @@ class Transformer:
         return (out_buf.assign(res), acc_out, pos_next, *cands)
       return (res, acc_out, *cands)
     return (res, *cands)
+
+  def _mtp_drafts(self, x, next_toks, start_pos, n_tok, n_keep, n_acc, j_last, prefill, temperature, window, pick) -> Tensor:
+    from tinygrad.llm import amd_gemv
+    K = self.mtp_k
+    # MTP pass 1 over the chunk rows (fills its KV cache), then K-1 single-row passes chained on its own hidden state and draft
+    amd_gemv.new_forward(n_keep if prefill else n_keep + n_acc)
+    mx = self.mtp(x, self.token_embd(next_toks).float(), start_pos, n_tok)
+    h = pick(mx, j_last)
+    drafts = [Transformer._sample_rows(self._draft_logits(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k, window,
+                                        self.repeat_penalty, self.frequency_penalty, self.presence_penalty).reshape(1).cast(dtypes.int32)]
+    for k in range(1, K):
+      amd_gemv.new_forward(1)
+      h = self.mtp(h, self.token_embd(drafts[-1].reshape(1, 1)).float(), (j_last + start_pos) + k, 1)  # Tensor + UOp works, not UOp + Tensor
+      drafts.append(Transformer._sample_rows(self._draft_logits(self.mtp.shared_head_norm(h)), temperature, self.top_p, self.top_k, window,
+                                              self.repeat_penalty, self.frequency_penalty, self.presence_penalty).reshape(1).cast(dtypes.int32))
+    return drafts[0].cat(*drafts[1:]) if K > 1 else drafts[0]
 
   def __call__(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp|None=None, emb:Tensor|None=None,
                window:Tensor|None=None) -> Tensor:
@@ -915,6 +932,11 @@ class Transformer:
         assert 0 < nv <= gw.N, f"MTP_DRAFT_VOCAB={nv} must be in (0, {gw.N}]"
         model._draft_head = amd_gemv.GGMLWeight(gw.raw[:nv * rb].realize(), gw.ggml_type, nv, gw.K)  # zero-copy view of the weight base: cache-restore safe
         if DEBUG >= 1: print(f"mtp: draft head restricted to the first {nv} token ids ({nv * rb / 1e6:.0f} MB of {gw.N * rb / 1e9:.2f} GB)")
+      # DFLASH=path: a DFlash2 drafter GGUF drafts in place of the MTP head (the MTP head still loads; its passes are skipped)
+      from tinygrad.llm.dflash import default_path, load_dflash
+      if model.mtp is not None and (dfp := default_path()):
+        model.dflash = load_dflash(dfp, nn.state.get_parameters(model)[0].device)
+        assert model.mtp_k + 1 <= model.dflash.block_size, f"DFLASH needs MTP_K <= {model.dflash.block_size - 1}"
       # prefill in fixed-size token chunks through the fused kernels when every block takes that path (state updates must skip padding)
       probe = Tensor.empty(1, 1, config.dim, device=nn.state.get_parameters(model)[0].device)
       for b in model.blk: b._init_state(probe)
@@ -1009,8 +1031,11 @@ class Transformer:
   # closing <|im_end|> re-tokenizes identically next turn, but the prompt's last token (the "\n" after the generation prompt's
   # <think>) merges with whatever the answer starts with and comes back as a different id: a checkpoint that included it never matched ----
   def _state_tensors(self) -> list[tuple[str, Tensor]]:
+    # DFLASH: the drafter's context rings too -- positional like a kv cache, but a conversation more than RING tokens past a checkpoint
+    # has overwritten the entries that checkpoint's first drafts would read
+    rings = [(f"dflash{l}.{n}", t) for l, pair in enumerate(self.dflash.rings) for n, t in zip(("k", "v"), pair)] if self.dflash is not None else []
     return [(f"{i}.{n}", t) for i, b in enumerate(self.blk) if isinstance(b, GatedDeltaNetBlock)
-            for n in ("conv_state", "recurrent_state") if (t := getattr(b, n, None)) is not None]
+            for n in ("conv_state", "recurrent_state") if (t := getattr(b, n, None)) is not None] + rings
   def _ckpt_pairs(self) -> list[tuple[Tensor, Tensor]]:
     """(live state tensor, its checkpoint buffer) per recurrent state tensor, allocating the checkpoint buffers on first use"""
     st = self._state_tensors()
@@ -1071,9 +1096,11 @@ class Transformer:
     """every buffer the forward pass mutates in place: attention kv caches, recurrent (ssm) states, the mtp block's kv cache.
     the jits capture these by identity, so a snapshot clones their contents and a restore assigns back into the same buffers"""
     out: list[Tensor] = []
-    for b in self.blk + ([self.mtp.blk] if self.mtp is not None else []):
+    # with DFLASH the mtp block never runs (its kv cache is never allocated); the drafter's context rings are state instead
+    for b in self.blk + ([self.mtp.blk] if self.mtp is not None and self.dflash is None else []):
       for name in ("cache_kv", "cache_k", "conv_state", "recurrent_state"):
         if (t := getattr(b, name, None)) is not None: out.append(t)
+    if self.dflash is not None: out += [t for pair in self.dflash.rings for t in pair]
     return out
   @staticmethod
   def _device_copy_buf(src):
