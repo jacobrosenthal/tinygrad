@@ -425,7 +425,7 @@ class GatedDeltaNetBlock(FFNBlock):
     qkv, gate, alpha, beta = amd_gemv.linear_decode_multi([self.attn_qkv, self.attn_gate, self.ssm_alpha, self.ssm_beta], x)
     z = amd_gemv.gdn_decode(self.conv_state, self.recurrent_state, qkv, conv_w, alpha, beta, dt_bias, A,
                             gate, norm_w, start_pos, self.num_v_heads, self.num_k_heads, self.head_v_dim, self.head_k_dim,
-                            self.config.norm_eps, 1e-6, self.config.max_context, T, n_tok)
+                            self.config.norm_eps, 1e-6, self.config.max_context, T, n_tok, getattr(self, "_tape", None))
     return amd_gemv.linear_decode(self.ssm_out, z.reshape(1, T, -1), residual=residual)
 
   def _fused_ok(self) -> bool:
@@ -435,7 +435,8 @@ class GatedDeltaNetBlock(FFNBlock):
   def _attention(self, x:Tensor, start_pos:int|UOp, residual:Tensor|None=None, n_tok:int|UOp|None=None) -> Tensor:
     B, T, _ = x.shape
     # bind ints to a variable so the reset flag stays a runtime value (it toggles when generation restarts at position 0)
-    start_pos = start_pos if isinstance(start_pos, UOp) else UOp.variable("start_pos", 0, self.config.max_context-1).bind(start_pos)
+    # (a Tensor start_pos is a SPEC_ASYNC device position: the fused kernels read it from memory)
+    if not isinstance(start_pos, (UOp, Tensor)): start_pos = UOp.variable("start_pos", 0, self.config.max_context-1).bind(start_pos)
     is_kda = hasattr(self, "ssm_g_a")
     if self._n_fused(x) and self._fused_ok(): return self._attention_fused(x, start_pos, residual, n_tok)
     assert residual is None and n_tok is None
@@ -507,6 +508,12 @@ class GatedDeltaNetBlock(FFNBlock):
       self.recurrent_state = Tensor.zeros(x.shape[0], self.num_v_heads, self.head_v_dim, self.head_k_dim, device=x.device).clone()
       if hasattr(self.attn_qkv, "_ggml"):  # f32 copies of the small params for the fused decode kernels, realized outside the function capture
         self._gdn_params = tuple(t.float().contiguous().realize() for t in (self.ssm_conv1d["weight"], self.ssm_dt["bias"], self.ssm_a, self.ssm_norm.weight))
+        if getenv("GDN_REPLAY", 0):  # draft rows of the last verify step, replayed into the state next step when accepted (amd_gemv.gdn_decode)
+          from tinygrad.llm.amd_gemv import MAX_T
+          self._tape = (Tensor.zeros((MAX_T - 1) * self.conv_channels, device=x.device).contiguous().realize(),
+                        Tensor.zeros((MAX_T - 1) * 2 * self.num_v_heads, device=x.device).contiguous().realize())
+
+_ASYNC_IO: dict[tuple[int, int], tuple[tuple[Tensor, memoryview], ...]] = {}
 
 class MTPModule:
   """Qwen3.8 nextn (MTP) draft layer: eh_proj(cat(enorm(embed(t_{i+1})), hnorm(h_i))) -> TransformerBlock -> shared lm_head."""
@@ -552,7 +559,7 @@ class Transformer:
     self._emb_zero: dict[int, Tensor] = {}
     self._pos_dirty = False
     self.mtp: MTPModule|None = None
-    self.mtp_k = 1
+    self.mtp_k, self.gdn_replay, self.spec_async = 1, False, False
     # top_p/top_k: server-fixed (see _apply_top_pk), set by from_gguf from the --top-p/--top-k CLI flags.
     # disabled (1.0 / 0) unless set -- matches the old temperature-only sampling behavior.
     self.top_p, self.top_k = 1.0, 0
@@ -666,8 +673,8 @@ class Transformer:
     from tinygrad.llm import amd_gemv
     return amd_gemv.linear_decode_raw(dh, h)
 
-  def forward_spec(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp, n_keep:int|UOp,
-                   emb:Tensor|None=None, window:Tensor|None=None) -> tuple[Tensor, ...]:
+  def forward_spec(self, tokens:Tensor, start_pos:int|UOp|Tensor, temperature:Tensor, n_tok:int|UOp, n_keep:int|UOp,
+                   emb:Tensor|None=None, window:Tensor|None=None, n_rep:Tensor|None=None, out_buf:Tensor|None=None) -> tuple[Tensor, ...]:
     """main model on a T-token chunk (n_keep tokens commit GDN/conv state; the rest are the K drafts being verified), then K chained
     passes of the MTP draft layer. returns (res[T+K] = sampled tokens of the T rows + the K new drafts, next chunk if L drafts were
     accepted for L = 0..K). the next chunks are realized here so the next step feeds a JIT output straight back in (realizing a fresh
@@ -684,7 +691,9 @@ class Transformer:
     assert self.mtp is not None
     K, T = self.mtp_k, int(tokens.shape[1])
     prefill = not isinstance(n_keep, int)
-    amd_gemv.new_forward(n_keep)
+    # GDN_REPLAY: n_rep = drafts accepted by the previous step, replayed into the GDN state from the tapes before this chunk (the chunk is
+    # then [sampled token] + drafts, n_keep = 1); returns (res, n_acc, next chunk) so n_acc can be fed back as the next step's n_rep
+    amd_gemv.new_forward(n_keep, n_rep)
     x = self._embed(tokens, emb)
     for block in self.blk:
       x = block(x, start_pos, n_tok)
@@ -709,8 +718,9 @@ class Transformer:
     if prefill:  # nothing to verify
       n_acc, j_last = 0, n_tok - 1
     else:  # L = number of leading drafts that match what the model sampled in their place (lossless at any temperature)
-      acc = (out[n_keep-1:n_keep-1+K] == chunk[n_keep:n_keep+K]).cast(dtypes.int32)
-      n_acc = (acc.cumsum(0) == idx[:K] + 1).sum().reshape(1).cast(dtypes.int32)  # type: ignore[assignment]
+      D = T - n_keep  # drafts being verified
+      acc = (out[n_keep-1:n_keep-1+D] == chunk[n_keep:n_keep+D]).cast(dtypes.int32)
+      n_acc = (acc.cumsum(0) == idx[:D] + 1).sum().reshape(1).cast(dtypes.int32)  # type: ignore[assignment]
       j_last = n_keep - 1 + n_acc  # row of the last accepted position
     def pick(t:Tensor, j) -> Tensor:  # row j of (1, T, ...) / (T,) as a (1, 1, ...) / (1,) tensor, j int, UOp or int32 Tensor
       if isinstance(j, Tensor):
@@ -731,10 +741,17 @@ class Transformer:
     draft = drafts[0].cat(*drafts[1:]) if K > 1 else drafts[0]
     # candidate next chunks: L accepted -> U = drafts[:L] + [out[n_keep-1+L]], chunk = U + new drafts
     last = pick(out, j_last)
-    if prefill: cands = [last.cat(draft).reshape(1, 1 + K).contiguous()]
-    else: cands = [chunk[n_keep:n_keep+L].cat(out[n_keep-1+L:n_keep+L], draft).reshape(1, L + 1 + K).contiguous() for L in range(K + 1)]
+    if prefill or n_rep is not None: cands = [last.cat(draft).reshape(1, 1 + K).contiguous()]
+    else: cands = [chunk[n_keep:n_keep+L].cat(out[n_keep-1+L:n_keep+L], draft).reshape(1, L + 1 + K).contiguous() for L in range(T - n_keep + 1)]
     res = out.cat(draft).contiguous()
     amd_gemv.end_forward()
+    if n_rep is not None:
+      acc_out = (n_rep * 0 if prefill else n_acc).reshape(1).cast(dtypes.int32).contiguous()
+      if isinstance(start_pos, Tensor):  # SPEC_ASYNC decode step: position on the device, res into the caller's host-visible buffer
+        assert out_buf is not None and not prefill
+        pos_next = (start_pos + 1 + n_acc).reshape(1).cast(dtypes.int32).contiguous()
+        return (out_buf.assign(res), acc_out, pos_next, *cands)
+      return (res, acc_out, *cands)
     return (res, *cands)
 
   def __call__(self, tokens:Tensor, start_pos:int|UOp, temperature:Tensor, n_tok:int|UOp|None=None, emb:Tensor|None=None,
@@ -869,7 +886,13 @@ class Transformer:
       model.mtp = MTPModule(replace(config, qk_norm=config.head_dim) if config.ssm else config)
       from tinygrad.llm.amd_gemv import MAX_T
       model.mtp_k = getenv("MTP_K", 3)  # drafts per step: chunk = up to K+1 committed tokens + K drafts must fit the fused T <= MAX_T path
-      assert 1 <= model.mtp_k and 2 * model.mtp_k + 1 <= MAX_T, f"MTP_K={model.mtp_k} needs 2K+1 <= {MAX_T}"
+      # GDN_REPLAY: accepted drafts are replayed into the GDN state instead of re-run, so a chunk is 1 + K wide (K <= MAX_T - 1)
+      model.gdn_replay = bool(getenv("GDN_REPLAY", 0))
+      assert 1 <= model.mtp_k and (model.mtp_k + 1 if model.gdn_replay else 2 * model.mtp_k + 1) <= MAX_T, \
+        f"MTP_K={model.mtp_k} needs {'K+1' if model.gdn_replay else '2K+1'} <= MAX_T={MAX_T}"
+      # SPEC_ASYNC: queue decode step i+1 before reading step i's tokens (needs GDN_REPLAY: then the next step's inputs are all on the device)
+      model.spec_async = bool(getenv("SPEC_ASYNC", 0))
+      assert not model.spec_async or model.gdn_replay, "SPEC_ASYNC needs GDN_REPLAY"
     nn.state.load_state_dict(model, state_dict, verbose=False, consume=True, realize=False)  # NOTE: rope_freqs.weight (32,) is unused
     # the packed weights stay resident: realize the raw bytes of the model's tensors once (straight from disk), and the small
     # parameters (norms, biases, conv weights) so nothing is re-copied or re-cast every token
@@ -906,9 +929,33 @@ class Transformer:
       Tensor.realize(*params)
     return model, kv
 
-  def _spec_jit(self, T:int):
-    if T not in self._spec_jits: self._spec_jits[T] = TinyJit(self.forward_spec)
-    return self._spec_jits[T]
+  def _zero_rep(self) -> Tensor:
+    if not hasattr(self, "_zero_rep_t"): self._zero_rep_t = Tensor.zeros(1, dtype=dtypes.int32).contiguous().realize()
+    return self._zero_rep_t
+
+  def _async_io(self, n:int) -> tuple[tuple[Tensor, memoryview], ...]:
+    """SPEC_ASYNC: two host-visible int32 buffers of n (a decode step's res), alternating between consecutive steps so step i+1 can run
+    while the host reads step i's. Kept off the model (it is pickled by the llm cache; these are per-process host mappings)."""
+    from tinygrad.device import Buffer, BufferSpec
+    key = (id(self), n)
+    if (io := _ASYNC_IO.get(key)) is None:
+      dev = self.token_embd.weight.device
+      bufs = [Buffer(dev, n, dtypes.int32, options=BufferSpec(host=True, uncached=True, cpu_access=True)).ensure_allocated() for _ in range(2)]
+      io = _ASYNC_IO[key] = tuple((Tensor(UOp.from_buffer(b)), b._host_mv().cast('i')) for b in bufs)
+    return io
+
+  def _i32_tensor(self, vals:list[int]) -> Tensor:
+    """a fresh realized device int32 tensor written with a direct copy (see _prompt_tensor: no Tensor.realize walk)"""
+    import array
+    from tinygrad.device import Buffer
+    t = Tensor.empty(len(vals), dtype=dtypes.int32).contiguous().realize()
+    t.uop.buffer.ensure_allocated().copy_from(Buffer("PYTHON", len(vals), dtypes.int32, opaque=memoryview(array.array("i", vals)).cast('B')).ensure_allocated())
+    return t
+
+  def _spec_jit(self, T:int, n_keep:int|None=None):
+    """one jit per chunk shape: (T, n_keep) for a decode step (T - n_keep drafts), (T, None) for prefill"""
+    if (key := (T, n_keep)) not in self._spec_jits: self._spec_jits[key] = TinyJit(self.forward_spec)
+    return self._spec_jits[key]
 
   def warmup(self):
     try:
@@ -931,8 +978,16 @@ class Transformer:
     # captures whichever Python branch this first call takes (see _apply_repeat_penalty's docstring), so a
     # warmup call missing `window` when penalties are enabled would permanently bake in the no-penalty path.
     wkw = {"window": self._repeat_window_tensor([0])} if self._penalties_enabled else {}
+    if self.gdn_replay:  # every decode chunk is [sampled token] + K drafts, with the previous accept count replayed
+      shapes, wkw = [(1, K)], {**wkw, "n_rep": self._zero_rep()}
+    else: shapes = [(L + 1, K) for L in range(K + 1)]
     for _ in range(2):
-      for L in range(K + 1): self._spec_jit(T:=L + 1 + K)(Tensor([[0] * T], dtype="int32"), v_sp.bind(0), temp, T, L + 1, **wkw)
+      for n_keep, D in shapes: self._spec_jit(T:=n_keep + D, n_keep)(Tensor([[0] * T], dtype="int32"), v_sp.bind(0), temp, T, n_keep, **wkw)
+    if self.spec_async:  # two jits (one per step parity) so a queued step never writes the buffers the step before it reads
+      io, pos0 = self._async_io(1 + 2 * K), self._i32_tensor([0])
+      for _ in range(2):
+        for par in (0, 1): self._spec_jit(K + 1, ("async", par))(Tensor([[0] * (K + 1)], dtype="int32"), pos0, temp, K + 1, 1,
+                                                               **{**wkw, "out_buf": io[par][0]})
     # prefill widths: _generate_spec picks the narrowest captured width that covers what is left of the prompt, so the wide one has
     # to be captured too. generate([0]) above only reaches the narrow one, and a width first seen on a live request pays a full
     # eager capture inside that request (a 1914-token prefill measured 212 tok/s instead of 856). It has to go through the real
@@ -1167,6 +1222,53 @@ class Transformer:
       self._cached_tokens = tokens[:-1]
       yield tokens[-1]
 
+  def _decode_async(self, tokens:list[int], p:int, chunk:Tensor, drafts:list[int], temp:Tensor, rep:Tensor|None):
+    """SPEC_ASYNC decode (GDN_REPLAY): every step is [sampled token] + K drafts with the previous accept count replayed, so its inputs
+    (chunk, accept count, position) are all outputs of the step before. Step i+1 is queued before the host reads step i: the host wait,
+    the accept check, the consumer and the launch overlap the GPU instead of idling it (~7 ms of a ~43 ms step at K=3, 09-29 profile).
+    Step i's res is written to a host-visible buffer and read after waiting for step i's timeline value only, not the queued step.
+    The queued step commits step i's tokens (replay + row 0), so when the consumer stops early the state is one step ahead of what it
+    saw: _cached_tokens is set from every committed token, yielded or not."""
+    from tinygrad.device import Device
+    K = self.mtp_k
+    dev = Device[chunk.device]
+    tl = dev.timeline.host.view(fmt='Q')
+    io = self._async_io(1 + 2 * K)
+    assert rep is not None
+    def launch(i:int, chunk:Tensor, pos:Tensor, rep:Tensor) -> tuple[tuple[Tensor, Tensor, Tensor], int]:
+      _, rep_n, pos_n, chunk_n = self._spec_jit(K + 1, ("async", i % 2))(chunk, pos, temp, K + 1, 1, n_rep=rep, out_buf=io[i % 2][0])
+      return (chunk_n, pos_n, rep_n), int(tl[1])  # the value the step's batch signals when done
+    # s: position of the current step's row 0. a step writes kv up to s + K and its MTP passes up to s + 2K; the next one starts <= s+1+K
+    s, n_acc, n_step, all_toks = p, 0, 0, list(tokens)
+    fits = lambda s: s + 3 * K + 2 < self.max_context
+    nxt, v = launch(0, chunk, self._i32_tensor([p]), rep)
+    i, queued = 0, True
+    try:
+      while True:
+        if (more := fits(s + 1 + K)): nxt2, v2 = launch(i + 1, *nxt)
+        queued = more
+        dev._wait_signal(tl, v)
+        res = io[i % 2][1].tolist()
+        L = 0
+        while L < K and res[L] == drafts[L]: L += 1
+        n_acc, n_step = n_acc + L, n_step + 1
+        self._mtp_accept = (n_acc, n_step)
+        committed = drafts[:L] + [res[L]]
+        self._cached_tokens = all_toks[:s + 1]  # the state after step i holds positions 0..s
+        all_toks += committed
+        s, drafts = s + 1 + L, res[-K:]
+        for t in committed:
+          tokens.append(t)
+          yield t
+          if len(tokens) >= self.max_context: return
+        if not more: return  # within 3K+2 of max_context: stop rather than run a step past the cache
+        nxt, v, i = nxt2, v2, i + 1
+    finally:
+      dev.synchronize()
+      # a queued step commits all of step i's tokens (its replay + row 0): the state holds positions 0..s. otherwise 0..s_i
+      if queued: self._cached_tokens = all_toks[:s + 1]
+      if DEBUG >= 1 and n_step: print(f"async mtp accept {n_acc}/{n_step * K} = {n_acc / n_step / K:.2f} ({n_acc / n_step + 1:.2f} tok/step)")
+
   def _prompt_tensor(self, tokens:list[int], chunk_T:int) -> Tensor:
     """the prompt in one persistent device buffer (padded to max_context + chunk_T), written with a direct copy: Buffer.copy_from runs
     a single copy op without going through Tensor.realize, which would walk every live Tensor in the process (~0.2 s here)"""
@@ -1192,12 +1294,17 @@ class Transformer:
       temp = self._temp_tensors[float(temperature)] = Tensor([float(temperature)]).realize()
     p, prompt_len = self.get_start_pos(tokens) if start_pos is None else start_pos, len(tokens)
     n_acc = n_step = 0
+    rep_t:Tensor|None = self._zero_rep() if self.gdn_replay else None  # GDN_REPLAY: device accept count of the previous step
     def run(chunk:Tensor, start_pos:int, n_tok:int|UOp, n_keep:int|UOp, emb:Tensor|None=None,
             window:Tensor|None=None) -> tuple[list[int], tuple[Tensor, ...]]:
+      nonlocal rep_t
       kw = {}
       if emb is not None: kw["emb"] = emb
       if window is not None: kw["window"] = window
-      res, *cands = self._spec_jit(int(chunk.shape[1]))(chunk, v_start_pos.bind(start_pos), temp, n_tok, n_keep, **kw)
+      if rep_t is not None: kw["n_rep"] = rep_t
+      res, *cands = self._spec_jit(int(chunk.shape[1]), n_keep if isinstance(n_keep, int) else None)(chunk, v_start_pos.bind(start_pos), temp,
+                                                                                                        n_tok, n_keep, **kw)
+      if rep_t is not None: rep_t, cands = cands[0], cands[1:]  # the accept count feeds the next step's replay
       return res.tolist(), tuple(cands)
     # prefill: commit every valid token (n_keep = n_tok), fill the MTP KV cache, last chunk yields the first decode chunk.
     # the whole prompt goes to the device once and each chunk is a symbolic slice of it (like generate()): a fresh Tensor per
@@ -1226,22 +1333,27 @@ class Transformer:
     first, drafts, chunk = res[n_toks - 1], res[-K:], cands[0]
     tokens.append(first)
     yield first
+    if self.spec_async and not self._penalties_enabled:
+      yield from self._decode_async(tokens, p, chunk, drafts, temp, rep_t)
+      return
     # decode: chunk = U + drafts (a JIT output of the previous step), n_keep = len(U). res = [out[0..T-1], K new drafts]
+    R = 0  # GDN_REPLAY: drafts accepted last step, committed by this step's replay (their kv is already written, positions p..p+R-1)
     while len(tokens) < self.max_context:
-      T = int(chunk.shape[1]); n_keep = T - K
+      D = len(drafts); T = int(chunk.shape[1]); n_keep = T - D
       window = self._repeat_window_tensor(tokens) if self._penalties_enabled else None
-      res, cands = run(chunk, p, T, n_keep, window=window)
+      res, cands = run(chunk, p + R, T, n_keep, window=window)
       # the state now holds the n_keep committed tokens: record that before yielding, the consumer may close the generator at any yield
-      p += n_keep
+      p += R + n_keep
       self._cached_tokens = tokens[:p]
-      n_step += 1
       L = 0
-      while L < K and res[n_keep - 1 + L] == drafts[L]: L += 1
-      n_acc += L
+      while L < D and res[n_keep - 1 + L] == drafts[L]: L += 1
+      n_acc, n_step = n_acc + L, n_step + 1
       self._mtp_accept = (n_acc, n_step)
-      for t in drafts[:L] + [res[n_keep - 1 + L]]:  # the accepted drafts and the token sampled after them
+      committed = drafts[:L] + [res[n_keep - 1 + L]]  # the accepted drafts and the token sampled after them
+      if self.gdn_replay: R = L  # replayed next step; the next chunk starts at the sampled token
+      for t in committed:
         tokens.append(t)
         yield t
         if len(tokens) >= self.max_context: return
-      chunk, drafts = cands[L], res[-K:]
+      chunk, drafts = cands[0 if self.gdn_replay else L], res[-K:]
       if DEBUG >= 1 and n_step % 32 == 0: print(f"mtp accept {n_acc}/{n_step * K} = {n_acc / n_step / K:.2f} ({n_acc / n_step + 1:.2f} tok/step)")

@@ -757,18 +757,19 @@ def attach(model) -> list[GGMLWeight]:
 _sp_cache: dict = {}
 _fwd_id = 0
 _n_keep: int|UOp|Tensor|None = None
+_n_rep: Tensor|None = None  # GDN_REPLAY: accepted drafts of the previous step to replay from the tape (device int32)
 def _sp_elem_key(x:int|UOp|Tensor) -> int|bytes:
   if isinstance(x, int): return x
   if isinstance(x, Tensor): return id(x)
   return x.key
-def new_forward(n_keep:int|UOp|Tensor|None=None):
+def new_forward(n_keep:int|UOp|Tensor|None=None, n_rep:Tensor|None=None):
   """call at the start of every model forward (and again before the MTP pass): the [start_pos, n_tok, n_keep] tensor is shared between
   the layers of one pass only (one from an earlier pass is already realized and the JIT would capture it as a constant instead of a
   kernel reading the variables). n_keep is how many tokens of this chunk commit GDN/conv state; default n_tok. a Tensor is allowed
   (n_keep + accept for the MTP pass)."""
-  global _fwd_id, _n_keep
+  global _fwd_id, _n_keep, _n_rep
   _fwd_id += 1
-  _n_keep = n_keep
+  _n_keep, _n_rep = n_keep, n_rep
   _sp_cache.clear()
   import sys
   if (pf:=sys.modules.get("tinygrad.llm.amd_prefill")) is not None: pf.new_forward()
@@ -780,41 +781,59 @@ def start_pos_tensor(start_pos:UOp|int, device:str, n_tok:UOp|int=1, n_keep:int|
   """[start_pos, n_tok, n_keep] as an int32 tensor (kernels read them from memory, no dependency on symbolic variable plumbing)"""
   if n_keep is None: n_keep = _n_keep
   if n_keep is None: n_keep = n_tok
-  key = (_fwd_id, _sp_elem_key(start_pos), _sp_elem_key(n_tok), _sp_elem_key(n_keep), device)
+  key = (_fwd_id, _sp_elem_key(start_pos), _sp_elem_key(n_tok), _sp_elem_key(n_keep), device, None if _n_rep is None else id(_n_rep))
   if (t:=_sp_cache.get(key)) is None:
     if len(_sp_cache) >= 8: _sp_cache.clear()
     sp = (Tensor.zeros(1, dtype=dtypes.int32, device=device) + start_pos).cast(dtypes.int32)
     nt = (Tensor.zeros(1, dtype=dtypes.int32, device=device) + n_tok).cast(dtypes.int32)
     nk = n_keep.reshape(1).cast(dtypes.int32) if isinstance(n_keep, Tensor) else \
          (Tensor.zeros(1, dtype=dtypes.int32, device=device) + n_keep).cast(dtypes.int32)
-    _sp_cache[key] = t = sp.cat(nt, nk).contiguous()
+    parts = [sp, nt, nk] + ([_n_rep.reshape(1).cast(dtypes.int32)] if _n_rep is not None else [])
+    _sp_cache[key] = t = parts[0].cat(*parts[1:]).contiguous()
   return t
 
-def _gdn_conv_src(C:int, KC:int, T:int) -> str:
+def _gdn_conv_src(C:int, KC:int, T:int, R:int=0) -> str:
   # conv_state: (KC-1, C) f32 in/out, qkv: (T, C) f32 new rows, w: (C, KC) f32. conv_out: (T, C) f32 = silu(sum_i win[t+i][c] * w[c][i])
   # sp_p = [start_pos, n_tok, n_keep]: tokens t >= n_tok are padding, the new conv state is the last KC-1 rows of [state | qkv[:n_keep]]
   # one thread per channel walks the window sequentially (any T): win[m] = m < KC-1 ? state[m] : qkv[m - (KC-1)]
+  # R > 0 (GDN_REPLAY): sp_p[3] = nr rows of `tape` (the previous step's accepted drafts, R max) are slid through the window first and
+  # committed; their conv outputs go to conv_out rows [0, nr) and the chunk's to rows [R, R+T). draft rows nk <= t < n go to the tape
+  # (a prefill chunk has n == nk: nothing; T can be far above R there, so the bound matters)
+  rp_sig = ", float* __restrict__ tape" if R else ""
+  rp_head = rf"""
+  const i32 nr = sp_p[3], n = sp_p[1];""" if R else ""
+  rp_loop = rf"""
+  for (i32 r = 0; r < nr; r++) {{
+    #pragma unroll
+    for (int i = 0; i < {KC} - 1; i++) win[i] = win[i + 1];
+    win[{KC} - 1] = tape[r * {C} + c];
+    float acc = 0.0f;
+    #pragma unroll
+    for (int i = 0; i < {KC}; i++) acc += win[i] * wv[i];
+    conv_out[r * {C} + c] = acc / (1.0f + __builtin_expf(-acc));
+  }}""" if R else ""
   return PRELUDE + rf"""
 KERNEL(gdn_conv, 256)(float* __restrict__ conv_out, float* __restrict__ conv_state, const float* __restrict__ qkv,
-                      const float* __restrict__ w, const i32* __restrict__ sp_p) {{
-  const i32 start_pos = sp_p[0], nk = sp_p[2];
+                      const float* __restrict__ w, const i32* __restrict__ sp_p{rp_sig}) {{
+  const i32 start_pos = sp_p[0], nk = sp_p[2];{rp_head}
   const u32 c = wg_id() * 256 + tid();
   if (c >= {C}u) return;
-  const bool reset = start_pos == 0;
+  const bool reset = start_pos{' - nr' if R else ''} == 0;
   float win[{KC}];  // the last KC window values, win[KC-1] = newest
   #pragma unroll
   for (int i = 0; i < {KC} - 1; i++) win[i + 1] = reset ? 0.0f : conv_state[i * {C} + c];
   float wv[{KC}];
   #pragma unroll
-  for (int i = 0; i < {KC}; i++) wv[i] = w[c * {KC} + i];
+  for (int i = 0; i < {KC}; i++) wv[i] = w[c * {KC} + i];{rp_loop}
   for (i32 t = 0; t < {T}; t++) {{
     #pragma unroll
     for (int i = 0; i < {KC} - 1; i++) win[i] = win[i + 1];
-    win[{KC} - 1] = qkv[t * {C} + c];
+    win[{KC} - 1] = qkv[t * {C} + c];{f'''
+    if (t >= nk && t < n && t - nk < {R}) tape[(t - nk) * {C} + c] = win[{KC} - 1];''' if R else ''}
     float acc = 0.0f;
     #pragma unroll
     for (int i = 0; i < {KC}; i++) acc += win[i] * wv[i];
-    conv_out[t * {C} + c] = acc / (1.0f + __builtin_expf(-acc));
+    conv_out[{f'({R} + t)' if R else 't'} * {C} + c] = acc / (1.0f + __builtin_expf(-acc));
     // after consuming qkv[t] the window holds [state | qkv[:t+1]][t+1 .. t+KC): the new state once t + 1 == nk
     if (t + 1 == nk) {{
       #pragma unroll
@@ -828,7 +847,7 @@ KERNEL(gdn_conv, 256)(float* __restrict__ conv_out, float* __restrict__ conv_sta
 }}
 """
 
-def _gdn_step_src(H:int, HK:int, V:int, K:int, C:int, eps:float, qk_eps:float, T:int, BLK:int=32) -> str:
+def _gdn_step_src(H:int, HK:int, V:int, K:int, C:int, eps:float, qk_eps:float, T:int, BLK:int=32, R:int=0) -> str:
   # one workgroup (512 threads) per v-head h: 4 threads per state row (v), 32 k each. the state stays in registers over the T steps,
   # which are processed in groups of TG tokens staged in LDS. z is quantized per BLK (32: one wave per 32-block, 128: one wave per
   # token: the head's V=128 outputs are one block)
@@ -883,13 +902,49 @@ def _gdn_step_src(H:int, HK:int, V:int, K:int, C:int, eps:float, qk_eps:float, T
     if (lane == 31) zs[(tok * {H * V} + h * {V}) >> 7] = d;
   }}
 """
+  # R > 0 (GDN_REPLAY): first replay sp_p[3] = nr tape rows (k, v from conv_out rows [0, nr), raw alpha/beta from tape_ab) through the
+  # state with exactly the chunk loop's recurrence ops (no q, no output), then the chunk reads conv_out rows [R, R+T); draft rows (tok >=
+  # nk) leave their raw alpha/beta in tape_ab for the next step
+  CO = f"({R} + tok)" if R else "tok"
+  rp_sig = ", float* __restrict__ tape_ab" if R else ""
+  rp_loop = rf"""
+  const u32 nr = __builtin_amdgcn_readfirstlane((u32)sp_p[3]);
+  for (u32 r = 0; r < nr; r++) {{
+    {BAR}
+    for (u32 i = t; i < {K}; i += 512) {{ ks[0][i] = conv_out[r * {C} + {QD} + hk * {K} + i]; vs[0][i] = conv_out[r * {C} + 2 * {QD} + h * {V} + i]; }}
+    if (t == 0) {{  // replay rows are never position 0: no reset
+      const float a_in = tape_ab[r * {2 * H} + h] + dt_bias[h];
+      const float sp = a_in > 20.0f ? a_in : __builtin_logf(1.0f + __builtin_expf(a_in));
+      dec[0] = __builtin_expf(sp * A[h]);
+      bet[0] = 1.0f / (1.0f + __builtin_expf(-tape_ab[r * {2 * H} + {H} + h]));
+    }}
+    {BAR}
+    if (wave == 0) {{
+      float ss = 0.0f;
+      #pragma unroll
+      for (int i = 0; i < {K} / 32; i++) {{ const float x = ks[0][lane * ({K} / 32) + i]; ss += x * x; }}
+      ss = wave_sum(ss);
+      if (lane == 0) red[0][1] = __builtin_fmaxf(__builtin_sqrtf(ss), {qk_eps}f);
+    }}
+    {BAR}
+    const float kscale = 1.0f / red[0][1], decay = dec[0], beta = bet[0];
+    float dot = 0.0f;
+    #pragma unroll
+    for (int i = 0; i < 32; i++) {{ kk[i] = ks[0][k0 + i] * kscale; s[i] *= decay; dot += s[i] * kk[i]; }}
+    dot = sum4(dot);
+    const float delta = (vs[0][v] - dot) * beta;
+    #pragma unroll
+    for (int i = 0; i < 32; i++) s[i] += delta * kk[i];
+  }}""" if R else ""
+  rp_tape = rf"""
+      if (tok >= nk && tok < n && tok - nk < {R}u) {{ tape_ab[(tok - nk) * {2 * H} + h] = alpha_raw[tok * {H} + h]; tape_ab[(tok - nk) * {2 * H} + {H} + h] = beta_raw[tok * {H} + h]; }}""" if R else ""
   return PRELUDE + rf"""
 #define dpp_xmask(v, m) __builtin_bit_cast(float, __builtin_amdgcn_update_dpp(0, __builtin_bit_cast(i32, (v)), 0x160 | (m), 0xf, 0xf, true))
 DEV float sum4(float v) {{ v += dpp_xmask(v, 1); v += dpp_xmask(v, 2); return v; }}
 KERNEL(gdn_step, 512)(float* __restrict__ z, i8* __restrict__ zq, float* __restrict__ zs, float* __restrict__ zsum16,
                       float* __restrict__ state, const float* __restrict__ conv_out,
                       const float* __restrict__ alpha_raw, const float* __restrict__ beta_raw, const float* __restrict__ dt_bias,
-                      const float* __restrict__ A, const float* __restrict__ gate, const float* __restrict__ norm_w, const i32* __restrict__ sp_p) {{
+                      const float* __restrict__ A, const float* __restrict__ gate, const float* __restrict__ norm_w, const i32* __restrict__ sp_p{rp_sig}) {{
   __attribute__((shared)) float qs[{TG}][{K}], ks[{TG}][{K}], vs[{TG}][{V}], outs[{TG}][{V}], red[{TG}][4], dec[{TG}], bet[{TG}];
   const i32 start_pos = sp_p[0];
   const u32 n = __builtin_amdgcn_readfirstlane((u32)sp_p[1]);
@@ -905,22 +960,22 @@ KERNEL(gdn_step, 512)(float* __restrict__ z, i8* __restrict__ zq, float* __restr
   if (nk == 0) {{  // nothing committed this chunk: the state is the old one (zeros after a reset)
     #pragma unroll
     for (int i = 0; i < 32; i++) srow[i] = start_pos == 0 ? 0.0f : s[i];
-  }}
+  }}{rp_loop}
   for (u32 g0 = 0; g0 < {T}u; g0 += {TG}) {{
     if (g0 >= n) break;
     {BAR}
     // load q, k, v of this head for the group's tokens
     for (u32 i = t; i < {TG} * {K}; i += 512) {{
       const u32 tt = i / {K}, kk_ = i % {K}, tok = g0 + tt;
-      qs[tt][kk_] = conv_out[tok * {C} + hk * {K} + kk_]; ks[tt][kk_] = conv_out[tok * {C} + {QD} + hk * {K} + kk_];
-      vs[tt][kk_] = conv_out[tok * {C} + 2 * {QD} + h * {V} + kk_];
+      qs[tt][kk_] = conv_out[{CO} * {C} + hk * {K} + kk_]; ks[tt][kk_] = conv_out[{CO} * {C} + {QD} + hk * {K} + kk_];
+      vs[tt][kk_] = conv_out[{CO} * {C} + 2 * {QD} + h * {V} + kk_];
     }}
     if (t < {TG}) {{  // per-token decay and beta of this head
       const u32 tok = g0 + t;
       const float a_in = alpha_raw[tok * {H} + h] + dt_bias[h];
       const float sp = a_in > 20.0f ? a_in : __builtin_logf(1.0f + __builtin_expf(a_in));  // softplus
       dec[t] = start_pos + (i32)tok == 0 ? 0.0f : __builtin_expf(sp * A[h]);               // state reset folds into the decay
-      bet[t] = 1.0f / (1.0f + __builtin_expf(-beta_raw[tok * {H} + h]));
+      bet[t] = 1.0f / (1.0f + __builtin_expf(-beta_raw[tok * {H} + h]));{rp_tape}
     }}
     {BAR}
     for (u32 p = wave; p < 2 * {TG}; p += 16) {{  // |q_t| (even p) and |k_t| (odd p)
@@ -965,30 +1020,35 @@ KERNEL(gdn_step, 512)(float* __restrict__ z, i8* __restrict__ zq, float* __restr
 
 def gdn_decode(conv_state:Tensor, rec_state:Tensor, qkv:Tensor, conv_w:Tensor, alpha_raw:Tensor, beta_raw:Tensor, dt_bias:Tensor, A:Tensor,
                gate:Tensor, norm_w:Tensor, start_pos:UOp|int, H:int, HK:int, V:int, K:int, eps:float, qk_eps:float, max_context:int,
-               T:int=1, n_tok:UOp|int|None=None) -> Tensor:
+               T:int=1, n_tok:UOp|int|None=None, tape:tuple[Tensor, Tensor]|None=None) -> Tensor:
   """T Gated DeltaNet token steps (tokens >= n_tok are padding). updates conv_state (KC-1, C) and rec_state (H, V, K) in place,
-  returns z (T, H*V) f32 with its int8 quantization cached"""
+  returns z (T, H*V) f32 with its int8 quantization cached.
+  tape (GDN_REPLAY): (qkv rows (R*C), raw alpha/beta rows (R*2H)) of the previous step's drafts; the sp tensor's 4th value says how
+  many of them were accepted, and those are replayed into the state before this chunk; this chunk's drafts overwrite the tape"""
   C, KC = int(conv_w.shape[0]), int(conv_w.shape[1])
   dev, arch = conv_state.device, _arch(conv_state.device)
-  conv_out = Tensor.empty(T * C, dtype=dtypes.float32, device=dev)
+  R = int(tape[0].shape[0]) // C if tape is not None else 0
+  assert not R or _n_rep is not None, "GDN replay needs new_forward(n_keep, n_rep): the kernels read the replay count from sp[3]"
+  conv_out = Tensor.empty((R + T) * C, dtype=dtypes.float32, device=dev)
   sp_t = start_pos_tensor(start_pos, dev, T if n_tok is None else n_tok)
-  def conv_fxn(co, cs, q, w, sp):
-    sink = UOp.sink(UOp.special((C + 255) // 256, "gidx0"), UOp.special(256, "lidx0"), co, cs, q, w, sp,
-                    arg=KernelInfo(name=f"gdn_conv_{C}_{KC}_t{T}", estimates=Estimates(ops=T * C * KC * 2, mem=C * 4 * (2 * KC + T))))
-    src = _gdn_conv_src(C, KC, T).replace("KERNEL(gdn_conv,", f"KERNEL(gdn_conv_{C}_{KC}_t{T},")
+  cname = f"gdn_conv_{C}_{KC}_t{T}" + (f"_r{R}" if R else "")
+  def conv_fxn(co, cs, q, w, sp, *tp):
+    sink = UOp.sink(UOp.special((C + 255) // 256, "gidx0"), UOp.special(256, "lidx0"), co, cs, q, w, sp, *tp,
+                    arg=KernelInfo(name=cname, estimates=Estimates(ops=(T + R) * C * KC * 2, mem=C * 4 * (2 * KC + T + 2 * R))))
+    src = _gdn_conv_src(C, KC, T, R).replace("KERNEL(gdn_conv,", f"KERNEL({cname},")
     return UOp(Ops.PROGRAM, src=(sink, UOp(Ops.LINEAR, src=()), UOp(Ops.SOURCE, arg=hip_to_ir(src, arch))))
-  conv_out = conv_out.custom_kernel(conv_state, qkv.reshape(T * C).float(), conv_w, sp_t, fxn=conv_fxn)[0]
+  conv_out = conv_out.custom_kernel(conv_state, qkv.reshape(T * C).float(), conv_w, sp_t, *([tape[0]] if R else []), fxn=conv_fxn)[0]
   z = Tensor.empty(T * H * V, dtype=dtypes.float32, device=dev)
   BLK = xblk(T)
   zq, zs, zsum16 = (Tensor.empty(n, dtype=dt, device=dev) for n, dt in ((T * H * V, dtypes.int8), (T * H * V // BLK, dtypes.float32), (T * H * V // 16, dtypes.float32)))
-  name = f"gdn_step_{H}_{HK}_{V}_{K}_t{T}" + (f"_b{BLK}" if BLK != 32 else "")
-  def step_fxn(zz, zzq, zzs, zzsum, st, co, ar, br, db, aa, g, nw, sp):
-    sink = UOp.sink(UOp.special(H, "gidx0"), UOp.special(512, "lidx0"), zz, zzq, zzs, zzsum, st, co, ar, br, db, aa, g, nw, sp,
-                    arg=KernelInfo(name=name, estimates=Estimates(ops=T * H * V * K * 6, mem=H * V * K * 8)))
-    src = _gdn_step_src(H, HK, V, K, C, eps, qk_eps, T, BLK).replace("KERNEL(gdn_step,", f"KERNEL({name},")
+  name = f"gdn_step_{H}_{HK}_{V}_{K}_t{T}" + (f"_b{BLK}" if BLK != 32 else "") + (f"_r{R}" if R else "")
+  def step_fxn(zz, zzq, zzs, zzsum, st, co, ar, br, db, aa, g, nw, sp, *tp):
+    sink = UOp.sink(UOp.special(H, "gidx0"), UOp.special(512, "lidx0"), zz, zzq, zzs, zzsum, st, co, ar, br, db, aa, g, nw, sp, *tp,
+                    arg=KernelInfo(name=name, estimates=Estimates(ops=(T + R) * H * V * K * 6, mem=H * V * K * 8)))
+    src = _gdn_step_src(H, HK, V, K, C, eps, qk_eps, T, BLK, R).replace("KERNEL(gdn_step,", f"KERNEL({name},")
     return UOp(Ops.PROGRAM, src=(sink, UOp(Ops.LINEAR, src=()), UOp(Ops.SOURCE, arg=hip_to_ir(src, arch))))
   outs = z.custom_kernel(zq, zs, zsum16, rec_state, conv_out, alpha_raw.reshape(T * H).float(), beta_raw.reshape(T * H).float(),
-                         dt_bias, A, gate.reshape(T * H * V).float(), norm_w, sp_t, fxn=step_fxn)
+                         dt_bias, A, gate.reshape(T * H * V).float(), norm_w, sp_t, *([tape[1]] if R else []), fxn=step_fxn)
   z = outs[0]
   cache_quant(z, outs[1], outs[2], outs[3])
   return z.reshape(T, H * V)
