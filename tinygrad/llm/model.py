@@ -1051,6 +1051,13 @@ class Transformer:
     self._ckpt_tokens = list(tokens)
   def _restore_checkpoint(self):
     for t, c in self._ckpt_pairs(): t.uop.buffer.ensure_allocated().copy_from(c.uop.buffer.ensure_allocated())
+  FIRST_MSG_MIN = 256  # below this a first-message checkpoint saves less prefill than its copy costs
+  def _first_msg_end(self, tokens:list[int]) -> int|None:
+    """position just after the first message's end token (e.g. the system prompt's <|im_end|>), when set via end_msg_id"""
+    if (e := getattr(self, "end_msg_id", None)) is None: return None
+    try: i = tokens.index(e)
+    except ValueError: return None
+    return i + 1 if i + 1 >= self.FIRST_MSG_MIN else None
   def _take_periodic_checkpoint(self, tokens:list[int]):
     """copy the recurrent states for the prefix `tokens` (direct copies); on MemoryError stop taking them for this conversation"""
     if not self.has_recurrent_block or self._warming or len(self._ckpts) >= self._ckpt_max: return
@@ -1343,10 +1350,18 @@ class Transformer:
     # 1.32 s at width 1024 against 0.48 s at 256. With prefix caching most turns append only a few hundred tokens, so that tax
     # would land on the common case. Pick the narrowest captured width that still covers what is left; each width is its own JIT.
     widths = sorted({w for w in (256, 512, chunk_T) if w <= chunk_T})
+    # first-message checkpoint: requests that share a system prompt and differ after it (a batch of independent prompts, sub-agents)
+    # can't reuse the recurrent state past the divergence, and the periodic checkpoints (every 4096 tokens) never land in a short
+    # prompt. So end a prefill chunk exactly after the first message's end token and checkpoint there; get_start_pos resumes the
+    # next such request from it (production 09-29: every request diverged at ~440 tokens, 650-1100 token prompts)
+    fb = self._first_msg_end(tokens)
+    fb = fb if fb is not None and p < fb < prompt_len - 1 and not any(len(c[0]) == fb and c[0] == tokens[:fb] for c in self._ckpts) else None
     while p < prompt_len:
       left = prompt_len - p - (1 if p < prompt_len - 1 else 0)  # the last token is held back for a chunk of its own
+      if fb is not None and p < fb: left = fb - p
       cw = next((w for w in widths if w >= left), chunk_T)
       n_toks = min(cw, prompt_len - p)
+      if fb is not None and p < fb < p + n_toks: n_toks = fb - p
       # hold the prompt's last token back for a chunk of its own: the checkpoint is taken just before it (see _save_checkpoint)
       if p < prompt_len - 1 and p + n_toks == prompt_len: n_toks -= 1
       sp, nt = v_start_pos.bind(p), UOp.variable("toks", 1, cw).bind(n_toks)
@@ -1356,7 +1371,7 @@ class Transformer:
       p_prev, p = p, p + n_toks
       self._cached_tokens = tokens[:p]
       if p == prompt_len - 1: self._save_checkpoint(tokens[:p])
-      elif self._ckpt_max and p // self._ckpt_every > p_prev // self._ckpt_every: self._take_periodic_checkpoint(tokens[:p])
+      elif self._ckpt_max and (p == fb or p // self._ckpt_every > p_prev // self._ckpt_every): self._take_periodic_checkpoint(tokens[:p])
     first, drafts, chunk = res[n_toks - 1], res[-K:], cands[0]
     tokens.append(first)
     yield first
