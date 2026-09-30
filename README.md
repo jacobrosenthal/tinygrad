@@ -1,3 +1,74 @@
+# This fork: Qwen3.8-27B on a single RX 7900 XTX
+
+Branch `amd-qwen-on-master` of [jacobrosenthal/tinygrad](https://github.com/jacobrosenthal/tinygrad). Upstream tinygrad's README follows below.
+
+## What it adds
+- Fast decode kernels for the 7900 XTX that read the quantized GGUF weights directly (Q3_K to Q8_0, IQ4_XS)
+- Faster prompt processing using the GPU's matrix cores
+- Speculative decoding: a small drafter guesses the next few tokens and the model checks them all in one pass. Output is unchanged.
+- A compressed kv cache, so 98K tokens of context fit in 24 GB
+- Conversation reuse: a request that continues an earlier conversation, or shares its system prompt, skips re-reading that part
+- The compiled model is cached on disk, so restarts take 10-20 s
+
+## Requirements
+- AMD RX 7900 XTX, 24 GB (measured as an eGPU over a USB4 dock)
+- `Qwen3.8-27B-UD-Q4_K_XL.gguf` ([unsloth](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF))
+- `Qwen3.8-27B-DFlash2-Q4_K_M.gguf`, the drafter ([z-lab](https://huggingface.co/z-lab/Qwen3.8-27B-DFlash2-GGUF), 1.1 GB)
+
+## Install
+```bash
+git clone -b amd-qwen-on-master https://github.com/jacobrosenthal/tinygrad.git
+cd tinygrad && python -m venv .venv && .venv/bin/pip install -e .
+```
+
+## Run
+```bash
+DEV=KFD+AMD:LLVM LLM_CACHE=1 MTP_DRAFT_VOCAB=65536 \
+GDN_REPLAY=1 SPEC_ASYNC=1 MTP_K=5 DFLASH=Qwen3.8-27B-DFlash2-Q4_K_M.gguf \
+.venv/bin/python -m tinygrad.llm.cli \
+  --model Qwen3.8-27B-UD-Q4_K_XL.gguf \
+  --mmproj none \
+  --repeat-penalty 1.0 \
+  --max_context 98304 \
+  --host 0.0.0.0 \
+  --serve 8080
+```
+
+The first start compiles the model, which takes a few minutes. Later starts load it from the cache. The server speaks the OpenAI chat
+API (`/v1/chat/completions`) on port 8080, and answers Ollama's model-listing requests.
+
+| setting | what it does |
+|---|---|
+| `DEV=KFD+AMD:LLVM` | use the AMD GPU |
+| `LLM_CACHE=1` | cache the compiled model on disk |
+| `MTP_DRAFT_VOCAB=65536` | drafts only score the first 64K entries of the vocabulary: cheaper, same output |
+| `GDN_REPLAY=1` | after a draft is accepted, update the model's state cheaply instead of running the model again |
+| `SPEC_ASYNC=1` | queue the next step before reading the current one, so the GPU doesn't wait on Python |
+| `MTP_K=5` | draft 5 tokens per step |
+| `DFLASH=...gguf` | use the DFlash2 drafter instead of the model's built-in one |
+| `--mmproj none` | text only (the default loads an image model if one sits next to the GGUF) |
+| `--repeat-penalty 1.0` | no repeat penalty |
+| `--max_context 98304` | 96K tokens of context |
+
+The server also keeps a saved copy of a conversation when another request pushes it out, in host memory and only the part in use, so
+it works at 98K context. Switching back to a saved conversation costs a few seconds instead of re-reading all of it.
+
+## How much the speed settings help
+All off by default; the run command above turns them on. Decode speed on the 7900 XTX, compared to the built-in drafter with 3 drafts
+and nothing else:
+
+| settings | code gen | code edit | agent | prose |
+|---|---|---|---|---|
+| `GDN_REPLAY=1 SPEC_ASYNC=1 MTP_K=4` | +23% | +19% | +14% | +5% |
+| `GDN_REPLAY=1 SPEC_ASYNC=1 MTP_K=5 DFLASH=...` | +38% | +32% | +26% | +4% |
+
+Measured with greedy decoding. With normal sampling, the DFlash2 row is 13-18% faster than the `MTP_K=4` row on code and agent work.
+
+On real traffic (a batch of short structured requests) the run command above averages ~130 tok/s and peaks at 160, against 84 tok/s
+before these settings.
+
+---
+
 <div align="center">
 
 <picture>
