@@ -7,7 +7,7 @@ from __future__ import annotations
 from tinygrad import Tensor, dtypes
 from tinygrad.renderer import Estimates
 from tinygrad.helpers import getenv
-from tinygrad.llm.amd_gemv import PRELUDE, FORMATS, _fmt_code, _src_program, _arch, _grid_tensor
+from tinygrad.llm.amd_gemv import PRELUDE, FORMATS, _fmt_code, _src_program, _arch, _grid_tensor, _ntok_known, ntok_tensor
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
 # deq8: raw ggml (N, K) -> q8[N][K] int8 with one scale per 128 elements (sw[N][K/128], Q8_K-like). lane j of a 256-block decodes 32
@@ -141,7 +141,7 @@ def deq8(w:Tensor, ggml_type:int, N:int, K:int, dep:Tensor, q8:Tensor|None=None,
 BM, BT, KS = getenv("GEMM_BM", 64), getenv("GEMM_BT", 64), 128
 LDA = KS + 16  # row pitch in LDS (bytes): 16B b128 reads of 16 rows land on distinct banks in two phases
 
-def _gemm_src(N:int, K:int, T:int, residual:bool) -> str:
+def _gemm_src(N:int, K:int, T:int, residual:bool, skip:bool=False) -> str:
   WN = getenv("GEMM_WN", 2)  # token tiles per wave
   PF = getenv("GEMM_PF", 1)  # prefetch the next stage into registers during compute
   WT = BT // (16 * WN)       # waves along tokens
@@ -175,7 +175,7 @@ typedef i32 i32x8 __attribute__((ext_vector_type(8)));
 typedef float f32x4 __attribute__((ext_vector_type(4)));
 #define BAR() __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup")
 KERNEL(gemm, {NT})(float* __restrict__ y, const i8* __restrict__ q8, const float* __restrict__ sw, const i8* __restrict__ xq,
-                  const float* __restrict__ xs{", const float* __restrict__ res" if residual else ""}) {{
+                  const float* __restrict__ xs{", const float* __restrict__ res" if residual else ""}{", const i32* __restrict__ ntok_p" if skip else ""}) {{
   __attribute__((shared)) u8 As[{BM} * {LDA}];
   __attribute__((shared)) u8 Bs[{BT} * {LDA}];
   __attribute__((shared)) float sws[{BM}];  // rows permuted per 16: even rows first, then odd (matches the accumulator layout)
@@ -184,6 +184,13 @@ KERNEL(gemm, {NT})(float* __restrict__ y, const i8* __restrict__ q8, const float
   const u32 wr = wave / {WT}, wt = wave % {WT};  // wave tile: rows [wr*32, +32), tokens [wt*{16 * WN}, +{16 * WN})
   const u32 l16 = lane & 15, h = lane >> 4;
   const u32 row0 = (wg_id() / {NTT}) * {BM}, tok0 = (wg_id() % {NTT}) * {BT};
+  {f"""if (tok0 >= (u32)ntok_p[0]) {{  // a token tile of padding only: skip the math, but keep its rows defined (residual, or 0)
+    for (u32 i = t; i < {BM * BT}u; i += {NT}u) {{
+      const u32 tt = i / {BM}, r = row0 + i % {BM};
+      if (r < {N}u) {{ const u64 e = (u64)(tok0 + tt) * {N} + r; y[e] = {"res[e]" if residual else "0.0f"}; }}
+    }}
+    return;
+  }}""" if skip else ""}
   f32x4 acc[2][{WN}][2];  // [row tile][token tile][lo/hi 4 of the 8 accumulator elements]
   #pragma unroll
   for (int a = 0; a < 2; a++)
@@ -257,12 +264,15 @@ KERNEL(gemm, {NT})(float* __restrict__ y, const i8* __restrict__ q8, const float
 """
 
 def gemm_q8(q8:Tensor, sw:Tensor, N:int, K:int, xq:Tensor, xs:Tensor, T:int, residual:Tensor|None=None) -> Tensor:
-  """y[T, N] f32 = x[T, K] @ W[N, K]^T (+ residual) from the deq8 weights and quantize_x(BLK=128) activations"""
+  """y[T, N] f32 = x[T, K] @ W[N, K]^T (+ residual) from the deq8 weights and quantize_x(BLK=128) activations.
+  PREFILL_SKIP_PAD: token tiles past the chunk's real token count return at once (a chunk runs at its full width, so the prompt's
+  held-back last token and every prompt tail paid for the whole width). Rows of real tokens are computed exactly as before"""
   assert xs.numel() == T * K // 128, "gemm_q8 needs per-128 activation scales"
-  name = f"gemm_q8_{N}_{K}_t{T}_m{BM}n{BT}_wn{getenv('GEMM_WN', 4)}_pf{getenv('GEMM_PF', 0)}" + ("_res" if residual is not None else "")
-  src = _gemm_src(N, K, T, residual is not None).replace("KERNEL(gemm,", f"KERNEL({name},")
+  skip = bool(getenv("PREFILL_SKIP_PAD", 1)) and _ntok_known()
+  name = f"gemm_q8_{N}_{K}_t{T}_m{BM}n{BT}_wn{getenv('GEMM_WN', 4)}_pf{getenv('GEMM_PF', 0)}" + ("_res" if residual is not None else "") + ("_sk" if skip else "")
+  src = _gemm_src(N, K, T, residual is not None, skip).replace("KERNEL(gemm,", f"KERNEL({name},")
   y = Tensor.empty(T * N, dtype=dtypes.float32, device=q8.device)
-  args = [q8, sw, xq, xs] + ([residual.reshape(T * N).float()] if residual is not None else [])
+  args = [q8, sw, xq, xs] + ([residual.reshape(T * N).float()] if residual is not None else []) + ([ntok_tensor(q8.device)] if skip else [])
   n_wg = ((N + BM - 1) // BM) * (T // BT)
   NT = 32 * (BM // 32) * (BT // (16 * getenv("GEMM_WN", 2)))
   return y.custom_kernel(*args, fxn=_src_program(name, src, n_wg, NT, Estimates(ops=2 * T * N * K, mem=N * K + T * K + T * N * 4), _arch(q8.device)))[0]
