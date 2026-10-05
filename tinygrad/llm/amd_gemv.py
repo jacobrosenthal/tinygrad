@@ -792,6 +792,15 @@ def start_pos_tensor(start_pos:UOp|int, device:str, n_tok:UOp|int=1, n_keep:int|
     _sp_cache[key] = t = parts[0].cat(*parts[1:]).contiguous()
   return t
 
+def _ntok_known() -> bool: return _n_keep is not None and not isinstance(_n_keep, Tensor)
+def ntok_tensor(device:str) -> Tensor:
+  """[n] as an int32 device tensor: the prefill chunk's real token count (new_forward's n_keep; prefill commits every token it runs)"""
+  key = ("ntok", _fwd_id, _sp_elem_key(_n_keep), device)
+  if (t:=_sp_cache.get(key)) is None:
+    if len(_sp_cache) >= 8: _sp_cache.clear()
+    _sp_cache[key] = t = (Tensor.zeros(1, dtype=dtypes.int32, device=device) + _n_keep).cast(dtypes.int32).contiguous()
+  return t
+
 def _gdn_conv_src(C:int, KC:int, T:int, R:int=0) -> str:
   # conv_state: (KC-1, C) f32 in/out, qkv: (T, C) f32 new rows, w: (C, KC) f32. conv_out: (T, C) f32 = silu(sum_i win[t+i][c] * w[c][i])
   # sp_p = [start_pos, n_tok, n_keep]: tokens t >= n_tok are padding, the new conv state is the last KC-1 rows of [state | qkv[:n_keep]]
