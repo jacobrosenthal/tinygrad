@@ -276,6 +276,14 @@ class TestLLMServer(unittest.TestCase):
       self.assertEqual(r.choices[0].finish_reason, "length")
     finally: self.mock_model.generate.side_effect = lambda ids, **kwargs: iter([300, 301, 999])
 
+  def test_snapshot_error_does_not_fail_request(self):
+    # a snapshot failure (here the arena allocation) must not fail the request: it continues without snapshots
+    with patch("tinygrad.llm.serve.Handler._pick_prefix_state", side_effect=BlockingIOError(11, "Resource temporarily unavailable")):
+      r = self.client.chat.completions.create(model="test-model", messages=[{"role": "user", "content": "Hi"}])
+    self.assertTrue(r.choices[0].message.content.startswith("Hello"))  # the request was served
+    self.assertGreater(self.server.snapshots_paused_until, 0)
+    self.server.snapshots_paused_until = 0.0
+
   def test_get_while_generating(self):
     # a liveness probe is answered while another request holds the model
     import urllib.request

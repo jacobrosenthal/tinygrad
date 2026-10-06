@@ -47,7 +47,13 @@ def _save_snapshot(srv, model, protect=None):
     if size < need:
       log(f"snapshot skipped: {size/1e9:.1f} GB for snapshots, {need/1e9:.2f} GB needed", "red")
       return None
-    srv.arena = HostArena(model.snapshot_tensors()[0].device, size)
+    for attempt in range(3):  # KFD can answer EAGAIN while it is still releasing another process's pinned memory
+      try:
+        srv.arena = HostArena(model.snapshot_tensors()[0].device, size)
+        break
+      except BlockingIOError:
+        if attempt == 2: raise
+        time.sleep(1.0)
     log(f"snapshot arena {size/1e9:.1f} GB", "cyan")
   while True:
     try: return model.snapshot_state(srv.arena)
@@ -449,7 +455,14 @@ class Handler(VizHandler):
         # llama.cpp's request field, same meaning: prefill from scratch. drops the live state and leaves the snapshots alone,
         # which makes a cold reference run possible without a restart (the correctness tests compare against it)
         self.server.model._cached_tokens, self.server.model._ckpt_tokens = [], None
-      else: self._pick_prefix_state(ids, media)
+      else:
+        # snapshots are a cache: whatever goes wrong in them, the request goes on without (a failed save only read the live state; a
+        # failed restore drops the live state's claim, so generate() prefills from scratch). 10-06: the arena's first allocation got
+        # EAGAIN from KFD while the previous process was still releasing its own, and every such request failed
+        try: self._pick_prefix_state(ids, media)
+        except Exception as e:
+          self.server.snapshots_paused_until = time.perf_counter() + getenv("PREFIX_SNAPSHOT_RETRY_S", 60)
+          stderr_log(f"{colored(f'snapshots off for {getenv("PREFIX_SNAPSHOT_RETRY_S", 60)}s: {type(e).__name__}: {e}', 'red')}  {colored('--', 'BLACK')}  ")
       # top_p/top_k are server-fixed (--top-p/--top-k at startup, see model.py _apply_top_pk): baked into the JIT
       # graph, not a per-request field. Log rather than silently ignore a client that asked for something different
       req_top_p, req_top_k = body.get("top_p"), body.get("top_k")
