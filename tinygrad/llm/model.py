@@ -27,15 +27,17 @@ class StateSnapshot:
   @staticmethod
   def _host_copy(b):
     # a device-visible pinned host buffer (BufferSpec(host=True)) on the same device: the copy is one SDMA transfer over PCIe in
-    # either direction. A "PYTHON" buffer instead goes through _copyout's chunked staging loop (~0.2 GB/s measured, 2026-08-26)
+    # either direction. A "PYTHON" buffer instead goes through _copyout's chunked staging loop (~0.2 GB/s measured, 2026-08-26).
+    # nolru: a dropped snapshot must give its pinned memory back. The allocator's LRU keeps freed buffers keyed by exact size and
+    # snapshot sizes vary with the conversation, so every replaced snapshot used to stay allocated (28 GB RSS, 10-06)
     from tinygrad.device import Buffer, BufferSpec
-    return Buffer(b.device, b.size, b.dtype, options=BufferSpec(host=True)).ensure_allocated().copy_from(b)
+    return Buffer(b.device, b.size, b.dtype, options=BufferSpec(host=True, nolru=True)).ensure_allocated().copy_from(b)
   @staticmethod
   def _host_pack(src, segs:list):
     """the byte ranges segs of device buffer src, packed into one pinned host buffer"""
     from tinygrad.device import Buffer, BufferSpec
     from tinygrad import dtypes
-    hb = Buffer(src.device, max(1, sum(n for _, n in segs)), dtypes.uint8, options=BufferSpec(host=True)).ensure_allocated()
+    hb = Buffer(src.device, max(1, sum(n for _, n in segs)), dtypes.uint8, options=BufferSpec(host=True, nolru=True)).ensure_allocated()
     o = 0
     for off, n in segs:
       if n: hb.view(n, dtypes.uint8, o).ensure_allocated().copy_from(src.view(n, dtypes.uint8, off).ensure_allocated()); o += n
@@ -1187,10 +1189,18 @@ class Transformer:
     return out
   @staticmethod
   def _device_copy_buf(src):
-    from tinygrad.device import Buffer
-    return Buffer(src.device, src.size, src.dtype).ensure_allocated().copy_from(src)
+    from tinygrad.device import Buffer, BufferSpec
+    return Buffer(src.device, src.size, src.dtype, options=BufferSpec(nolru=True)).ensure_allocated().copy_from(src)  # nolru: see _host_copy
   @staticmethod
   def _device_copy(t:Tensor): return Transformer._device_copy_buf(t.uop.buffer.ensure_allocated())
+  def snapshot_nbytes(self) -> int:
+    """what snapshot_state would allocate now, without allocating it"""
+    host = bool(getenv("PREFIX_SNAPSHOT_HOST", 1))
+    tens = self.snapshot_tensors()
+    segs = self.snapshot_segments(len(self._cached_tokens)) if host else [None] * len(tens)
+    n = sum(t.uop.buffer.nbytes if sg is None else sum(b for _, b in sg) for t, sg in zip(tens, segs))
+    if self._ckpt_tokens is not None: n += sum(c.uop.buffer.nbytes for _, c in self._ckpt_pairs())
+    return n + sum(b.nbytes for _, bs in self._ckpts for b in bs)
   def snapshot_state(self) -> StateSnapshot:
     """copy the whole decode state, and the prefill checkpoint with it: a conversation almost always comes back extending its
     previous prompt rather than the generated sequence, so the checkpoint is what a restored snapshot gets resumed from.
