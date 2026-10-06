@@ -13,6 +13,17 @@ def _param_types(tools:list|None, name:str) -> dict[str, typing.Any]:
     if (f := t.get("function", t)).get("name") == name: return {k: v.get("type") for k, v in f.get("parameters", {}).get("properties", {}).items()}
   return {}
 
+def _dead_devices() -> list[tuple[str, int]]:
+  """opened devices whose error word is set (a GPU reset or an unrecoverable hang): (device, error). error_state is a one-word buffer
+  that every device has, nonzero once the device failed"""
+  from tinygrad import Device
+  out = []
+  for d in Device._opened_devices:
+    try: err = int(Device[d].error_state.host.view(fmt='q')[0])
+    except Exception: continue
+    if err: out.append((d, err))
+  return out
+
 def _common_prefix(a:list[int], b:list[int]) -> int:
   n = 0
   for x, y in zip(a, b):
@@ -80,11 +91,6 @@ def extract_images(messages:list[dict]) -> list[bytes]:
         elif src.get("type") == "base64" or "data" in src: out.append(base64.b64decode(src["data"]))
         elif "url" in src: out.append(load_image_url(src["url"]))
   return out
-
-def dead_devices() -> list[str]:
-  # a device whose GPU was reset (or that hung unrecoverably) can never serve again
-  from tinygrad import Device
-  return [d for d in Device._opened_devices if getattr(Device[d], "error_state", None) is not None]
 
 def normalize_messages(messages:list[dict]) -> None:
   # chat templates expect tool_call arguments as dicts (OpenAI clients send JSON strings)
@@ -169,10 +175,8 @@ class Handler(VizHandler):
                         "parameter_size": "27B", "quantization_level": "Q4_K"}}
   def do_GET(self):
     if self.path in ("/health", "/v1/health"):
-      # report a dead device so launchers do not reuse this process
-      if (dead := dead_devices()):
-        from tinygrad import Device
-        self.send_data(f"device error: {dead[0]}: {Device[dead[0]].error_state}".encode(), content_type="text/plain", status_code=503)
+      # a device whose GPU was reset (or that hung unrecoverably) can never serve again: report it so launchers do not reuse this process
+      if dead:=_dead_devices(): self.send_data(f"device error: {dead[0][0]}: {dead[0][1]}".encode(), content_type="text/plain", status_code=503)
       else: self.send_data(b"ok")
     elif self.path == "/props":
       self.send_data(json.dumps({"default_generation_settings": {"n_ctx": self.server.model.max_context}}).encode())
@@ -407,9 +411,9 @@ class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
         req.error = e
         # a device hang/reset is permanent for this process: exit now so the launcher restarts a fresh server (its stale queues cannot serve,
         # and tearing them down later only triggers another GPU reset at a surprising moment)
-        if (dead := dead_devices()):
+        if dead:=_dead_devices():
           import os
-          stderr_log(f"\ndevice {dead[0]} is in error state: exiting\n")
+          stderr_log(f"\ndevice {dead[0][0]} is in error state ({dead[0][1]}) after {e!r}: exiting\n")
           os._exit(3)
       req.out.put(None)
       if req.error is None and not req.disconnected(): self._apply_recache(req)
