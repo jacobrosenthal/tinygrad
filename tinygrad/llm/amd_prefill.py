@@ -269,7 +269,7 @@ def gemm_q8(q8:Tensor, sw:Tensor, N:int, K:int, xq:Tensor, xs:Tensor, T:int, res
   held-back last token and every prompt tail paid for the whole width). Rows of real tokens are computed exactly as before"""
   assert xs.numel() == T * K // 128, "gemm_q8 needs per-128 activation scales"
   skip = bool(getenv("PREFILL_SKIP_PAD", 1)) and _ntok_known()
-  name = f"gemm_q8_{N}_{K}_t{T}_m{BM}n{BT}_wn{getenv('GEMM_WN', 4)}_pf{getenv('GEMM_PF', 0)}" + ("_res" if residual is not None else "") + ("_sk" if skip else "")
+  name = f"gemm_q8_{N}_{K}_t{T}_m{BM}n{BT}_wn{getenv('GEMM_WN', 2)}_pf{getenv('GEMM_PF', 1)}" + ("_res" if residual is not None else "") + ("_sk" if skip else "")
   src = _gemm_src(N, K, T, residual is not None, skip).replace("KERNEL(gemm,", f"KERNEL({name},")
   y = Tensor.empty(T * N, dtype=dtypes.float32, device=q8.device)
   args = [q8, sw, xq, xs] + ([residual.reshape(T * N).float()] if residual is not None else []) + ([ntok_tensor(q8.device)] if skip else [])
