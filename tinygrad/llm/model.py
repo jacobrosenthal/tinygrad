@@ -1438,10 +1438,16 @@ class Transformer:
           if len(tokens) >= self.max_context: return
         if not more: return  # within 3K+2 of max_context: stop rather than run a step past the cache
         nxt, v, i = nxt2, v2, i + 1
+    except GeneratorExit: raise
+    except BaseException:
+      queued = None  # a failed wait or read: which steps the device committed is unknown, so claim nothing
+      raise
     finally:
-      dev.synchronize()
-      # a queued step commits all of step i's tokens (its replay + row 0): the state holds positions 0..s. otherwise 0..s_i
-      if queued: self._cached_tokens = all_toks[:s + 1]
+      try: dev.synchronize()
+      finally:
+        # a queued step commits all of step i's tokens (its replay + row 0): the state holds positions 0..s. otherwise 0..s_i
+        if queued is None: self._cached_tokens = []
+        elif queued: self._cached_tokens = all_toks[:s + 1]
       if DEBUG >= 1 and n_step: print(f"async mtp accept {n_acc}/{n_step * K} = {n_acc / n_step / K:.2f} ({n_acc / n_step + 1:.2f} tok/step)")
 
   def _prompt_tensor(self, tokens:list[int], chunk_T:int) -> Tensor:
@@ -1477,6 +1483,7 @@ class Transformer:
       if emb is not None: kw["emb"] = emb
       if window is not None: kw["window"] = window
       if rep_t is not None: kw["n_rep"] = rep_t
+      self._cached_tokens = []  # the step mutates the state: if it fails partway nothing may be reused (the caller re-sets it after)
       res, *cands = self._spec_jit(int(chunk.shape[1]), n_keep if isinstance(n_keep, int) else None)(chunk, v_start_pos.bind(start_pos), temp,
                                                                                                         n_tok, n_keep, **kw)
       if rep_t is not None: rep_t, cands = cands[0], cands[1:]  # the accept count feeds the next step's replay
@@ -1517,7 +1524,8 @@ class Transformer:
     first, drafts, chunk = res[n_toks - 1], res[-K:], cands[0]
     tokens.append(first)
     yield first
-    if self.spec_async and not self._penalties_enabled:
+    # async needs room for its first step too (it is launched before any check): near max_context the sync loop below stops exactly there
+    if self.spec_async and not self._penalties_enabled and p + 3 * K + 2 < self.max_context:
       yield from self._decode_async(tokens, p, chunk, drafts, temp, rep_t)
       return
     # decode: chunk = U + drafts (a JIT output of the previous step), n_keep = len(U). res = [out[0..T-1], K new drafts]
