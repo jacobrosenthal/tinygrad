@@ -1,5 +1,5 @@
 from __future__ import annotations
-import base64, json, pathlib, re, time, typing, urllib.request, uuid
+import base64, json, pathlib, re, socketserver, threading, time, typing, urllib.request, uuid
 from typing import TYPE_CHECKING
 from tinygrad.helpers import DEBUG, colored, stderr_log, getenv
 from tinygrad.viz.serve import TCPServerWithReuse, Handler as VizHandler
@@ -174,7 +174,13 @@ class Handler(VizHandler):
   def do_GET(self):
     if self.path in ("/health", "/v1/health"):
       # a device whose GPU was reset (or that hung unrecoverably) can never serve again: report it so launchers do not reuse this process
-      if dead:=_dead_devices(): self.send_data(f"device error: {dead[0][0]}: {dead[0][1]}".encode(), content_type="text/plain", status_code=503)
+      # GETs run on their own threads (LLMServer): read device state only when no request holds the model. While one does, the
+      # server is evidently alive
+      dead = []
+      if self.server.model_lock.acquire(blocking=False):
+        try: dead = _dead_devices()
+        finally: self.server.model_lock.release()
+      if dead: self.send_data(f"device error: {dead[0][0]}: {dead[0][1]}".encode(), content_type="text/plain", status_code=503)
       else: self.send_data(b"ok")
     elif self.path == "/props":
       self.send_data(json.dumps({"default_generation_settings": {"n_ctx": self.server.model.max_context}}).encode())
@@ -362,6 +368,11 @@ class Handler(VizHandler):
       raise
 
   def do_POST(self):
+    # one request at a time on the model; GETs (/v1/models, /health, ...) don't take the lock, so a client's liveness probe is answered
+    # while another client's generation runs instead of timing out behind it (10-06: a probe gave up mid-generation)
+    with self.server.model_lock: self._do_post()
+
+  def _do_post(self):
     request_st = time.perf_counter()
     stderr_log(f"{self.path}  {colored('--', 'BLACK')}  ")
     raw_body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
@@ -480,7 +491,8 @@ class Handler(VizHandler):
     else:
       self.not_found()
 
-class LLMServer(TCPServerWithReuse):
+class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
+  daemon_threads = True
   def __init__(self, server_address:tuple, model:Transformer, model_name:str, tok:SimpleTokenizer, template:typing.Any,
                reasoning_effort:str="medium", enable_thinking:bool=True, vision:typing.Any=None, temperature:float=1.0,
                host_snapshots:int=0, host_snapshot_gb:float=16.0, record_dir:str=""):
@@ -494,4 +506,5 @@ class LLMServer(TCPServerWithReuse):
     self.record_dir = record_dir
     if record_dir: pathlib.Path(record_dir).mkdir(parents=True, exist_ok=True)
     self.max_snapshots, self.snapshot_min_tokens = getenv("PREFIX_SNAPSHOTS", 1), getenv("PREFIX_SNAPSHOT_MIN", 1024)
+    self.model_lock = threading.Lock()
     super().__init__(server_address, Handler)

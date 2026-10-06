@@ -241,6 +241,15 @@ class TestLLMServer(unittest.TestCase):
     self.assertEqual(data["data"][0]["id"], "test-model")
     self.assertEqual(data["data"][0]["object"], "model")
 
+  def test_get_while_generating(self):
+    # a liveness probe is answered while another request holds the model
+    import urllib.request
+    with self.server.model_lock:
+      t = time.perf_counter()
+      with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/v1/models", timeout=5) as r: self.assertEqual(r.status, 200)
+      with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/health", timeout=5) as r: self.assertEqual(r.read(), b"ok")
+      self.assertLess(time.perf_counter() - t, 2)
+
 class TestLLMToolCalls(unittest.TestCase):
   """Tool calling through the OpenAI-compatible HTTP API."""
 
