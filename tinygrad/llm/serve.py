@@ -13,6 +13,17 @@ def _param_types(tools:list|None, name:str) -> dict[str, typing.Any]:
     if (f := t.get("function", t)).get("name") == name: return {k: v.get("type") for k, v in f.get("parameters", {}).get("properties", {}).items()}
   return {}
 
+def _dead_devices() -> list[tuple[str, int]]:
+  """opened devices whose error word is set (a GPU reset or an unrecoverable hang): (device, error). error_state is a one-word buffer
+  that every device has, nonzero once the device failed"""
+  from tinygrad import Device
+  out = []
+  for d in Device._opened_devices:
+    try: err = int(Device[d].error_state.host.view(fmt='q')[0])
+    except Exception: continue
+    if err: out.append((d, err))
+  return out
+
 def _common_prefix(a:list[int], b:list[int]) -> int:
   n = 0
   for x, y in zip(a, b):
@@ -130,9 +141,7 @@ class Handler(VizHandler):
   def do_GET(self):
     if self.path in ("/health", "/v1/health"):
       # a device whose GPU was reset (or that hung unrecoverably) can never serve again: report it so launchers do not reuse this process
-      from tinygrad import Device
-      dead = [d for d in Device._opened_devices if getattr(Device[d], "error_state", None) is not None]
-      if dead: self.send_data(f"device error: {dead[0]}: {Device[dead[0]].error_state}".encode(), content_type="text/plain", status_code=503)
+      if dead:=_dead_devices(): self.send_data(f"device error: {dead[0][0]}: {dead[0][1]}".encode(), content_type="text/plain", status_code=503)
       else: self.send_data(b"ok")
     elif self.path == "/props":
       self.send_data(json.dumps({"default_generation_settings": {"n_ctx": self.server.model.max_context}}).encode())
@@ -312,11 +321,9 @@ class Handler(VizHandler):
     except Exception as e:
       # a device hang/reset is permanent for this process: exit now so the launcher restarts a fresh server (its stale queues cannot serve,
       # and tearing them down later only triggers another GPU reset at a surprising moment)
-      from tinygrad import Device
-      dead = [d for d in Device._opened_devices if getattr(Device[d], "error_state", None) is not None]
-      if dead:
+      if dead:=_dead_devices():
         import os
-        stderr_log(f"\ndevice {dead[0]} is in error state ({Device[dead[0]].error_state}): exiting\n")
+        stderr_log(f"\ndevice {dead[0][0]} is in error state ({dead[0][1]}) after {e!r}: exiting\n")
         os._exit(3)
       raise
 

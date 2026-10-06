@@ -361,6 +361,19 @@ class TestLLMToolCalls(unittest.TestCase):
     self.assertEqual(second.choices[0].message.content, "done")
     self.assertEqual(second.choices[0].finish_reason, "stop")
 
+class TestDeadDevices(unittest.TestCase):
+  def test_error_word(self):
+    # error_state is a buffer every device has: only a nonzero error word means the device failed
+    from tinygrad import Device, Tensor
+    from tinygrad.llm.serve import _dead_devices
+    Tensor([1]).realize()
+    self.assertEqual(_dead_devices(), [])
+    err = Device[Device.DEFAULT].error_state.host.view(fmt='q')
+    err[0] = 5
+    try: self.assertIn((Device.DEFAULT, 5), _dead_devices())
+    finally: err[0] = 0
+    self.assertEqual(_dead_devices(), [])
+
 class TestPrefixSnapshots(unittest.TestCase):
   def test_save_before_checkpoint_rollback(self):
     # a conversation diverging after the shared system prompt: get_start_pos rolls the live state back to the system prompt
