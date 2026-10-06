@@ -13,6 +13,13 @@ def _param_types(tools:list|None, name:str) -> dict[str, typing.Any]:
     if (f := t.get("function", t)).get("name") == name: return {k: v.get("type") for k, v in f.get("parameters", {}).get("properties", {}).items()}
   return {}
 
+def _common_prefix(a:list[int], b:list[int]) -> int:
+  n = 0
+  for x, y in zip(a, b):
+    if x != y: break
+    n += 1
+  return n
+
 def parse_tool_call(s:str, tools:list|None=None) -> tuple[str, typing.Any]|None:
   s = s.strip()
   if s.startswith("{"):  # hermes JSON format: {"name": ..., "arguments": {...}}
@@ -169,6 +176,14 @@ class Handler(VizHandler):
     except Exception as e:
       stderr_log(f"prefix-cache recompute failed (non-fatal, next turn just won't reuse this one): {e}\n")
 
+  def _pause_snapshots(self, srv, e:MemoryError) -> None:
+    # out of VRAM for a clone (a 131072-context run hit this at a 33K prompt, 2026-08-26): drop the saved slots to free
+    # their memory and pause snapshots for a while instead of disabling them for the life of the process -- the next
+    # conversation may be short again, and the live prefix cache keeps working either way
+    srv.snapshots = []
+    srv.snapshots_paused_until = time.perf_counter() + getenv("PREFIX_SNAPSHOT_PAUSE_S", 600)
+    stderr_log(f"{colored(f'prefix snapshots paused {getenv("PREFIX_SNAPSHOT_PAUSE_S", 600)}s: {e}', 'red')}  {colored('--', 'BLACK')}  ")
+
   def _pick_prefix_state(self, ids:list[int], media:list) -> None:
     """prefix-state snapshots (PREFIX_SNAPSHOTS=N saved slots, default 1; PREFIX_SNAPSHOT_MIN tokens, default 1024;
     --host-snapshots N / --host-snapshot-gb for the host-memory tier, default off).
@@ -181,6 +196,16 @@ class Handler(VizHandler):
     (~1.5 GB at max_context 65536 for Qwen3.8-27B with the quantized kv cache), so the slot count is kept small."""
     srv, model = self.server, self.server.model
     if srv.max_snapshots <= 0 or media or time.perf_counter() < getattr(srv, "snapshots_paused_until", 0.0): return
+    # save the live conversation when this request would throw most of it away: diverging at token 0 or at a shared system prompt alike
+    # (two interleaved agent sessions share ~1K tokens of system prompt, and live == 0 never fired: each switch re-prefilled ~30K tokens)
+    # the reference is the previous prompt (its prefill checkpoint): a next turn of the same conversation extends that, while the live
+    # sequence's generated tail never matches (the template re-renders the answer without its reasoning)
+    # the copy is taken before get_start_pos, which can roll the live state back to a checkpoint (the shared system prompt)
+    prev = model._ckpt_tokens if model._ckpt_tokens is not None else model._cached_tokens
+    keep, ts = None, time.perf_counter()
+    try:
+      if len(prev) - _common_prefix(ids, prev) >= srv.snapshot_min_tokens: keep = model.snapshot_state()
+    except MemoryError as e: return self._pause_snapshots(srv, e)
     live = model.get_start_pos(ids)
     # candidates: the VRAM slots, then the host tier (PREFIX_HOST_SNAPSHOTS slots / PREFIX_HOST_GB): a state evicted from VRAM is
     # copied to host memory instead of being dropped -- re-prefilling a 30K-token conversation takes over a minute here, restoring
@@ -191,19 +216,18 @@ class Handler(VizHandler):
         # a snapshot serves a request that extends either its generated sequence or (far more often) its prefill checkpoint
         m = max([model.prefix_match(ids, s.tokens), model.prefix_match(ids, s.ckpt_tokens or [])] + [model.prefix_match(ids, t) for t, _ in s.ckpts])
         if m > best: best_i, best, best_host = i, m, tier
-    live_worth_keeping = live == 0 and len(model._cached_tokens) >= srv.snapshot_min_tokens
     try:
       t0 = time.perf_counter()
       if best_i >= 0:
         snap = (srv.host_snapshots if best_host else srv.snapshots).pop(best_i)
-        if live_worth_keeping: srv.snapshots.append(model.snapshot_state())
+        if keep is not None: srv.snapshots.append(keep)
         model.restore_state(snap)
         if best_host and not getenv("PREFIX_SNAPSHOT_HOST", 1): srv.snapshots.append(model.snapshot_state())  # live again: keep a device copy
         elif best_host: srv.snapshots.append(snap)  # host snapshots: the restored copy stays valid as this conversation's snapshot
         stderr_log(f"{colored(f'restored snapshot ({best} tok, {'host' if best_host else 'vram'}, {(time.perf_counter()-t0)*1e3:.0f} ms)', 'cyan')}  {colored('--', 'BLACK')}  ")
-      elif live_worth_keeping:
-        srv.snapshots.append(snap := model.snapshot_state())
-        stderr_log(f"{colored(f'saved snapshot ({len(snap.tokens)} tok, {snap.nbytes()/1e9:.2f} GB, {(time.perf_counter()-t0)*1e3:.0f} ms)', 'cyan')}  {colored('--', 'BLACK')}  ")
+      elif keep is not None:
+        srv.snapshots.append(keep)
+        stderr_log(f"{colored(f'saved snapshot ({len(keep.tokens)} tok, {keep.nbytes()/1e9:.2f} GB, {(t0-ts)*1e3:.0f} ms)', 'cyan')}  {colored('--', 'BLACK')}  ")
       while len(srv.snapshots) > srv.max_snapshots:
         old = srv.snapshots.pop(0)
         if srv.max_host_snapshots > 0 and old.nbytes() <= srv.max_host_bytes:
@@ -212,13 +236,7 @@ class Handler(VizHandler):
         del old
       while len(srv.host_snapshots) > srv.max_host_snapshots or sum(s.nbytes() for s in srv.host_snapshots) > srv.max_host_bytes:
         srv.host_snapshots.pop(0)
-    except MemoryError as e:
-      # out of VRAM for a clone (a 131072-context run hit this at a 33K prompt, 2026-08-26): drop the saved slots to free
-      # their memory and pause snapshots for a while instead of disabling them for the life of the process -- the next
-      # conversation may be short again, and the live prefix cache keeps working either way
-      srv.snapshots = []
-      srv.snapshots_paused_until = time.perf_counter() + getenv("PREFIX_SNAPSHOT_PAUSE_S", 600)
-      stderr_log(f"{colored(f'prefix snapshots paused {getenv("PREFIX_SNAPSHOT_PAUSE_S", 600)}s: {e}', 'red')}  {colored('--', 'BLACK')}  ")
+    except MemoryError as e: self._pause_snapshots(srv, e)
 
   def run_model(self, ids:list[int], model_name:str, include_usage=False, max_tokens:int|None=None, temperature:float=0.0,
                 reasoning:bool=False, media:list|None=None, tools:list|None=None):

@@ -361,6 +361,24 @@ class TestLLMToolCalls(unittest.TestCase):
     self.assertEqual(second.choices[0].message.content, "done")
     self.assertEqual(second.choices[0].finish_reason, "stop")
 
+class TestPrefixSnapshots(unittest.TestCase):
+  def test_save_before_checkpoint_rollback(self):
+    # a conversation diverging after the shared system prompt: get_start_pos rolls the live state back to the system prompt
+    # checkpoint, so the save must copy the state from before that
+    from types import SimpleNamespace
+    from tinygrad.llm.serve import Handler
+    sys_p, conv_b = list(range(10)), list(range(10)) + [50] * 2000
+    model = SimpleNamespace(_ckpt_tokens=conv_b, _cached_tokens=conv_b + [7], prefix_match=lambda ids, c: 0)
+    model.snapshot_state = lambda: SimpleNamespace(tokens=list(model._cached_tokens), nbytes=lambda: 1)
+    def get_start_pos(ids):
+      model._cached_tokens = list(sys_p)
+      return len(sys_p)
+    model.get_start_pos = get_start_pos
+    srv = SimpleNamespace(model=model, max_snapshots=2, snapshot_min_tokens=1024, snapshots=[], host_snapshots=[], max_host_snapshots=0,
+                          max_host_bytes=0)
+    with patch("tinygrad.llm.serve.stderr_log"): Handler._pick_prefix_state(SimpleNamespace(server=srv), sys_p + [60] * 100, [])
+    self.assertEqual([len(s.tokens) for s in srv.snapshots], [len(conv_b) + 1])
+
 class TestTransformerGenerate(unittest.TestCase):
   def test_warmup(self):
     model, calls = Transformer(TEST_CONFIG), []
