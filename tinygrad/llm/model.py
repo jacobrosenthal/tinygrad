@@ -12,32 +12,47 @@ class ArenaFull(MemoryError):
   """no free block in the snapshot arena fits: drop a saved snapshot and retry (any other MemoryError is a real allocation failure)"""
 
 class HostArena:
-  """snapshot storage in host memory: one pinned buffer, allocated once and sub-allocated (TLSF). Every host buffer the GPU reads is
-  a KFD userptr allocation, so a buffer per snapshot piece pinned pages and mapped them through the IOMMU on each save and unmapped
-  them on each drop (~100 pieces, 1-2 GB a save). Under strict IOMMU translation (the USB4 eGPU) that churn wore down the IOVA
-  allocator until a 48 s soft lockup froze the box (10-06). Pieces come back when their snapshot is collected (claim)"""
-  def __init__(self, device:str, nbytes:int):
-    from tinygrad.device import Buffer, BufferSpec
-    from tinygrad.runtime.support.memory import TLSFAllocator
-    self.nbytes, self.tlsf = nbytes, TLSFAllocator(nbytes)
-    self.device, self.buf = device, Buffer(device, nbytes, dtypes.uint8, options=BufferSpec(host=True, nolru=True)).ensure_allocated()
-    self.offs:list[int] = []  # taken since the last claim
+  """snapshot storage in host memory: pinned chunks, allocated as snapshots need them (up to nbytes) and never freed, sub-allocated with
+  TLSF. Every host buffer the GPU reads is a KFD userptr allocation, so a buffer per snapshot piece pinned pages and mapped them through
+  the IOMMU on each save and unmapped them on each drop (~100 pieces, 1-2 GB a save). Under strict IOMMU translation (the USB4 eGPU) that
+  churn wore down the IOVA allocator until a 48 s soft lockup froze the box (10-06). Chunks of `chunk` bytes because one 8 GB userptr
+  allocation faults and pins all its pages in one ioctl, which KFD refused (EAGAIN) in a server holding the model while it took 7.7 s
+  in an empty process. Pieces come back when their snapshot is collected (claim)"""
+  def __init__(self, device:str, nbytes:int, chunk:int=1 << 30):
+    self.device, self.nbytes, self.chunk = device, nbytes, chunk
+    self.chunks:list = []  # (Buffer, TLSFAllocator)
+    self.offs:list[tuple[int, int]] = []  # (chunk, offset) taken since the last claim
     # released pieces wait here until the next take(): a finalizer can run on any thread (a GET thread's cyclic GC), TLSF is only
     # touched under the server's model lock, and the device is synced before released space is reused (queued copies may still use it)
     self.released:collections.deque = collections.deque()
+  def allocated(self) -> int: return sum(b.nbytes for b, _ in self.chunks)
   def take(self, n:int):
-    """a view of n bytes (MemoryError when no free block fits)"""
+    """a view of n bytes (ArenaFull when no block fits and no chunk can be added)"""
+    from tinygrad.device import Buffer, BufferSpec
+    from tinygrad.runtime.support.memory import TLSFAllocator
     if self.released:  # copies are queued, not waited for: reuse released space only after every copy into or out of it is done
       from tinygrad.device import Device
       Device[self.device].synchronize()
-      while self.released: self.tlsf.free(self.released.popleft())
+      while self.released:
+        c, off = self.released.popleft()
+        self.chunks[c][1].free(off)
     # sizes rounded to 256 B with alignment 1 keep every offset 256-aligned: TLSF searches for size + align - 1, so with an alignment a
     # freed hole could never take a piece of its own size again
-    try: off = self.tlsf.alloc(-(-max(n, 1) // 256) * 256)
-    except MemoryError as e: raise ArenaFull(str(e)) from None
-    self.offs.append(off)
-    return self.buf.view(max(n, 1), dtypes.uint8, off).ensure_allocated()
-  def release(self, offs:list[int]): self.released.extend(offs)
+    size = -(-max(n, 1) // 256) * 256
+    for c, (buf, tlsf) in enumerate(self.chunks):
+      try: off = tlsf.alloc(size)
+      except MemoryError: continue
+      self.offs.append((c, off))
+      return buf.view(max(n, 1), dtypes.uint8, off).ensure_allocated()
+    csize = max(self.chunk, -(-size // self.chunk) * self.chunk)
+    if self.allocated() + csize > self.nbytes: raise ArenaFull(f"snapshot arena at its {self.nbytes/1e9:.1f} GB cap")
+    try: buf = Buffer(self.device, csize, dtypes.uint8, options=BufferSpec(host=True, nolru=True)).ensure_allocated()
+    except (MemoryError, OSError) as e: raise ArenaFull(f"no new {csize >> 20} MB chunk: {e!r}") from None
+    self.chunks.append((buf, tlsf := TLSFAllocator(csize)))
+    off = tlsf.alloc(size)
+    self.offs.append((len(self.chunks) - 1, off))
+    return buf.view(max(n, 1), dtypes.uint8, off).ensure_allocated()
+  def release(self, offs:list[tuple[int, int]]): self.released.extend(offs)
   def claim(self, owner) -> None:
     """the pieces taken since the last claim belong to owner: freed when it is garbage collected"""
     offs, self.offs = self.offs, []

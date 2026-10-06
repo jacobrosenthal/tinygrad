@@ -451,7 +451,7 @@ class TestPrefixSnapshots(unittest.TestCase):
     import gc
     from tinygrad import Device
     from tinygrad.llm.model import HostArena
-    a = HostArena(Device.DEFAULT, 4096)
+    a = HostArena(Device.DEFAULT, 4096, chunk=4096)
     snaps = []
     class Snap: pass
     for _ in range(4):
@@ -460,6 +460,19 @@ class TestPrefixSnapshots(unittest.TestCase):
     a.abandon()
     snaps.pop(0); gc.collect()
     a.take(1000)  # fits again
+
+  def test_arena_grows_in_chunks(self):
+    # chunks are added as snapshots need them, up to the cap; a chunk the driver refuses is "arena full", not an error
+    from tinygrad import Device
+    from tinygrad.device import Buffer
+    from tinygrad.llm.model import HostArena, ArenaFull
+    a = HostArena(Device.DEFAULT, 8192, chunk=4096)
+    a.take(3000); self.assertEqual(len(a.chunks), 1)
+    a.take(3000); self.assertEqual(len(a.chunks), 2)
+    with self.assertRaises(ArenaFull): a.take(3000)  # at the cap
+    b = HostArena(Device.DEFAULT, 8192, chunk=4096)
+    with patch.object(Buffer, "ensure_allocated", side_effect=BlockingIOError(11, "Resource temporarily unavailable")):
+      with self.assertRaises(ArenaFull): b.take(100)
 
   def test_save_snapshot_drops_oldest(self):
     from types import SimpleNamespace
@@ -484,7 +497,7 @@ class TestPrefixSnapshots(unittest.TestCase):
     from tinygrad import Device, dtypes
     from tinygrad.device import Buffer
     from tinygrad.llm.model import HostArena, StateSnapshot
-    a = HostArena(Device.DEFAULT, 4096)
+    a = HostArena(Device.DEFAULT, 4096, chunk=4096)
     snap = StateSnapshot([1], (), [a.take(100)], None, [], [], [[(0, 100)]])
     self.assertTrue(snap.on_host)
     self.assertIs(snap.to_host(), snap)
@@ -550,7 +563,7 @@ class TestPrefixSnapshots(unittest.TestCase):
     from tinygrad import Device
     from tinygrad.llm.model import HostArena
     class Snap: pass
-    a, s = HostArena(Device.DEFAULT, 4096), Snap()
+    a, s = HostArena(Device.DEFAULT, 4096, chunk=4096), Snap()
     a.take(100); a.claim(s)
     with patch.object(type(Device[Device.DEFAULT]), "synchronize") as sync:
       a.take(100); sync.assert_not_called()  # nothing released yet
@@ -563,7 +576,7 @@ class TestPrefixSnapshots(unittest.TestCase):
     from types import SimpleNamespace
     from tinygrad import Device, Tensor, dtypes
     from tinygrad.llm.model import Transformer, HostArena
-    a = HostArena(Device.DEFAULT, 4096)
+    a = HostArena(Device.DEFAULT, 4096, chunk=4096)
     t = Tensor.empty(100, dtype=dtypes.uint8).contiguous().realize()
     def boom(*args): a.take(100); raise RuntimeError("gpu")
     m = SimpleNamespace(snapshot_tensors=lambda: [t], snapshot_segments=lambda L: [None], _cached_tokens=[1], _ckpt_tokens=None, _ckpts=[],

@@ -47,14 +47,8 @@ def _save_snapshot(srv, model, protect=None):
     if size < need:
       log(f"snapshot skipped: {size/1e9:.1f} GB for snapshots, {need/1e9:.2f} GB needed", "red")
       return None
-    for attempt in range(3):  # KFD can answer EAGAIN while it is still releasing another process's pinned memory
-      try:
-        srv.arena = HostArena(model.snapshot_tensors()[0].device, size)
-        break
-      except BlockingIOError:
-        if attempt == 2: raise
-        time.sleep(1.0)
-    log(f"snapshot arena {size/1e9:.1f} GB", "cyan")
+    srv.arena = HostArena(model.snapshot_tensors()[0].device, size)  # allocates 1 GB chunks as snapshots need them
+    log(f"snapshot arena up to {size/1e9:.1f} GB", "cyan")
   while True:
     try: return model.snapshot_state(srv.arena)
     except ArenaFull:
