@@ -363,6 +363,35 @@ class TestLLMServer(unittest.TestCase):
       self.client.chat.completions.create(model="test-model", messages=[{"role":"user","content":"Hello"}])
     self.assertEqual(threads, [self.server_thread])
 
+  def _post(self, path, raw:bytes):
+    import urllib.request, urllib.error
+    req = urllib.request.Request(f"http://127.0.0.1:{self.port}{path}", data=raw, headers={"Content-Type": "application/json"})
+    try:
+      with urllib.request.urlopen(req, timeout=5) as r: return r.status, json.loads(r.read())
+    except urllib.error.HTTPError as e: return e.code, json.loads(e.read())
+
+  def test_bad_request_gets_400(self):
+    for raw in (b"{", b"[]", json.dumps({"model": "x"}).encode()):  # bad JSON, not an object, no messages
+      self.assertEqual(self._post("/v1/chat/completions", raw)[0], 400)
+
+  def test_null_params_accepted(self):
+    body = {"model": "test-model", "messages": [{"role": "user", "content": "Hi"}], "temperature": None, "stream_options": None, "max_tokens": None}
+    self.assertEqual(self._post("/v1/chat/completions", json.dumps(body).encode())[0], 200)
+
+  def test_reply_does_not_rewrite_cached_tokens(self):
+    # the server must not claim the state holds a re-rendered reply (empty <think>, an <|im_end|> never fed): only generate() sets this
+    self.mock_model._cached_tokens = [42]
+    self.client.chat.completions.create(model="test-model", messages=[{"role": "user", "content": "Hi"}])
+    self.assertEqual(self.mock_model._cached_tokens, [42])
+    self.mock_model._cached_tokens = []
+
+  def test_context_full_is_length(self):
+    self.mock_model.generate.side_effect = lambda ids, **kwargs: iter([300, 301])  # no end token: generate() ran out of context
+    try:
+      r = self.client.chat.completions.create(model="test-model", messages=[{"role": "user", "content": "Hi"}])
+      self.assertEqual(r.choices[0].finish_reason, "length")
+    finally: self.mock_model.generate.side_effect = lambda ids, **kwargs: iter([300, 301, 999])
+
 class TestLLMToolCalls(unittest.TestCase):
   """Tool calling through the OpenAI-compatible HTTP API."""
 
@@ -377,7 +406,7 @@ class TestLLMToolCalls(unittest.TestCase):
     cls.mock_tok.is_end = Mock(return_value=False)
 
     cls.mock_model = Mock()
-    cls.mock_model.max_context = 4
+    cls.mock_model.max_context = 4096  # tool calls are not context-limited (a full context ends with finish_reason "length")
     cls.mock_model.get_start_pos = Mock(return_value=0)
     # the prefix-cache and spec-decode state the real model always has (a Mock attribute is truthy and not a list)
     cls.mock_model._cached_tokens, cls.mock_model._ckpt_tokens, cls.mock_model._mtp_accept, cls.mock_model._mtp_drafts = [], None, None, None

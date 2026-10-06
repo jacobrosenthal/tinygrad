@@ -264,11 +264,17 @@ class Handler(VizHandler):
       if finish_reason == "stop": finish_reason = "tool_calls"
     yield chunk({}, finish_reason)
     if include_usage: yield {"choices": [], "usage": usage(), **tmpl}
+  def _bad_request(self, msg:str):
+    stderr_log(f"{colored(f'bad request: {msg}', 'red')}\n")
+    return self.send_data(json.dumps({"error":{"message":msg, "type":"invalid_request_error", "code":"bad_request"}}).encode(), status_code=400)
+
   def do_POST(self):
     request_st = time.perf_counter()
     log_prefix = f"{self.path}  {colored('--', 'BLACK')}  "
     raw_body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
-    body: dict[str, typing.Any] = json.loads(raw_body.decode("utf-8"))
+    try: body: dict[str, typing.Any] = json.loads(raw_body.decode("utf-8"))
+    except ValueError as e: return self._bad_request(f"invalid JSON body: {e}")
+    if not isinstance(body, dict): return self._bad_request("the body must be a JSON object")
     if self.server.record_dir:  # --record-requests DIR: exact traces of real traffic, for offline replay
       try:
         with self.server.record_lock, open(pathlib.Path(self.server.record_dir) / f"requests-{time.strftime('%Y%m%d')}.jsonl", "a") as f:
@@ -285,6 +291,15 @@ class Handler(VizHandler):
         "model_info": {"general.architecture": "qwen3", "general.parameter_count": 27_000_000_000,
                        "qwen3.context_length": self.server.model.max_context}}).encode())
     if self.path == "/v1/chat/completions":
+      try: prepared = self._prepare_chat(body, request_st, log_prefix)
+      except Exception as e: return self._bad_request(f"{type(e).__name__}: {e}")  # a request the template / tokenizer / image loader rejects
+      if not isinstance(prepared, tuple): return  # an error response was already sent
+      self._run_chat(body, *prepared)
+    else: self.not_found()
+
+  def _prepare_chat(self, body:dict, request_st:float, log_prefix:str):
+    """render + tokenize: (ids, images, rendered, enable, log_prefix), or None when an error response was already sent"""
+    if True:
       # render and tokenize
       normalize_messages(body["messages"])
       # Feedthrough reasoning: keep prior <think> / reasoning_content in the prompt.
@@ -319,8 +334,14 @@ class Handler(VizHandler):
           f"{self.server.model.max_context}", "type":"invalid_request_error", "param":"messages", "code":"context_length_exceeded"}}).encode(),
           status_code=400)
 
+      return ids, images, rendered, enable, log_prefix
+
+  def _run_chat(self, body:dict, ids:list[int], images:list[bytes], rendered:str, enable, log_prefix:str):
+    if True:
       # reply
-      max_tokens = body.get("max_completion_tokens") or body.get("max_tokens")
+      max_tokens = body.get("max_completion_tokens")
+      if max_tokens is None: max_tokens = body.get("max_tokens")
+      max_tokens = None if max_tokens is None else int(max_tokens)
       # top_p/top_k are server-fixed (--top-p/--top-k at startup, see model.py _apply_top_pk): baked into the JIT
       # graph, not a per-request field. Log rather than silently ignore a client that asked for something different
       model = self.server.model
@@ -336,16 +357,17 @@ class Handler(VizHandler):
                        f"server is fixed at repeat_penalty={model.repeat_penalty} frequency_penalty={model.frequency_penalty} "
                        f"presence_penalty={model.presence_penalty} (--repeat-penalty/--frequency-penalty/--presence-penalty)  {colored('--', 'BLACK')}  ")
       req = Request(ids, functools.partial(disconnected, self.connection), max_tokens=max_tokens,
-                    temperature=float(body.get("temperature", self.server.temperature)),
+                    temperature=float(self.server.temperature if body.get("temperature") is None else body["temperature"]),
                     log_prefix=log_prefix, tools=body.get("tools"), images=images)
       # llama.cpp's request field, same meaning: prefill from scratch. drops the live state and leaves the snapshots alone,
       # which makes a cold reference run possible without a restart (the correctness tests compare against it)
       req.cache_prompt = body.get("cache_prompt") is not False
-      stream_options = body.get("stream_options", {})
+      stream_options = body.get("stream_options") or {}
       include_usage = not body.get("stream") or stream_options.get("include_usage", False)
       continuous_usage = include_usage and stream_options.get("continuous_usage_stats", False)
       chunks = self.run_model(req, body.get("model") or self.server.model_name, include_usage, continuous_usage=continuous_usage,
-                              reasoning=bool(enable) or rendered.rstrip().endswith(tuple(f[0] for f in StreamRouter.FORMATS)))
+                              # output starts inside a reasoning block only when the prompt opened one (a template without thinking never does)
+                              reasoning=rendered.rstrip().endswith(tuple(f[0] for f in StreamRouter.FORMATS)))
       def accumulate(chunks):
         # shared by both branches: collect content/reasoning/tool_calls while passing chunks through untouched.
         # model._cached_tokens is NOT re-rendered from the reply: it must be exactly what the state holds (the prompt plus every token fed,
@@ -377,7 +399,6 @@ class Handler(VizHandler):
           self.send_data(json.dumps({**(last or {}), "object":"chat.completion",
             "choices":[{"index":0, "message":message, "finish_reason":finish[0]}]}).encode())
         except (BrokenPipeError, ConnectionResetError): pass
-    else: self.not_found()
 
 class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
   daemon_threads = True
@@ -535,6 +556,8 @@ class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
         if req.max_tokens is not None and n >= req.max_tokens:
           req.finish_reason = "length"
           break
+      else:  # generate() stopped without an end token: when the context is full that is a length stop, not a natural one
+        if prompt_tokens + n + 1 >= self.model.max_context: req.finish_reason = "length"
       finished = True
     finally:
       et = time.perf_counter()
