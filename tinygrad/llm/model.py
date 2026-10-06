@@ -1164,7 +1164,9 @@ class Transformer:
     if self.has_recurrent_block:
       if cached and len(cached) == len(self._cached_tokens) and len(cached) < len(tokens) and tokens[:len(cached)] == cached: return len(cached)
       ck = self._ckpt_tokens
-      if ck and (cut is None or cut >= len(ck)) and len(ck) < len(tokens) and tokens[:len(ck)] == ck:
+      # ...and only while the kv cache still holds its positions: a request that ran since (a 1-token prompt, or one resumed exactly one
+      # token short) takes no checkpoint of its own but overwrites kv below len(ck), like the periodic and prefix paths check below
+      if ck and (cut is None or cut >= len(ck)) and len(ck) < len(tokens) and tokens[:len(ck)] == ck and self._cached_tokens[:len(ck)] == ck:
         self._restore_checkpoint()
         self._cached_tokens = list(ck)
         return len(ck)

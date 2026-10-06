@@ -483,3 +483,24 @@ class TestTransformerGenerate(unittest.TestCase):
 
 if __name__ == '__main__':
   unittest.main()
+class TestCheckpointResume(unittest.TestCase):
+  def _model(self, cached, ck):
+    from types import SimpleNamespace
+    m = SimpleNamespace(has_recurrent_block=True, _cached_tokens=list(cached), _ckpt_tokens=list(ck), _ckpts=[], _pfx_tokens=None,
+                        _media_cut=lambda key: None, restored=[])
+    m._restore_checkpoint = lambda: m.restored.append(True)
+    return m
+
+  def test_resume_from_prefill_checkpoint(self):
+    from tinygrad.llm.model import Transformer
+    m = self._model(cached=[1, 2, 3, 4, 9, 9], ck=[1, 2, 3, 4])  # the conversation's own next turn
+    self.assertEqual(Transformer.get_start_pos(m, [1, 2, 3, 4, 5, 6]), 4)
+    self.assertEqual(m.restored, [True])
+
+  def test_no_resume_after_kv_overwritten(self):
+    # a 1-token request ran in between: it wrote kv at position 0.. without taking a checkpoint; the old checkpoint must not be used
+    from tinygrad.llm.model import Transformer
+    m = self._model(cached=[7, 8], ck=[1, 2, 3, 4])
+    self.assertEqual(Transformer.get_start_pos(m, [1, 2, 3, 4, 5, 6]), 0)
+    self.assertEqual(m.restored, [])
+
