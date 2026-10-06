@@ -1,5 +1,5 @@
 from __future__ import annotations
-import dataclasses, enum, functools, itertools, math, pathlib
+import dataclasses, enum, functools, itertools, math, pathlib, weakref
 from dataclasses import dataclass, replace
 from typing import Any
 from tinygrad import Tensor, nn, UOp, TinyJit, getenv, function, dtypes
@@ -7,6 +7,34 @@ from tinygrad.llm.kernels.amd import Linear, gated_delta_prefill, flash_attentio
 from tinygrad.helpers import DEBUG, Timing, Context
 from tinygrad.llm.gguf import gguf_load
 from tinygrad.uop.ops import resolve
+
+class HostArena:
+  """snapshot storage in host memory: one pinned buffer, allocated once and sub-allocated (TLSF). Every host buffer the GPU reads is
+  a KFD userptr allocation, so a buffer per snapshot piece pinned pages and mapped them through the IOMMU on each save and unmapped
+  them on each drop (~100 pieces, 1-2 GB a save). Under strict IOMMU translation (the USB4 eGPU) that churn wore down the IOVA
+  allocator until a 48 s soft lockup froze the box (10-06). Pieces come back when their snapshot is collected (claim)"""
+  def __init__(self, device:str, nbytes:int):
+    from tinygrad.device import Buffer, BufferSpec
+    from tinygrad.runtime.support.memory import TLSFAllocator
+    self.nbytes, self.tlsf = nbytes, TLSFAllocator(nbytes)
+    self.buf = Buffer(device, nbytes, dtypes.uint8, options=BufferSpec(host=True, nolru=True)).ensure_allocated()
+    self.offs:list[int] = []  # taken since the last claim
+  def take(self, n:int):
+    """a view of n bytes (MemoryError when no free block fits)"""
+    # sizes rounded to 256 B with alignment 1 keep every offset 256-aligned: TLSF searches for size + align - 1, so with an alignment a
+    # freed hole could never take a piece of its own size again
+    off = self.tlsf.alloc(-(-max(n, 1) // 256) * 256)
+    self.offs.append(off)
+    return self.buf.view(max(n, 1), dtypes.uint8, off).ensure_allocated()
+  def release(self, offs:list[int]):
+    for o in offs: self.tlsf.free(o)
+  def claim(self, owner) -> None:
+    """the pieces taken since the last claim belong to owner: freed when it is garbage collected"""
+    offs, self.offs = self.offs, []
+    weakref.finalize(owner, self.release, offs)
+  def abandon(self) -> None:
+    """a snapshot that failed halfway: give back what it took"""
+    self.release(self.offs); self.offs = []
 
 @dataclass
 class StateSnapshot:
@@ -25,19 +53,21 @@ class StateSnapshot:
   @property
   def on_host(self) -> bool: return bool(self.bufs) and bool(getattr(self.bufs[0].options, "host", False))
   @staticmethod
-  def _host_copy(b):
+  def _host_copy(b, arena:HostArena|None=None):
     # a device-visible pinned host buffer (BufferSpec(host=True)) on the same device: the copy is one SDMA transfer over PCIe in
     # either direction. A "PYTHON" buffer instead goes through _copyout's chunked staging loop (~0.2 GB/s measured, 2026-08-26).
     # nolru: a dropped snapshot must give its pinned memory back. The allocator's LRU keeps freed buffers keyed by exact size and
     # snapshot sizes vary with the conversation, so every replaced snapshot used to stay allocated (28 GB RSS, 10-06)
     from tinygrad.device import Buffer, BufferSpec
+    if arena is not None: return arena.take(b.nbytes).copy_from(b)
     return Buffer(b.device, b.size, b.dtype, options=BufferSpec(host=True, nolru=True)).ensure_allocated().copy_from(b)
   @staticmethod
-  def _host_pack(src, segs:list):
+  def _host_pack(src, segs:list, arena:HostArena|None=None):
     """the byte ranges segs of device buffer src, packed into one pinned host buffer"""
     from tinygrad.device import Buffer, BufferSpec
     from tinygrad import dtypes
-    hb = Buffer(src.device, max(1, sum(n for _, n in segs)), dtypes.uint8, options=BufferSpec(host=True, nolru=True)).ensure_allocated()
+    n = max(1, sum(n for _, n in segs))
+    hb = arena.take(n) if arena is not None else Buffer(src.device, n, dtypes.uint8, options=BufferSpec(host=True, nolru=True)).ensure_allocated()
     o = 0
     for off, n in segs:
       if n: hb.view(n, dtypes.uint8, o).ensure_allocated().copy_from(src.view(n, dtypes.uint8, off).ensure_allocated()); o += n
@@ -1201,7 +1231,7 @@ class Transformer:
     n = sum(t.uop.buffer.nbytes if sg is None else sum(b for _, b in sg) for t, sg in zip(tens, segs))
     if self._ckpt_tokens is not None: n += sum(c.uop.buffer.nbytes for _, c in self._ckpt_pairs())
     return n + sum(b.nbytes for _, bs in self._ckpts for b in bs)
-  def snapshot_state(self) -> StateSnapshot:
+  def snapshot_state(self, arena:HostArena|None=None) -> StateSnapshot:
     """copy the whole decode state, and the prefill checkpoint with it: a conversation almost always comes back extending its
     previous prompt rather than the generated sequence, so the checkpoint is what a restored snapshot gets resumed from.
     Direct buffer copies (see StateSnapshot); a MemoryError from the allocation is the caller's to handle.
@@ -1209,15 +1239,22 @@ class Transformer:
     at max_context 98304 (16 attention kv caches x 112.5 MB + recurrent state), which the 24 GB card never has with this model: every
     snapshot attempt failed and paused the feature (221x in production 09-10..09-29), host tier included."""
     host = bool(getenv("PREFIX_SNAPSHOT_HOST", 1))
-    cp = (lambda t: StateSnapshot._host_copy(t.uop.buffer.ensure_allocated())) if host else self._device_copy
-    cpb = StateSnapshot._host_copy if host else self._device_copy_buf
+    if not host: arena = None
+    cp = (lambda t: StateSnapshot._host_copy(t.uop.buffer.ensure_allocated(), arena)) if host else self._device_copy
+    cpb = (lambda b: StateSnapshot._host_copy(b, arena)) if host else self._device_copy_buf
     tens = self.snapshot_tensors()
     segs = self.snapshot_segments(len(self._cached_tokens)) if host else [None] * len(tens)
-    bufs = [cp(t) if sg is None else StateSnapshot._host_pack(t.uop.buffer.ensure_allocated(), sg) for t, sg in zip(tens, segs)]
-    ckpt_bufs = [cp(c) for _, c in self._ckpt_pairs()] if self._ckpt_tokens is not None else []
-    ckpts = [(list(t), [cpb(b) for b in bs]) for t, bs in self._ckpts]
-    return StateSnapshot(list(self._cached_tokens), self._cached_media, bufs, list(self._ckpt_tokens) if self._ckpt_tokens is not None else None, ckpt_bufs,
-                         ckpts, segs)
+    try:
+      bufs = [cp(t) if sg is None else StateSnapshot._host_pack(t.uop.buffer.ensure_allocated(), sg, arena) for t, sg in zip(tens, segs)]
+      ckpt_bufs = [cp(c) for _, c in self._ckpt_pairs()] if self._ckpt_tokens is not None else []
+      ckpts = [(list(t), [cpb(b) for b in bs]) for t, bs in self._ckpts]
+    except MemoryError:
+      if arena is not None: arena.abandon()
+      raise
+    snap = StateSnapshot(list(self._cached_tokens), self._cached_media, bufs, list(self._ckpt_tokens) if self._ckpt_tokens is not None else None,
+                         ckpt_bufs, ckpts, segs)
+    if arena is not None: arena.claim(snap)
+    return snap
   def restore_state(self, snap:StateSnapshot) -> None:
     """write a snapshot (device or host copy) back into the live state buffers"""
     live = self.snapshot_tensors()

@@ -24,6 +24,39 @@ def _dead_devices() -> list[tuple[str, int]]:
     if err: out.append((d, err))
   return out
 
+def _mem_available() -> int|None:
+  """MemAvailable from /proc/meminfo in bytes, None where there is no such file"""
+  try:
+    with open("/proc/meminfo") as f:
+      for line in f:
+        if line.startswith("MemAvailable:"): return int(line.split()[1]) * 1024
+  except OSError: pass
+  return None
+
+def _save_snapshot(srv, model):
+  """the live state as a snapshot, or None. Host snapshots live in one pinned arena (model.HostArena) of --host-snapshot-gb, created at
+  the first save and never larger than leaves PREFIX_HOST_MIN_FREE_GB (default 4) of host memory available; when it is full the
+  oldest saved snapshots are dropped until the new one fits"""
+  from tinygrad.llm.model import HostArena
+  if not getenv("PREFIX_SNAPSHOT_HOST", 1): return model.snapshot_state()
+  log = lambda m, c: stderr_log(f"{colored(m, c)}  {colored('--', 'BLACK')}  ")
+  if getattr(srv, "arena", None) is None:
+    need, avail, margin = model.snapshot_nbytes(), _mem_available(), int(getenv("PREFIX_HOST_MIN_FREE_GB", 4) * 1e9)
+    size = srv.max_host_bytes if avail is None else min(srv.max_host_bytes, avail - margin)
+    if size < need:
+      log(f"snapshot skipped: {size/1e9:.1f} GB for snapshots, {need/1e9:.2f} GB needed", "red")
+      return None
+    srv.arena = HostArena(model.snapshot_tensors()[0].device, size)
+  while True:
+    try: return model.snapshot_state(srv.arena)
+    except MemoryError:
+      if not (pool := srv.host_snapshots or srv.snapshots):
+        log(f"snapshot skipped: larger than the {srv.arena.nbytes/1e9:.1f} GB arena", "red")
+        return None
+      old = pool.pop(0)
+      log(f"snapshot dropped for space ({len(old.tokens)} tok, {old.nbytes()/1e9:.2f} GB)", "cyan")
+      del old
+
 def _common_prefix(a:list[int], b:list[int]) -> int:
   n = 0
   for x, y in zip(a, b):
@@ -213,7 +246,8 @@ class Handler(VizHandler):
     prev = model._ckpt_tokens if model._ckpt_tokens is not None else model._cached_tokens
     keep, ts = None, time.perf_counter()
     try:
-      if len(prev) - _common_prefix(ids, prev) >= srv.snapshot_min_tokens: keep = model.snapshot_state()
+      if len(prev) - _common_prefix(ids, prev) >= srv.snapshot_min_tokens:
+        keep = _save_snapshot(srv, model)
     except MemoryError as e: return self._pause_snapshots(srv, e)
     live = model.get_start_pos(ids)
     # candidates: the VRAM slots, then the host tier (PREFIX_HOST_SNAPSHOTS slots / PREFIX_HOST_GB): a state evicted from VRAM is
@@ -456,7 +490,7 @@ class LLMServer(TCPServerWithReuse):
     # host-memory snapshot tier (--host-snapshots N / --host-snapshot-gb, default off): states evicted from the VRAM slots are
     # copied to host memory instead of dropped. A snapshot is ~2.2 GB at max_context 98304, so this needs real RAM headroom
     self.host_snapshots: list = []
-    self.max_host_snapshots, self.max_host_bytes = host_snapshots, int(host_snapshot_gb * 1e9)
+    self.max_host_snapshots, self.max_host_bytes, self.arena = host_snapshots, int(host_snapshot_gb * 1e9), None
     self.record_dir = record_dir
     if record_dir: pathlib.Path(record_dir).mkdir(parents=True, exist_ok=True)
     self.max_snapshots, self.snapshot_min_tokens = getenv("PREFIX_SNAPSHOTS", 1), getenv("PREFIX_SNAPSHOT_MIN", 1024)

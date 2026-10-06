@@ -382,15 +382,57 @@ class TestPrefixSnapshots(unittest.TestCase):
     from tinygrad.llm.serve import Handler
     sys_p, conv_b = list(range(10)), list(range(10)) + [50] * 2000
     model = SimpleNamespace(_ckpt_tokens=conv_b, _cached_tokens=conv_b + [7], prefix_match=lambda ids, c: 0)
-    model.snapshot_state = lambda: SimpleNamespace(tokens=list(model._cached_tokens), nbytes=lambda: 1)
+    model.snapshot_state = lambda arena=None: SimpleNamespace(tokens=list(model._cached_tokens), nbytes=lambda: 1)
+    model.snapshot_nbytes = lambda: 1
     def get_start_pos(ids):
       model._cached_tokens = list(sys_p)
       return len(sys_p)
     model.get_start_pos = get_start_pos
     srv = SimpleNamespace(model=model, max_snapshots=2, snapshot_min_tokens=1024, snapshots=[], host_snapshots=[], max_host_snapshots=0,
-                          max_host_bytes=0)
+                          max_host_bytes=0, arena=object())
     with patch("tinygrad.llm.serve.stderr_log"): Handler._pick_prefix_state(SimpleNamespace(server=srv), sys_p + [60] * 100, [])
     self.assertEqual([len(s.tokens) for s in srv.snapshots], [len(conv_b) + 1])
+
+  def test_host_arena(self):
+    # snapshot pieces are views of one pinned buffer; a snapshot's pieces come back when it is collected
+    import gc
+    from tinygrad import Device
+    from tinygrad.llm.model import HostArena
+    a = HostArena(Device.DEFAULT, 4096)
+    snaps = []
+    class Snap: pass
+    for _ in range(4):
+      a.take(1000); snaps.append(Snap()); a.claim(snaps[-1])
+    with self.assertRaises(MemoryError): a.take(1000)
+    a.abandon()
+    snaps.pop(0); gc.collect()
+    a.take(1000)  # fits again
+
+  def test_save_snapshot_drops_oldest(self):
+    from types import SimpleNamespace
+    from tinygrad.llm import serve
+    tries = iter([MemoryError(), MemoryError(), "snap"])
+    def snapshot_state(arena):
+      r = next(tries)
+      if isinstance(r, Exception): raise r
+      return r
+    snap = lambda n: SimpleNamespace(tokens=[0] * n, nbytes=lambda: n)
+    srv = SimpleNamespace(arena=SimpleNamespace(nbytes=10), host_snapshots=[snap(1), snap(2)], snapshots=[snap(3)])
+    with patch("tinygrad.llm.serve.stderr_log"):
+      self.assertEqual(serve._save_snapshot(srv, SimpleNamespace(snapshot_state=snapshot_state)), "snap")
+    self.assertEqual((srv.host_snapshots, len(srv.snapshots)), ([], 1))  # the two oldest (host tier first) made room
+    tries = iter([MemoryError()])
+    srv = SimpleNamespace(arena=SimpleNamespace(nbytes=10), host_snapshots=[], snapshots=[])
+    with patch("tinygrad.llm.serve.stderr_log"): self.assertIsNone(serve._save_snapshot(srv, SimpleNamespace(snapshot_state=snapshot_state)))
+
+  def test_snapshot_buffers_freed(self):
+    # a dropped snapshot gives its memory back: snapshot sizes vary, so a buffer parked in the allocator's LRU cache was never reused
+    from tinygrad import Device, dtypes
+    from tinygrad.device import Buffer
+    from tinygrad.llm.model import StateSnapshot
+    src = Buffer(Device.DEFAULT, 12345, dtypes.uint8).ensure_allocated()
+    for hb in (StateSnapshot._host_copy(src), StateSnapshot._host_pack(src, [(0, 1000), (2000, 345)])): del hb
+    self.assertFalse(any(len(v) for k, v in Device[Device.DEFAULT].allocator.cache.items() if k[0] in (12345, 1345)))
 
 class TestTransformerGenerate(unittest.TestCase):
   def test_warmup(self):
