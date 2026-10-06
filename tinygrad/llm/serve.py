@@ -47,7 +47,13 @@ def _save_snapshot(srv, model, protect=None):
     if size < need:
       log(f"snapshot skipped: {size/1e9:.1f} GB for snapshots, {need/1e9:.2f} GB needed", "red")
       return None
-    srv.arena = HostArena(model.snapshot_tensors()[0].device, size)
+    for attempt in range(3):  # KFD can answer EAGAIN while it is still releasing another process's pinned memory
+      try:
+        srv.arena = HostArena(model.snapshot_tensors()[0].device, size)
+        break
+      except BlockingIOError:
+        if attempt == 2: raise
+        time.sleep(1.0)
     log(f"snapshot arena {size/1e9:.1f} GB", "cyan")
   while True:
     try: return model.snapshot_state(srv.arena)
@@ -535,7 +541,14 @@ class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
     stderr_log(req.log_prefix)
     model = self.model
     if not req.cache_prompt: model._cached_tokens, model._ckpt_tokens = [], None
-    else: self._pick_prefix_state(req.ids, req.media)
+    else:
+      # snapshots are a cache: whatever goes wrong in them, the request goes on without (a failed save only read the live state; a
+      # failed restore drops the live state's claim, so generate() prefills from scratch). 10-06: the arena's first allocation got
+      # EAGAIN from KFD while the previous process was still releasing its own, and every such request failed
+      try: self._pick_prefix_state(req.ids, req.media)
+      except Exception as e:
+        self.snapshots_paused_until = time.perf_counter() + getenv("PREFIX_SNAPSHOT_RETRY_S", 60)
+        stderr_log(f"{colored(f'snapshots off for {getenv("PREFIX_SNAPSHOT_RETRY_S", 60)}s: {type(e).__name__}: {e}', 'red')}  {colored('--', 'BLACK')}  ")
     media_keys = tuple((s, m.key) for s, m in model._media_spans(req.ids, req.media)) if req.media else ()
     req.cached_tokens = cache_start_pos = model.get_start_pos(req.ids, media_keys)
     stderr_log(f"in:{colored(f'{cache_start_pos:5d}', 'green')} +{len(req.ids)-cache_start_pos:5d}  {colored('--', 'BLACK')}  ")
