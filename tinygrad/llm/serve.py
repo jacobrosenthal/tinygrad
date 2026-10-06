@@ -184,9 +184,6 @@ class Request:
     self.prompt_tokens = len(ids)  # generation appends to ids
     self.cache_prompt = True
     self.decode_seconds = 0.0
-    # the handler re-tokenizes the conversation with the reply (see Handler._recache_tokens) and hands it to the inference thread here,
-    # which applies it before taking the next request
-    self.recache: queue.Queue[list[int]|None] = queue.Queue(maxsize=1)
     self.finish_reason = "stop"
     self.cached_tokens = 0
     self.error: Exception|None = None
@@ -225,36 +222,6 @@ class Handler(VizHandler):
       self.send_data((pathlib.Path(__file__).parent / "chat.html").read_bytes(), content_type="text/html")
     elif self.path.startswith("/assets/"): super().do_GET()
     else: self.not_found()
-  def _recache_tokens(self, messages:list[dict], reply:dict, preserve_thinking:bool, enable_thinking:bool, reasoning_effort:str,
-                      tools=None) -> list[int]|None:
-    """After replying, re-render `messages + [reply]` (no generation prompt) and re-tokenize it, so
-    model._cached_tokens matches what a FUTURE request's fresh render+tokenize will produce for this same
-    prefix -- letting get_start_pos() find a real prefix match on the next turn.
-    This exists because the raw token stream that generate() actually cached is NOT safe to reuse directly:
-    (1) it may include a <think> block that a normal client strips before sending the next turn, and
-    (2) tokenizing "<the prompt>" alone and tokenizing "<the prompt><reply text>" as one string can legally
-    produce different token ids right at that boundary (BPE merges are decided over the whole string, e.g.
-    two adjacent newlines from the role header + the reply's own leading newline can merge into one token
-    that never existed in the original prompt-only tokenization). Recomputing from the same text both
-    sides will render sidesteps both: next turn's render() call hits the identical text up to this point,
-    so its tokenizer produces the identical ids.
-    Only meaningful for the fork's has_recurrent_block=True path, which requires an exact full-prefix
-    match -- but harmless to always run (a plain KV-cache model just uses the longest common prefix
-    anyway, so a mismatched tail there is quietly discarded). Runs on the handler thread (CPU only); the
-    inference thread applies the result (LLMServer._apply_recache)."""
-    try:
-      # deliberately drop reasoning_content here: essentially every OpenAI-compatible client (this includes
-      # the fork's own chat.html) sends only the visible `content` back on the next turn, never the model's
-      # own prior <think> block -- so that's the text a future request will actually re-render, and matching
-      # it (not what the server itself still remembers thinking) is what makes get_start_pos() find a hit.
-      replay = messages + [{"role": "assistant", "content": reply.get("content")}]
-      text = self.server.template.render(messages=replay, tools=tools, add_generation_prompt=False,
-        preserve_thinking=preserve_thinking, enable_thinking=enable_thinking, reasoning_effort=reasoning_effort)
-      return self.server.tok.encode(text)
-    except Exception as e:
-      stderr_log(f"prefix-cache recompute failed (non-fatal, next turn just won't reuse this one): {e}\n")
-      return None
-
   def run_model(self, req:Request, model_name:str, include_usage:bool=False, reasoning:bool=False, continuous_usage:bool=False):
     tok = self.server.tok
     tmpl = {"id":f"chatcmpl-{uuid.uuid4().hex[:24]}", "object":"chat.completion.chunk", "created":int(time.time()), "model":model_name}
@@ -378,8 +345,10 @@ class Handler(VizHandler):
       chunks = self.run_model(req, body.get("model") or self.server.model_name, include_usage, continuous_usage=continuous_usage,
                               reasoning=bool(enable) or rendered.rstrip().endswith(tuple(f[0] for f in StreamRouter.FORMATS)))
       def accumulate(chunks):
-        # shared by both branches: collect content/reasoning/tool_calls while passing chunks through untouched,
-        # so the prefix cache (see _recache_tokens) can be kept in sync for streaming requests too
+        # shared by both branches: collect content/reasoning/tool_calls while passing chunks through untouched.
+        # model._cached_tokens is NOT re-rendered from the reply: it must be exactly what the state holds (the prompt plus every token fed,
+        # reasoning included). The next turn resumes from the prefill checkpoint one token before the end of this prompt (get_start_pos),
+        # which its prompt extends; a re-render (empty <think>, an <|im_end|> never fed) made it resume a state built from other tokens
         for c in chunks:
           if c.get("choices"):
             choice = c["choices"][0]
@@ -390,21 +359,16 @@ class Handler(VizHandler):
             if choice.get("finish_reason"): finish[0] = choice["finish_reason"]
           yield c
       out, reasoning, tool_calls_raw, finish = [], [], [], ["stop"]
-      recache: list[int]|None = None
-      try:
-        last, error = None, None
-        if body.get("stream"): self.stream_json(accumulate(chunks))
-        else:
-          for c in accumulate(chunks):
-            if "error" in c: error = c
-            last = c
-        tool_calls = [{k:v for k, v in tc.items() if k != "index"} for tc in tool_calls_raw]
-        message: dict[str, typing.Any] = {"role":"assistant", "content":"".join(out) or None}
-        if reasoning: message["reasoning_content"] = "".join(reasoning)
-        if tool_calls: message["tool_calls"] = tool_calls
-        if req.error is None: recache = self._recache_tokens(body["messages"], message, preserve, enable, effort, tools=body.get("tools"))
-      finally:
-        req.recache.put(recache)
+      last, error = None, None
+      if body.get("stream"): self.stream_json(accumulate(chunks))
+      else:
+        for c in accumulate(chunks):
+          if "error" in c: error = c
+          last = c
+      tool_calls = [{k:v for k, v in tc.items() if k != "index"} for tc in tool_calls_raw]
+      message: dict[str, typing.Any] = {"role":"assistant", "content":"".join(out) or None}
+      if reasoning: message["reasoning_content"] = "".join(reasoning)
+      if tool_calls: message["tool_calls"] = tool_calls
       if not body.get("stream"):
         if error is not None: return self.send_data(json.dumps(error).encode(), status_code=500)
         try:
@@ -449,13 +413,6 @@ class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
           stderr_log(f"\ndevice {dead[0][0]} is in error state ({dead[0][1]}) after {e!r}: exiting\n")
           os._exit(3)
       req.out.put(None)
-      if req.error is None and not req.disconnected(): self._apply_recache(req)
-
-  def _apply_recache(self, req:Request):
-    # wait for the handler's re-tokenized conversation (Handler._recache_tokens) before the next request looks at the cache
-    try: tokens = req.recache.get(timeout=getenv("RECACHE_TIMEOUT_S", 10))
-    except queue.Empty: tokens = None
-    if tokens is not None: self.model._cached_tokens = tokens
 
   def shutdown(self):
     # a request queued after the sentinel is never picked up, so its handler thread waits forever. fine since handlers are daemon threads
