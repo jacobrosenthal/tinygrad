@@ -308,6 +308,8 @@ class Handler(VizHandler):
         if max_tokens is not None and len(out) >= max_tokens:
           finish_reason = "length"
           break
+      else:  # generate() stopped without an end token: when the context is full that is a length stop, not a natural one
+        if len(ids) + len(out) + 1 >= model.max_context: finish_reason = "length"
       for field, delta in router.route(dec(), final=True): yield chunk({field:delta})
       tool_calls: list[dict] = []
       for m in re.finditer(r"<tool_call>\s*(.*?)\s*(?:</tool_call>|$)", router.buf, re.DOTALL):
@@ -351,13 +353,16 @@ class Handler(VizHandler):
   def do_POST(self):
     # one request at a time on the model; GETs (/v1/models, /health, ...) don't take the lock, so a client's liveness probe is answered
     # while another client's generation runs instead of timing out behind it (10-06: a probe gave up mid-generation)
+    if self.path != "/v1/chat/completions": return self._do_post()  # /api/show and 404s don't touch the model: don't queue them
     with self.server.model_lock: self._do_post()
 
   def _do_post(self):
     request_st = time.perf_counter()
     stderr_log(f"{self.path}  {colored('--', 'BLACK')}  ")
     raw_body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
-    body: dict[str, typing.Any] = json.loads(raw_body.decode("utf-8"))
+    try: body: dict[str, typing.Any] = json.loads(raw_body.decode("utf-8"))
+    except ValueError as e: return self._bad_request(f"invalid JSON body: {e}")
+    if not isinstance(body, dict): return self._bad_request("the body must be a JSON object")
     if self.server.record_dir:  # --record-requests DIR: exact traces of real traffic, for offline replay
       try:
         with open(pathlib.Path(self.server.record_dir) / f"requests-{time.strftime('%Y%m%d')}.jsonl", "a") as f:
@@ -374,6 +379,21 @@ class Handler(VizHandler):
         "model_info": {"general.architecture": "qwen3", "general.parameter_count": 27_000_000_000,
                        "qwen3.context_length": self.server.model.max_context}}).encode())
     if self.path == "/v1/chat/completions":
+      try: prepared = self._prepare_chat(body, request_st)
+      except Exception as e: return self._bad_request(f"{type(e).__name__}: {e}")  # a request the template / tokenizer / image loader rejects
+      if not isinstance(prepared, tuple): return  # an error response was already sent
+      ids, media, rendered, enable = prepared
+      self._run_chat(body, ids, media, rendered, enable)
+    else:
+      self.not_found()
+
+  def _bad_request(self, msg:str):
+    stderr_log(f"{colored(f'bad request: {msg}', 'red')}\n")
+    return self.send_data(json.dumps({"error":{"message":msg, "type":"invalid_request_error", "code":"bad_request"}}).encode(), status_code=400)
+
+  def _prepare_chat(self, body:dict, request_st:float):
+    """render + tokenize (+ images): (ids, media, rendered, enable), or None when an error response was already sent"""
+    if True:
       # render and tokenize
       normalize_messages(body["messages"])
       # Feedthrough reasoning: keep prior <think> / reasoning_content in the prompt.
@@ -417,9 +437,14 @@ class Handler(VizHandler):
         return self.send_data(json.dumps({"error":{"message":f"prompt has {len(ids)} tokens, but the model context is "
           f"{self.server.model.max_context}", "type":"invalid_request_error", "param":"messages", "code":"context_length_exceeded"}}).encode(),
           status_code=400)
+      return ids, media, rendered, enable
 
+  def _run_chat(self, body:dict, ids:list[int], media:list, rendered:str, enable):
+    if True:
       # reply
-      max_tokens = body.get("max_completion_tokens") or body.get("max_tokens")
+      max_tokens = body.get("max_completion_tokens")
+      if max_tokens is None: max_tokens = body.get("max_tokens")
+      max_tokens = None if max_tokens is None else int(max_tokens)
       if body.get("cache_prompt") is False:
         # llama.cpp's request field, same meaning: prefill from scratch. drops the live state and leaves the snapshots alone,
         # which makes a cold reference run possible without a restart (the correctness tests compare against it)
@@ -442,9 +467,11 @@ class Handler(VizHandler):
                    f"frequency_penalty={self.server.model.frequency_penalty} presence_penalty={self.server.model.presence_penalty} "
                    f"(--repeat-penalty/--frequency-penalty/--presence-penalty)\n")
       chunks = self.run_model(ids, body.get("model") or self.server.model_name,
-                              not body.get("stream") or body.get("stream_options",{}).get("include_usage", False),
-                              max_tokens=max_tokens, temperature=float(body.get("temperature", self.server.temperature)),
-                              reasoning=bool(enable) or rendered.rstrip().endswith("<think>"), media=media, tools=body.get("tools"))
+                              not body.get("stream") or (body.get("stream_options") or {}).get("include_usage", False),
+                              max_tokens=max_tokens,
+                              temperature=float(self.server.temperature if body.get("temperature") is None else body["temperature"]),
+                              # output starts inside a reasoning block only when the prompt opened one (a template without thinking never does)
+                              reasoning=rendered.rstrip().endswith("<think>"), media=media, tools=body.get("tools"))
       def accumulate(chunks):
         # shared by both branches: collect content/reasoning/tool_calls while passing chunks through untouched.
         # model._cached_tokens is NOT re-rendered from the reply: it must be exactly what the state holds (the prompt plus every token fed,
@@ -470,8 +497,6 @@ class Handler(VizHandler):
       if not body.get("stream"):
         self.send_data(json.dumps({**last, "object":"chat.completion",
           "choices":[{"index":0, "message":message, "finish_reason":finish[0]}]}).encode())
-    else:
-      self.not_found()
 
 class LLMServer(socketserver.ThreadingMixIn, TCPServerWithReuse):
   daemon_threads = True
