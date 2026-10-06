@@ -398,6 +398,25 @@ def _attn_pf_src(H:int, HKV:int, D:int, RD:int, MAXC:int, gated:bool, kvq:KVQuan
   # (2 x NR x LQ = 24.5 KB at QT=8), which is what limits how many workgroups fit per CU. Worth +8% decode at 55K context and
   # +20% prefill; the prefill epilogue keeps its own 16 KB Os buffer since it can no longer borrow qbuf.
   QG = bool(int(getenv("ATTN_QG", 1)))
+  # ATTN_PF_LEAN (prefill, default on, same values in the same order): the row scales and the running row max / sum live in LDS and the
+  # causal-mask row positions are computed only on tiles that need a mask (a wave-uniform test: elsewhere the mask is a no-op), freeing
+  # 40 loop-carried registers (256 + 28 B spill -> 231); Q operands load through global_load one k-step ahead (padding rows read row 0,
+  # their outputs are never written) instead of flat_load, whose lgkmcnt made every wait on the K tile also wait on Q.
+  # 98K-context server A/B: long_agent_75k prefill 658 -> 726 tok/s, 90k 605 -> 648, texts identical.
+  LEAN = not CH and QG and J and bool(getenv("ATTN_PF_LEAN", 1))
+  def qload() -> str:
+    """the score WMMAs with the Q operands of step k+1 loaded during step k (sched_barrier between steps). The Q rows are loop-invariant:
+    the pointers are laundered per tile, or LICM hoists all 32 loads out of the tile loop (128 VGPRs -> spills)"""
+    ld = lambda k: f"qa[{k % 2}] = qrow_t[{k}]; sa[{k % 2}] = sqrow_t[{k}];"
+    body = ["i32x4 qa[2], sa[2], b; typedef const __attribute__((address_space(1))) i32x4 gq;",
+            "const gq* qrow_t = (const gq*)qrow_g; const gq* sqrow_t = (const gq*)sqrow_g;",
+            '__asm__ volatile("" : "+v"(qrow_t), "+v"(sqrow_t));', ld(0)]
+    for k in range(D // 16):
+      if k + 1 < D // 16: body.append(ld(k + 1))
+      body.append(f"__builtin_memcpy(&b, Ks + l16 * {LQ} + {k * 16}, 16); ci = __builtin_amdgcn_wmma_i32_16x16x16_iu8_w32(true, qa[{k % 2}], true, b, ci, false);")
+      body.append(f"__builtin_memcpy(&b, KJs + l16 * {LQ} + {k * 16}, 16); cj = __builtin_amdgcn_wmma_i32_16x16x16_iu8_w32(true, sa[{k % 2}], true, b, cj, false);")
+      body.append("__builtin_amdgcn_sched_barrier(0);")
+    return "{ " + "\n      ".join(body) + " }"
   return PRELUDE + rf"""
 #define WG {WG}
 #define BAR() __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup"); __builtin_amdgcn_s_barrier(); __builtin_amdgcn_fence(__ATOMIC_ACQUIRE, "workgroup")
@@ -423,6 +442,7 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
   __attribute__((shared)) _Float16 Ps[{NWAVE} * 16 * 16];   // per wave [row][pos]
   __attribute__((shared)) float ka_s[16], kb_s[16], va_s[16], qsc_s[{NR}], sqsc_s[{NR}], cbv_s[16];
   __attribute__((shared)) i32 cbk8_s[16];
+  {f"__attribute__((shared)) float ml_s[{NWAVE} * 32];  // LEAN: per wave the running max m[16 rows] | sum l[16 rows]" if LEAN else ""}
   {'__attribute__((shared)) u8 zrow[' + str(D) + '];' if QG else ''}
   {f'__attribute__((shared)) float Osbuf[16 * {D}];' if QG and not CH else ''}
   {"" if QG else f'i8* Qs = (i8*)qbuf; {f"i8* SQs = (i8*)qbuf + {NR * LQ};" if J else ""}'}
@@ -459,8 +479,9 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
   {f"""// QG: this lane's WMMA A row (rt*16 + l16) straight from global qq/sqq; rows of padding tokens read a zero row
   const u32 qr = rt * 16 + l16, qtl = qr / {G}, qhh = qr % {G};
   const u64 qrow_off = ((u64)(qt0 + (qtl < nq ? qtl : 0)) * {H} + {G} * kvh + qhh) * {D};
-  const i8* qrow_g = qtl < nq ? qq + qrow_off : (const i8*)zrow;
-  {"const i8* sqrow_g = qtl < nq ? sqq + qrow_off : (const i8*)zrow;" if J else ""}""" if QG else ""}
+  {"const i8* qrow_g = qq + qrow_off; const i8* sqrow_g = sqq + qrow_off;" if LEAN else
+   f"""const i8* qrow_g = qtl < nq ? qq + qrow_off : (const i8*)zrow;
+  {"const i8* sqrow_g = qtl < nq ? sqq + qrow_off : (const i8*)zrow;" if J else ""}"""}""" if QG else ""}
   // this lane's 8 accumulator rows: 2i + h of row tile rt
   float qs_r[8], sqs_r[8], m[8], l[8]; i32 row_pos[8];
   f32x8 O[16];   // 16 chunks of 16 output dims: this wave owns all of D
@@ -473,6 +494,11 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
   for (int dt = 0; dt < 16; dt++) O[dt] = (f32x8){{0, 0, 0, 0, 0, 0, 0, 0}};
   _Float16* Pw = Ps + wave * 256;
   const u32 ntiles = (pend + 15) / 16;
+  {f"""float* mlw = ml_s + wave * 32;
+  if (lane < 16) {{ mlw[lane] = -1e30f; mlw[16 + lane] = 0.0f; }}
+  __builtin_amdgcn_fence(__ATOMIC_SEQ_CST, "wavefront");
+  // the first position any row of this wave masks (row r sees positions <= sp + qt0 + r/G; nothing at or past pend)
+  const u32 mask_from = __builtin_amdgcn_readfirstlane((u32)sp + qt0 + (rt * 16) / {G} + 1 < pend ? (u32)sp + qt0 + (rt * 16) / {G} + 1 : pend);""" if LEAN else ""}
   for (u32 tile = pos0 / 16; tile < ntiles; tile++) {{
     BAR();
     // dequantize the tile: K as codebook int8, QJL signs as +-1, V as f16 (transposed)
@@ -501,8 +527,9 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
     BAR();
     // scores of this wave's 16 rows x the 16 positions
     i32x8 ci = (i32x8){{0, 0, 0, 0, 0, 0, 0, 0}}{", cj = (i32x8){0, 0, 0, 0, 0, 0, 0, 0}" if J else ""};
+    {qload() if LEAN else ""}
     #pragma unroll
-    for (int ks = 0; ks < {D // 16}; ks++) {{
+    for (int ks = 0; ks < {0 if LEAN else D // 16}; ks++) {{
       i32x4 a, b;
       {"__builtin_memcpy(&a, qrow_g + ks * 16, 16);" if QG else f"__builtin_memcpy(&a, Qs + (rt * 16 + l16) * {LQ} + ks * 16, 16);"}
       __builtin_memcpy(&b, Ks + l16 * {LQ} + ks * 16, 16);
@@ -512,16 +539,21 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
     }}
     const float ka = ka_s[l16], kb = kb_s[l16];
     const i32 pos = (i32)(tile * 16 + l16);
+    {"const bool needmask = tile * 16 + 15 >= mask_from;" if LEAN else ""}
     float p[8];
     #pragma unroll
     for (int i = 0; i < 8; i++) {{
-      float sc = (float)ci[i] * qs_r[i] * ka{" + (float)cj[i] * sqs_r[i] * kb" if J else ""};
-      sc = (pos > row_pos[i] || (u32)pos >= pend) ? -1e30f : sc;
+      {f"""const u32 ri = rt * 16 + 2 * i + h;
+      float sc = (float)ci[i] * qsc_s[ri] * ka + (float)cj[i] * sqsc_s[ri] * kb;
+      if (needmask) {{ u32 rl = ri; __asm__ volatile("" : "+v"(rl)); sc = (pos > sp + (i32)qt0 + (i32)(rl / {G}) || (u32)pos >= pend) ? -1e30f : sc; }}""" if LEAN else
+       f"""float sc = (float)ci[i] * qs_r[i] * ka{" + (float)cj[i] * sqs_r[i] * kb" if J else ""};
+      sc = (pos > row_pos[i] || (u32)pos >= pend) ? -1e30f : sc;"""}
       float rm = row_max16(sc); rm = h ? read_lane(rm, 31) : read_lane(rm, 15);
-      const float mn = __builtin_fmaxf(m[i], rm), corr = __builtin_expf(m[i] - mn);
+      {"const float mo = mlw[2 * i + h], mn = __builtin_fmaxf(mo, rm), corr = __builtin_expf(mo - mn);" if LEAN else
+       "const float mn = __builtin_fmaxf(m[i], rm), corr = __builtin_expf(m[i] - mn);"}
       p[i] = __builtin_expf(sc - mn);
       float ps = row_sum16(p[i]); ps = h ? read_lane(ps, 31) : read_lane(ps, 15);
-      l[i] = l[i] * corr + ps; m[i] = mn;
+      {"mlw[16 + 2 * i + h] = mlw[16 + 2 * i + h] * corr + ps; mlw[2 * i + h] = mn;" if LEAN else "l[i] = l[i] * corr + ps; m[i] = mn;"}
       #pragma unroll
       for (int dt = 0; dt < 16; dt++) O[dt][i] *= corr;
       Pw[(2 * i + h) * 16 + l16] = (_Float16)p[i];
@@ -553,7 +585,7 @@ KERNEL({"attn_pfd" if CH else "attn_pf"}, WG)({"float* __restrict__ pacc, float*
   // epilogue per row tile: O / l into LDS, undo the rotation (signs * WHT / 16), gate, write + quantize per 128
   float* Os = {'Osbuf' if QG else '(float*)qbuf'};
   #pragma unroll
-  for (int i = 0; i < 8; i++) l[i] = l[i] > 0.0f ? 1.0f / l[i] : 0.0f;
+  for (int i = 0; i < 8; i++) {"{ l[i] = mlw[16 + 2 * i + h]; l[i] = l[i] > 0.0f ? 1.0f / l[i] : 0.0f; }" if LEAN else "l[i] = l[i] > 0.0f ? 1.0f / l[i] : 0.0f;"}
   for (u32 rtt = 0; rtt < {RT}; rtt++) {{
     BAR();
     if (rt == rtt) {{
