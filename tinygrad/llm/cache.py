@@ -24,13 +24,19 @@ _CUTOFF = 16 << 20
 _ENV_KEYS = ("MTP", "MTP_K", "MTP_DRAFT_VOCAB", "HALF", "AMD_GEMV", "AMD_CHUNK", "REALIZE", "JIT", "JIT_BATCH_SIZE",
              "GEMV_R", "GEMV_RT", "GEMV_WG", "GEMV_U", "GEMV_NWG", "GEMV_XP", "GEMV_TG",
              # these shape the captured graphs too: a restore under a different value would replay graphs captured for another
-             "MAX_T", "ATTN_QT", "ATTN_QT_PF", "ATTN_QG", "ATTN_PF_LEAN", "PREFILL_T", "PREFILL_SKIP_PAD", "GDN_REPLAY", "SPEC_ASYNC", "DFLASH")
+             "MAX_T", "ATTN_QT", "ATTN_QT_PF", "ATTN_QG", "ATTN_PF_LEAN", "PREFILL_T", "PREFILL_SKIP_PAD", "GDN_REPLAY", "SPEC_ASYNC", "DFLASH",
+             # kv cache layout, which fused kernels are used (AMD_ATTN/AMD_GDN are read when a jit captures: a restore under another value
+             # mixes the replayed graphs with fresh captures of the other path), kernel tiling, and the device/compiler choice
+             "KV_QUANT", "KV_KBITS", "KV_VBITS", "KV_QJL", "AMD_ATTN", "AMD_GDN", "AMD_ATTN_CH", "AMD_ATTN_MQ", "AMD_ATTN_MQ_CH",
+             "GEMM_BM", "GEMM_BT", "GEMM_WN", "GEMM_PF", "DFLASH_ATTN_REF", "DEV", "BEAM", "NOOPT", "AMD_GEMV_CLANG")
 
 def _cache_key(path:str, max_context:int|None, extra:str="") -> str:
   h = hashlib.sha256()
   st = os.stat(path)
   h.update(f"{path} {st.st_size} {st.st_mtime_ns} {max_context} {extra}".encode())
   for k in _ENV_KEYS: h.update(f" {k}={os.environ.get(k, '')}".encode())
+  # the drafter's weights are restored from its file at the saved offsets: a re-quantized drafter at the same path must miss
+  if (df := os.environ.get("DFLASH")) and os.path.exists(df): h.update(f" {os.stat(df).st_size} {os.stat(df).st_mtime_ns}".encode())
   # the pickled graphs depend on the tinygrad sources; hash their CONTENT so editing any of it invalidates the cache.
   # (was mtimes -- but a branch checkout round-trip rewrites files with identical content and fresh mtimes, which
   # forced a full ~9 min cold compile after every `git checkout master && git pull && git checkout <branch>`.)
@@ -125,7 +131,7 @@ def load_llm_cache(path:str, max_context:int|None, extra:str=""):
         return None
       # saved BUFFER uops keep their slot numbers: move the counter past them so fresh buffers can't alias
       UOp.unique_num = itertools.count(meta["max_slot"] + 1)
-      bases = []
+      bases, n_reg = [], len(_gguf.base_registry)
       with Timing("llm cache: uploaded weights in ", enabled=DEBUG >= 1):
         for p, off, size in meta["bases"]:
           t = Tensor(pathlib.Path(p))[off:off + size].to(None).contiguous().realize()
@@ -147,5 +153,8 @@ def load_llm_cache(path:str, max_context:int|None, extra:str=""):
       amd_gemv.install()
     return model, kv
   except Exception as e:
+    # the weights uploaded before the failure stay referenced from base_registry: drop them, or the reload from gguf holds two copies
+    # in VRAM (and a later save would record both)
+    if "n_reg" in locals(): del _gguf.base_registry[n_reg:]
     print(f"llm cache: load failed ({e!r}), reloading from gguf")
     return None
