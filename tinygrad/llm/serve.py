@@ -33,11 +33,12 @@ def _mem_available() -> int|None:
   except OSError: pass
   return None
 
-def _save_snapshot(srv, model):
+def _save_snapshot(srv, model, protect=None):
   """the live state as a snapshot, or None. Host snapshots live in one pinned arena (model.HostArena) of --host-snapshot-gb, created at
   the first save and never larger than leaves PREFIX_HOST_MIN_FREE_GB (default 4) of host memory available; when it is full the
-  oldest saved snapshots are dropped until the new one fits"""
-  from tinygrad.llm.model import HostArena
+  oldest saved snapshots are dropped until the new one fits -- never `protect`, the snapshot this request is about to restore (with two
+  agents alternating, the oldest snapshot is the other agent's conversation, the one being switched back to)"""
+  from tinygrad.llm.model import HostArena, ArenaFull
   if not getenv("PREFIX_SNAPSHOT_HOST", 1): return model.snapshot_state()
   log = lambda m, c: stderr_log(f"{colored(m, c)}  {colored('--', 'BLACK')}  ")
   if getattr(srv, "arena", None) is None:
@@ -47,13 +48,14 @@ def _save_snapshot(srv, model):
       log(f"snapshot skipped: {size/1e9:.1f} GB for snapshots, {need/1e9:.2f} GB needed", "red")
       return None
     srv.arena = HostArena(model.snapshot_tensors()[0].device, size)
+    log(f"snapshot arena {size/1e9:.1f} GB", "cyan")
   while True:
     try: return model.snapshot_state(srv.arena)
-    except MemoryError:
-      if not (pool := srv.host_snapshots or srv.snapshots):
-        log(f"snapshot skipped: larger than the {srv.arena.nbytes/1e9:.1f} GB arena", "red")
+    except ArenaFull:
+      if (victim := next(((pool, i) for pool in (srv.host_snapshots, srv.snapshots) for i, s in enumerate(pool) if s is not protect), None)) is None:
+        log(f"snapshot skipped: no room in the {srv.arena.nbytes/1e9:.1f} GB arena", "red")
         return None
-      old = pool.pop(0)
+      old = victim[0].pop(victim[1])
       log(f"snapshot dropped for space ({len(old.tokens)} tok, {old.nbytes()/1e9:.2f} GB)", "cyan")
       del old
 
@@ -200,7 +202,7 @@ class Handler(VizHandler):
     # out of VRAM for a clone (a 131072-context run hit this at a 33K prompt, 2026-08-26): drop the saved slots to free
     # their memory and pause snapshots for a while instead of disabling them for the life of the process -- the next
     # conversation may be short again, and the live prefix cache keeps working either way
-    srv.snapshots = []
+    if not getenv("PREFIX_SNAPSHOT_HOST", 1): srv.snapshots = []  # device copies (VRAM); host snapshots live in the arena and free nothing
     srv.snapshots_paused_until = time.perf_counter() + getenv("PREFIX_SNAPSHOT_PAUSE_S", 600)
     stderr_log(f"{colored(f'prefix snapshots paused {getenv("PREFIX_SNAPSHOT_PAUSE_S", 600)}s: {e}', 'red')}  {colored('--', 'BLACK')}  ")
 
@@ -222,11 +224,20 @@ class Handler(VizHandler):
     # sequence's generated tail never matches (the template re-renders the answer without its reasoning)
     # the copy is taken before get_start_pos, which can roll the live state back to a checkpoint (the shared system prompt)
     prev = model._ckpt_tokens if model._ckpt_tokens is not None else model._cached_tokens
+    # a snapshot serves a request that extends its generated sequence, its prefill checkpoint or one of its periodic checkpoints
+    serves = lambda s: max([model.prefix_match(ids, s.tokens), model.prefix_match(ids, s.ckpt_tokens or [])] +
+                           [model.prefix_match(ids, t) for t, _ in s.ckpts if s.tokens[:len(t)] == t])
+    cand = max(srv.snapshots + srv.host_snapshots, key=serves, default=None)  # what this request would restore: not evicted to save
     keep, ts = None, time.perf_counter()
     try:
       if len(prev) - _common_prefix(ids, prev) >= srv.snapshot_min_tokens:
-        keep = _save_snapshot(srv, model)
+        keep = _save_snapshot(srv, model, protect=cand)
     except MemoryError as e: return self._pause_snapshots(srv, e)
+    if keep is not None:
+      # an older snapshot of the conversation just saved is superseded (a restored snapshot stays listed, so each switch added a copy)
+      ref = keep.ckpt_tokens or keep.tokens
+      for pool in (srv.snapshots, srv.host_snapshots):
+        pool[:] = [s for s in pool if s is cand or not (len(r := s.ckpt_tokens or s.tokens) <= len(ref) and ref[:len(r)] == r)]
     live = model.get_start_pos(ids)
     # candidates: the VRAM slots, then the host tier (PREFIX_HOST_SNAPSHOTS slots / PREFIX_HOST_GB): a state evicted from VRAM is
     # copied to host memory instead of being dropped -- re-prefilling a 30K-token conversation takes over a minute here, restoring
@@ -234,9 +245,7 @@ class Handler(VizHandler):
     best_i, best, best_host = -1, live, False
     for tier, lst in ((False, srv.snapshots), (True, srv.host_snapshots)):
       for i, s in enumerate(lst):
-        # a snapshot serves a request that extends either its generated sequence or (far more often) its prefill checkpoint
-        m = max([model.prefix_match(ids, s.tokens), model.prefix_match(ids, s.ckpt_tokens or [])] + [model.prefix_match(ids, t) for t, _ in s.ckpts])
-        if m > best: best_i, best, best_host = i, m, tier
+        if (m := serves(s)) > best: best_i, best, best_host = i, m, tier
     try:
       t0 = time.perf_counter()
       if best_i >= 0:

@@ -391,7 +391,8 @@ class TestPrefixSnapshots(unittest.TestCase):
     from tinygrad.llm.serve import Handler
     sys_p, conv_b = list(range(10)), list(range(10)) + [50] * 2000
     model = SimpleNamespace(_ckpt_tokens=conv_b, _cached_tokens=conv_b + [7], prefix_match=lambda ids, c: 0)
-    model.snapshot_state = lambda arena=None: SimpleNamespace(tokens=list(model._cached_tokens), nbytes=lambda: 1)
+    model.snapshot_state = lambda arena=None: SimpleNamespace(tokens=list(model._cached_tokens), ckpt_tokens=list(model._ckpt_tokens), ckpts=[],
+                                                              nbytes=lambda: 1)
     model.snapshot_nbytes = lambda: 1
     def get_start_pos(ids):
       model._cached_tokens = list(sys_p)
@@ -420,7 +421,8 @@ class TestPrefixSnapshots(unittest.TestCase):
   def test_save_snapshot_drops_oldest(self):
     from types import SimpleNamespace
     from tinygrad.llm import serve
-    tries = iter([MemoryError(), MemoryError(), "snap"])
+    from tinygrad.llm.model import ArenaFull
+    tries = iter([ArenaFull(), ArenaFull(), "snap"])
     def snapshot_state(arena):
       r = next(tries)
       if isinstance(r, Exception): raise r
@@ -430,7 +432,7 @@ class TestPrefixSnapshots(unittest.TestCase):
     with patch("tinygrad.llm.serve.stderr_log"):
       self.assertEqual(serve._save_snapshot(srv, SimpleNamespace(snapshot_state=snapshot_state)), "snap")
     self.assertEqual((srv.host_snapshots, len(srv.snapshots)), ([], 1))  # the two oldest (host tier first) made room
-    tries = iter([MemoryError()])
+    tries = iter([ArenaFull()])
     srv = SimpleNamespace(arena=SimpleNamespace(nbytes=10), host_snapshots=[], snapshots=[])
     with patch("tinygrad.llm.serve.stderr_log"): self.assertIsNone(serve._save_snapshot(srv, SimpleNamespace(snapshot_state=snapshot_state)))
 
@@ -457,6 +459,96 @@ class TestPrefixSnapshots(unittest.TestCase):
     snap = StateSnapshot([1], (), [Buffer(Device.DEFAULT, 100, dtypes.uint8).ensure_allocated()], None, [], [], [None])
     with self.assertRaises(AssertionError): Transformer.restore_state(m, snap)
     self.assertEqual((m._cached_tokens, m._ckpt_tokens, m._ckpts), ([], None, []))
+
+  def test_other_memory_error_keeps_snapshots(self):
+    # a VRAM allocation failure is not "arena full": it must not evict every saved snapshot
+    from types import SimpleNamespace
+    from tinygrad.llm import serve
+    def snapshot_state(arena): raise MemoryError("vram")
+    keepme = SimpleNamespace(tokens=[0], nbytes=lambda: 1)
+    srv = SimpleNamespace(arena=SimpleNamespace(nbytes=10), host_snapshots=[keepme], snapshots=[])
+    with self.assertRaises(MemoryError): serve._save_snapshot(srv, SimpleNamespace(snapshot_state=snapshot_state))
+    self.assertEqual(srv.host_snapshots, [keepme])
+
+  def test_save_never_evicts_restore_candidate(self):
+    # two agents alternating: the oldest snapshot is the conversation being switched back to; making room must skip it
+    from types import SimpleNamespace
+    from tinygrad.llm import serve
+    from tinygrad.llm.model import ArenaFull
+    def snapshot_state(arena): raise ArenaFull()
+    snap = lambda n: SimpleNamespace(tokens=[0] * n, nbytes=lambda: n)
+    other = snap(1)
+    srv = SimpleNamespace(arena=SimpleNamespace(nbytes=10), host_snapshots=[other], snapshots=[])
+    with patch("tinygrad.llm.serve.stderr_log"):
+      self.assertIsNone(serve._save_snapshot(srv, SimpleNamespace(snapshot_state=snapshot_state), protect=other))
+    self.assertEqual(srv.host_snapshots, [other])
+
+  def test_superseded_snapshots_dropped(self):
+    # saving the live conversation drops older snapshots of it (their checkpoint is a prefix of the new one), keeps the others
+    from types import SimpleNamespace
+    from tinygrad.llm.serve import Handler
+    a_old = SimpleNamespace(tokens=[1, 2, 3, 9], ckpt_tokens=[1, 2, 3], ckpts=[], nbytes=lambda: 1)
+    b = SimpleNamespace(tokens=[5, 6, 7, 9], ckpt_tokens=[5, 6, 7], ckpts=[], nbytes=lambda: 1)
+    a_live = [1, 2, 3, 4, 5]
+    model = SimpleNamespace(_ckpt_tokens=list(a_live), _cached_tokens=a_live + [8], prefix_match=lambda ids, c: len(c) if c and ids[:len(c)] == c and len(c) < len(ids) else 0)
+    model.snapshot_state = lambda arena=None: SimpleNamespace(tokens=list(model._cached_tokens), ckpt_tokens=list(model._ckpt_tokens), ckpts=[],
+                                                              nbytes=lambda: 1)
+    model.snapshot_nbytes = lambda: 1
+    model.get_start_pos = lambda ids: 0
+    model.restore_state = lambda snap: None
+    srv = SimpleNamespace(model=model, max_snapshots=5, snapshot_min_tokens=1, snapshots=[], host_snapshots=[a_old, b], max_host_snapshots=5,
+                          max_host_bytes=100, arena=object())
+    with patch("tinygrad.llm.serve.stderr_log"): Handler._pick_prefix_state(SimpleNamespace(server=srv), [5, 6, 7, 8, 8], [])  # B comes back
+    self.assertNotIn(a_old, srv.snapshots + srv.host_snapshots)
+    self.assertEqual(sorted(len(s.tokens) for s in srv.snapshots + srv.host_snapshots), [4, 6])  # B (restored, kept) + the new A
+
+  def test_arena_syncs_before_reuse(self):
+    import gc
+    from tinygrad import Device
+    from tinygrad.llm.model import HostArena
+    class Snap: pass
+    a, s = HostArena(Device.DEFAULT, 4096), Snap()
+    a.take(100); a.claim(s)
+    with patch.object(type(Device[Device.DEFAULT]), "synchronize") as sync:
+      a.take(100); sync.assert_not_called()  # nothing released yet
+      del s; gc.collect()
+      a.take(100); sync.assert_called_once()
+    a.abandon()
+
+  def test_failed_snapshot_returns_pieces(self):
+    # any exception during the copies gives the pieces back, not just MemoryError
+    from types import SimpleNamespace
+    from tinygrad import Device, Tensor, dtypes
+    from tinygrad.llm.model import Transformer, HostArena
+    a = HostArena(Device.DEFAULT, 4096)
+    t = Tensor.empty(100, dtype=dtypes.uint8).contiguous().realize()
+    def boom(*args): a.take(100); raise RuntimeError("gpu")
+    m = SimpleNamespace(snapshot_tensors=lambda: [t], snapshot_segments=lambda L: [None], _cached_tokens=[1], _ckpt_tokens=None, _ckpts=[],
+                        _ckpt_pairs=lambda: [], _cached_media=(), _live_len=lambda: 1)
+    with patch("tinygrad.llm.model.StateSnapshot._host_copy", side_effect=boom), self.assertRaises(RuntimeError):
+      Transformer.snapshot_state(m, a)
+    self.assertEqual(a.offs, [])
+    for _ in range(16): a.take(256)  # the whole arena is free again
+
+  def test_restore_oom_leaves_live_state(self):
+    # the periodic-checkpoint VRAM copies are made before anything live is touched: an OOM there changes nothing
+    from types import SimpleNamespace
+    from tinygrad import Device, Tensor, dtypes
+    from tinygrad.device import Buffer
+    from tinygrad.llm.model import Transformer, StateSnapshot
+    live = Tensor.empty(100, dtype=dtypes.uint8).contiguous().realize()
+    def oom(b): raise MemoryError("vram")
+    m = SimpleNamespace(snapshot_tensors=lambda: [live], _cached_tokens=[1, 2, 3], _ckpt_tokens=[1, 2], _ckpts=[([1], [])], _device_copy_buf=oom,
+                        _ckpt_pairs=lambda: [])
+    snap = StateSnapshot([9], (), [Buffer(Device.DEFAULT, 100, dtypes.uint8).ensure_allocated()], None, [], [([9], [object()])], [None])
+    with self.assertRaises(MemoryError): Transformer.restore_state(m, snap)
+    self.assertEqual((m._cached_tokens, m._ckpt_tokens, m._ckpts), ([1, 2, 3], [1, 2], [([1], [])]))
+
+  def test_snapshot_packs_checkpoint_positions(self):
+    from types import SimpleNamespace
+    from tinygrad.llm.model import Transformer
+    m = SimpleNamespace(_cached_tokens=[1, 2], _ckpt_tokens=[1, 2, 3, 4, 5])
+    self.assertEqual(Transformer._live_len(m), 5)
 
   def test_snapshot_buffers_freed(self):
     # a dropped snapshot gives its memory back: snapshot sizes vary, so a buffer parked in the allocator's LRU cache was never reused

@@ -1,5 +1,5 @@
 from __future__ import annotations
-import dataclasses, enum, functools, itertools, math, pathlib, weakref
+import collections, dataclasses, enum, functools, itertools, math, pathlib, weakref
 from dataclasses import dataclass, replace
 from typing import Any
 from tinygrad import Tensor, nn, UOp, TinyJit, getenv, function, dtypes
@@ -7,6 +7,9 @@ from tinygrad.llm.kernels.amd import Linear, gated_delta_prefill, flash_attentio
 from tinygrad.helpers import DEBUG, Timing, Context
 from tinygrad.llm.gguf import gguf_load
 from tinygrad.uop.ops import resolve
+
+class ArenaFull(MemoryError):
+  """no free block in the snapshot arena fits: drop a saved snapshot and retry (any other MemoryError is a real allocation failure)"""
 
 class HostArena:
   """snapshot storage in host memory: one pinned buffer, allocated once and sub-allocated (TLSF). Every host buffer the GPU reads is
@@ -17,17 +20,24 @@ class HostArena:
     from tinygrad.device import Buffer, BufferSpec
     from tinygrad.runtime.support.memory import TLSFAllocator
     self.nbytes, self.tlsf = nbytes, TLSFAllocator(nbytes)
-    self.buf = Buffer(device, nbytes, dtypes.uint8, options=BufferSpec(host=True, nolru=True)).ensure_allocated()
+    self.device, self.buf = device, Buffer(device, nbytes, dtypes.uint8, options=BufferSpec(host=True, nolru=True)).ensure_allocated()
     self.offs:list[int] = []  # taken since the last claim
+    # released pieces wait here until the next take(): a finalizer can run on any thread (a GET thread's cyclic GC), TLSF is only
+    # touched under the server's model lock, and the device is synced before released space is reused (queued copies may still use it)
+    self.released:collections.deque = collections.deque()
   def take(self, n:int):
     """a view of n bytes (MemoryError when no free block fits)"""
+    if self.released:  # copies are queued, not waited for: reuse released space only after every copy into or out of it is done
+      from tinygrad.device import Device
+      Device[self.device].synchronize()
+      while self.released: self.tlsf.free(self.released.popleft())
     # sizes rounded to 256 B with alignment 1 keep every offset 256-aligned: TLSF searches for size + align - 1, so with an alignment a
     # freed hole could never take a piece of its own size again
-    off = self.tlsf.alloc(-(-max(n, 1) // 256) * 256)
+    try: off = self.tlsf.alloc(-(-max(n, 1) // 256) * 256)
+    except MemoryError as e: raise ArenaFull(str(e)) from None
     self.offs.append(off)
     return self.buf.view(max(n, 1), dtypes.uint8, off).ensure_allocated()
-  def release(self, offs:list[int]):
-    for o in offs: self.tlsf.free(o)
+  def release(self, offs:list[int]): self.released.extend(offs)
   def claim(self, owner) -> None:
     """the pieces taken since the last claim belong to owner: freed when it is garbage collected"""
     offs, self.offs = self.offs, []
@@ -1225,11 +1235,14 @@ class Transformer:
     return Buffer(src.device, src.size, src.dtype, options=BufferSpec(nolru=True)).ensure_allocated().copy_from(src)  # nolru: see _host_copy
   @staticmethod
   def _device_copy(t:Tensor): return Transformer._device_copy_buf(t.uop.buffer.ensure_allocated())
+  def _live_len(self) -> int:
+    """kv positions a snapshot must hold: the live tokens, and the prefill checkpoint's (a snapshot also resumes from that)"""
+    return max(len(self._cached_tokens), len(self._ckpt_tokens or []))
   def snapshot_nbytes(self) -> int:
     """what snapshot_state would allocate now, without allocating it"""
     host = bool(getenv("PREFIX_SNAPSHOT_HOST", 1))
     tens = self.snapshot_tensors()
-    segs = self.snapshot_segments(len(self._cached_tokens)) if host else [None] * len(tens)
+    segs = self.snapshot_segments(self._live_len()) if host else [None] * len(tens)
     n = sum(t.uop.buffer.nbytes if sg is None else sum(b for _, b in sg) for t, sg in zip(tens, segs))
     if self._ckpt_tokens is not None: n += sum(c.uop.buffer.nbytes for _, c in self._ckpt_pairs())
     return n + sum(b.nbytes for _, bs in self._ckpts for b in bs)
@@ -1245,12 +1258,12 @@ class Transformer:
     cp = (lambda t: StateSnapshot._host_copy(t.uop.buffer.ensure_allocated(), arena)) if host else self._device_copy
     cpb = (lambda b: StateSnapshot._host_copy(b, arena)) if host else self._device_copy_buf
     tens = self.snapshot_tensors()
-    segs = self.snapshot_segments(len(self._cached_tokens)) if host else [None] * len(tens)
+    segs = self.snapshot_segments(self._live_len()) if host else [None] * len(tens)
     try:
       bufs = [cp(t) if sg is None else StateSnapshot._host_pack(t.uop.buffer.ensure_allocated(), sg, arena) for t, sg in zip(tens, segs)]
       ckpt_bufs = [cp(c) for _, c in self._ckpt_pairs()] if self._ckpt_tokens is not None else []
       ckpts = [(list(t), [cpb(b) for b in bs]) for t, bs in self._ckpts]
-    except MemoryError:
+    except BaseException:  # whatever stopped the copies, the pieces taken so far go back (not to the next snapshot's claim)
       if arena is not None: arena.abandon()
       raise
     snap = StateSnapshot(list(self._cached_tokens), self._cached_media, bufs, list(self._ckpt_tokens) if self._ckpt_tokens is not None else None,
@@ -1261,6 +1274,8 @@ class Transformer:
     """write a snapshot (device or host copy) back into the live state buffers"""
     live = self.snapshot_tensors()
     assert len(live) == len(snap.bufs), "snapshot does not match the model's state layout"
+    # first what can fail on allocation (VRAM copies of the periodic checkpoints): a MemoryError here leaves the live state untouched
+    ckpts = [(list(t), [self._device_copy_buf(b) for b in bs]) for t, bs in snap.ckpts]
     try:
       for i, (t, b) in enumerate(zip(live, snap.bufs)):
         if snap.segs and (sg := snap.segs[i]) is not None: StateSnapshot._host_unpack(t.uop.buffer.ensure_allocated(), b, sg)
@@ -1274,7 +1289,7 @@ class Transformer:
     self._cached_tokens, self._cached_media = list(snap.tokens), snap.media
     # the live checkpoint belonged to the conversation that was live; its kv positions are gone now. take the snapshot's (if any)
     self._ckpt_tokens = list(snap.ckpt_tokens) if snap.ckpt_bufs else None
-    self._ckpts = [(list(t), [self._device_copy_buf(b) for b in bs]) for t, bs in snap.ckpts]
+    self._ckpts = ckpts
 
   # ---- vision: image embeddings replace the <|image_pad|> tokens, attention positions follow Qwen's m-rope ----
   def _media_cut(self, media_key:tuple) -> int|None:
