@@ -51,7 +51,7 @@ class StateSnapshot:
   segs: list = dataclasses.field(default_factory=list)  # per bufs entry: None (whole buffer) or [(offset, nbytes)] packed into a compact buffer
   def nbytes(self) -> int: return sum(b.nbytes for b in self.bufs + self.ckpt_bufs) + sum(b.nbytes for _, bs in self.ckpts for b in bs)
   @property
-  def on_host(self) -> bool: return bool(self.bufs) and bool(getattr(self.bufs[0].options, "host", False))
+  def on_host(self) -> bool: return bool(self.bufs) and bool(getattr(self.bufs[0].base.options, "host", False))  # base: arena pieces are views
   @staticmethod
   def _host_copy(b, arena:HostArena|None=None):
     # a device-visible pinned host buffer (BufferSpec(host=True)) on the same device: the copy is one SDMA transfer over PCIe in
@@ -82,7 +82,7 @@ class StateSnapshot:
     """the same snapshot with every buffer copied to host memory (frees the device copies)"""
     if self.on_host: return self
     return StateSnapshot(self.tokens, self.media, [self._host_copy(b) for b in self.bufs], self.ckpt_tokens, [self._host_copy(b) for b in self.ckpt_bufs],
-                         [(t, [self._host_copy(b) for b in bs]) for t, bs in self.ckpts])
+                         [(t, [self._host_copy(b) for b in bs]) for t, bs in self.ckpts], self.segs)
 
 class ExpertGating(enum.IntEnum):
   SOFTMAX = 1
@@ -1259,11 +1259,16 @@ class Transformer:
     """write a snapshot (device or host copy) back into the live state buffers"""
     live = self.snapshot_tensors()
     assert len(live) == len(snap.bufs), "snapshot does not match the model's state layout"
-    for i, (t, b) in enumerate(zip(live, snap.bufs)):
-      if snap.segs and (sg := snap.segs[i]) is not None: StateSnapshot._host_unpack(t.uop.buffer.ensure_allocated(), b, sg)
-      else: t.uop.buffer.ensure_allocated().copy_from(b)
-    if snap.ckpt_bufs:
-      for (_, c), b in zip(self._ckpt_pairs(), snap.ckpt_bufs): c.uop.buffer.ensure_allocated().copy_from(b)
+    try:
+      for i, (t, b) in enumerate(zip(live, snap.bufs)):
+        if snap.segs and (sg := snap.segs[i]) is not None: StateSnapshot._host_unpack(t.uop.buffer.ensure_allocated(), b, sg)
+        else: t.uop.buffer.ensure_allocated().copy_from(b)
+      if snap.ckpt_bufs:
+        for (_, c), b in zip(self._ckpt_pairs(), snap.ckpt_bufs): c.uop.buffer.ensure_allocated().copy_from(b)
+    except BaseException:
+      # a restore that stopped partway left the live buffers half overwritten: nothing cached may be reused from them
+      self._cached_tokens, self._ckpt_tokens, self._ckpts = [], None, []
+      raise
     self._cached_tokens, self._cached_media = list(snap.tokens), snap.media
     # the live checkpoint belonged to the conversation that was live; its kv positions are gone now. take the snapshot's (if any)
     self._ckpt_tokens = list(snap.ckpt_tokens) if snap.ckpt_bufs else None

@@ -434,6 +434,30 @@ class TestPrefixSnapshots(unittest.TestCase):
     srv = SimpleNamespace(arena=SimpleNamespace(nbytes=10), host_snapshots=[], snapshots=[])
     with patch("tinygrad.llm.serve.stderr_log"): self.assertIsNone(serve._save_snapshot(srv, SimpleNamespace(snapshot_state=snapshot_state)))
 
+  def test_arena_snapshot_is_on_host(self):
+    # arena pieces are views: a snapshot of them is already in host memory (to_host must not copy it again, and must keep segs)
+    from tinygrad import Device, dtypes
+    from tinygrad.device import Buffer
+    from tinygrad.llm.model import HostArena, StateSnapshot
+    a = HostArena(Device.DEFAULT, 4096)
+    snap = StateSnapshot([1], (), [a.take(100)], None, [], [], [[(0, 100)]])
+    self.assertTrue(snap.on_host)
+    self.assertIs(snap.to_host(), snap)
+    dev = StateSnapshot([1], (), [Buffer(Device.DEFAULT, 100, dtypes.uint8).ensure_allocated()], None, [], [], [[(0, 100)]])
+    self.assertEqual(dev.to_host().segs, [[(0, 100)]])
+
+  def test_failed_restore_drops_live_state(self):
+    # a restore that fails partway must not leave the half-overwritten live state reusable
+    from types import SimpleNamespace
+    from tinygrad import Device, Tensor, dtypes
+    from tinygrad.device import Buffer
+    from tinygrad.llm.model import Transformer, StateSnapshot
+    live = Tensor.empty(200, dtype=dtypes.uint8).contiguous().realize()
+    m = SimpleNamespace(snapshot_tensors=lambda: [live], _cached_tokens=[1, 2, 3], _ckpt_tokens=[1, 2], _ckpts=[([1], [])])
+    snap = StateSnapshot([1], (), [Buffer(Device.DEFAULT, 100, dtypes.uint8).ensure_allocated()], None, [], [], [None])
+    with self.assertRaises(AssertionError): Transformer.restore_state(m, snap)
+    self.assertEqual((m._cached_tokens, m._ckpt_tokens, m._ckpts), ([], None, []))
+
   def test_snapshot_buffers_freed(self):
     # a dropped snapshot gives its memory back: snapshot sizes vary, so a buffer parked in the allocator's LRU cache was never reused
     from tinygrad import Device, dtypes
