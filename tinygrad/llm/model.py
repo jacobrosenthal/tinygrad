@@ -7,7 +7,7 @@ from tinygrad.llm.kernels.amd import Linear, ExpertWeights, fp8_matmul, gated_de
 from tinygrad.llm.gguf import gguf_parse, gguf_shard, GGUFPackedTable, _GGML_QUANT, _load_raw
 from tinygrad.llm.hf import hf_load
 from tinygrad.uop.ops import resolve, smax, ssimplify
-from tinygrad.helpers import unwrap, round_up, get_child, DEBUG, Timing, Context
+from tinygrad.helpers import unwrap, round_up, get_child, DEBUG, Timing
 
 StartPos = tuple[int|UOp, ...]
 
@@ -1501,15 +1501,13 @@ class Transformer:
     # eager capture inside that request (a 1914-token prefill measured 212 tok/s instead of 856). It has to go through the real
     # path: the prefill chunk is a shrink of the persistent prompt buffer, and a synthetic Tensor does not match that capture.
     # a prompt of exactly w tokens leaves w-1, which selects width w (w-1 is above the next width down), so this captures each one.
-    # TRACEMETA=0 for speed: the metadata tracker walks the Python stack on every rewrite, and warmup schedules a lot.
-    with Context(TRACEMETA=0):
-      for w in sorted({256, 512, chunk_T}):
-        if 256 < w <= chunk_T:
-          for _ in range(2):
-            # from position 0: the previous warmup prompt (all zeros too) is a cached prefix of this one, and resuming from it would run
-            # the rest at a narrower width -- the widest was never captured and the first long request after a restart paid a 13-28 s capture
-            self._cached_tokens, self._ckpt_tokens, self._ckpts, self._pfx_tokens = [], None, [], None
-            list(zip(range(1), self.generate([0] * w)))
+    for w in sorted({256, 512, chunk_T}):
+      if 256 < w <= chunk_T:
+        for _ in range(2):
+          # from position 0: the previous warmup prompt (all zeros too) is a cached prefix of this one, and resuming from it would run
+          # the rest at a narrower width -- the widest was never captured and the first long request after a restart paid a 13-28 s capture
+          self._cached_tokens, self._ckpt_tokens, self._ckpts, self._pfx_tokens = [], None, [], None
+          list(zip(range(1), self.generate([0] * w)))
     self._cached_tokens = []  # the extra calls rewrote the state at position 0
     self._warming, self._ckpt_tokens, self._ckpts = False, None, []
 
