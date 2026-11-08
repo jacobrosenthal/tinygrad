@@ -850,6 +850,18 @@ class GatedDeltaNetBlock(FFNBlock):
           self._tape = (Tensor.zeros((MAX_T - 1) * self.conv_channels, device=x.device).contiguous().realize(),
                         Tensor.zeros((MAX_T - 1) * 2 * self.num_v_heads, device=x.device).contiguous().realize())
 
+_HOST_STAGING: dict = {}
+def _host_upload(dst, data:bytes|memoryview) -> None:
+  """write data into device buffer dst with one direct copy from a pinned, page-aligned host staging buffer (the device maps host memory
+  for the copy, which needs page alignment: a Python bytes object or array is not). The staging buffer is reused per (device, size);
+  as_memoryview synchronizes first, so a copy still reading it from the previous call is done before it is rewritten"""
+  from tinygrad.device import Buffer, BufferSpec
+  key = (dst.device, dst.nbytes)
+  if (hb := _HOST_STAGING.get(key)) is None:
+    hb = _HOST_STAGING[key] = Buffer(dst.device, dst.nbytes, options=BufferSpec(host=True, cpu_access=True, nolru=True)).ensure_allocated()
+  hb.as_memoryview(allow_zero_copy=True)[:] = data
+  dst.ensure_allocated().copy_from(hb)
+
 _ASYNC_IO: dict[tuple[int, int], tuple[tuple[Tensor, memoryview], ...]] = {}
 
 class MTPModule:
@@ -1444,9 +1456,8 @@ class Transformer:
   def _i32_tensor(self, vals:list[int]) -> Tensor:
     """a fresh realized device int32 tensor written with a direct copy (see _prompt_tensor: no Tensor.realize walk)"""
     import array
-    from tinygrad.device import Buffer
     t = Tensor.empty(len(vals), dtype=dtypes.int32).contiguous().realize()
-    t.uop.buffer.ensure_allocated().copy_from(Buffer("PYTHON", len(vals) * 4, opaque=memoryview(array.array("i", vals)).cast('B')).ensure_allocated())
+    _host_upload(t.uop.buffer, memoryview(array.array("i", vals)).cast('B'))
     return t
 
   def _spec_jit(self, T:int, n_keep:int|None=None):
@@ -1778,14 +1789,13 @@ class Transformer:
     repeat of vocab id 0. Only call this when self._penalties_enabled -- callers skip it (pass window=None)
     otherwise, so the no-penalty (default) path never pays for this at all."""
     import array
-    from tinygrad.device import Buffer
     n = self.repeat_last_n
     if self._repeat_buf is None: self._repeat_buf = Tensor.empty(1, n, dtype=dtypes.int32).contiguous().realize()
     window = tokens[-n:]
     padded = [-1] * (n - len(window)) + window
     # cast to bytes: opaque buffers are expected in byte format (Buffer._host_mv forces a 'B' view for a host-visible dest)
     src = memoryview(array.array("i", padded)).cast('B')
-    self._repeat_buf.uop.buffer.ensure_allocated().copy_from(Buffer("PYTHON", n * 4, opaque=src).ensure_allocated())
+    _host_upload(self._repeat_buf.uop.buffer, src)
     return self._repeat_buf
 
   def generate(self, tokens:list[int], chunk_size:int=32, temperature:float=0.0, media:list|None=None):
@@ -1885,14 +1895,13 @@ class Transformer:
     """the prompt in one persistent device buffer (padded to max_context + chunk_T), written with a direct copy: Buffer.copy_from runs
     a single copy op without going through Tensor.realize, which would walk every live Tensor in the process (~0.2 s here)"""
     import array
-    from tinygrad.device import Buffer
     n = self.max_context + chunk_T
     if getattr(self, "_prompt_buf", None) is None or self._prompt_buf.shape[1] != n:
       self._prompt_buf = Tensor.empty(1, n, dtype=dtypes.int32).contiguous().realize()
     # cast to bytes: opaque buffers are expected in byte format (Buffer._host_mv forces a 'B' view for a host-visible dest)
     src = memoryview(array.array("i", tokens + [0] * (n - len(tokens)))).cast('B')
     # Tensor.empty().realize() does not allocate (the tensor already has buffer identity): allocate before the direct copy
-    self._prompt_buf.uop.buffer.ensure_allocated().copy_from(Buffer("PYTHON", n * 4, opaque=src).ensure_allocated())
+    _host_upload(self._prompt_buf.uop.buffer, src)
     return self._prompt_buf
 
   def _generate_spec(self, tokens:list[int], chunk_T:int, temperature:float=0.0, spans:list|None=None, start_pos:int|None=None):
