@@ -281,21 +281,29 @@ def gemm_q8(q8:Tensor, sw:Tensor, N:int, K:int, xq:Tensor, xs:Tensor, T:int, res
 # keep every layer's copy alive during the JIT capture. the slot's previous reader (the gemm output) is the next dequant's dependency, so
 # the schedule cannot overwrite a slot before the gemm that reads it ran.
 class _Pool:
-  def __init__(self): self.slots: dict[tuple[str, int], list[tuple[Tensor, Tensor, Tensor|None]]] = {}; self.turn: dict[tuple[str, int], int] = {}
+  """two dequant scratch slots per weight size, alternating so one gemm's deq8 overlaps the previous gemm. A slot's writes chain: get() hands
+  out the state the last deq8 left (the scheduler rejects two writes that both supersede one buffer state), plus the gemm that last read
+  it as an ordering dependency. new_forward() starts every slot from its realized buffer again"""
+  def __init__(self):
+    self.slots: dict[tuple[str, int], list[tuple[Tensor, Tensor, Tensor, Tensor, Tensor|None]]] = {}  # (q8, sw base, q8, sw state, last reader)
+    self.turn: dict[tuple[str, int], int] = {}
   def get(self, dev:str, N:int, K:int, dep:Tensor) -> tuple[Tensor, Tensor, Tensor]:
     key = (dev, N * K)
     if key not in self.slots:
-      self.slots[key] = [(Tensor.empty(N * K, dtype=dtypes.int8, device=dev).contiguous().realize(),
-                          Tensor.empty(N * K // 128, dtype=dtypes.float32, device=dev).contiguous().realize(), None) for _ in range(2)]
+      def slot():
+        q8, sw = Tensor.empty(N * K, dtype=dtypes.int8, device=dev).contiguous().realize(), \
+                 Tensor.empty(N * K // 128, dtype=dtypes.float32, device=dev).contiguous().realize()
+        return (q8, sw, q8, sw, None)
+      self.slots[key] = [slot() for _ in range(2)]
       self.turn[key] = 0
     i = self.turn[key]; self.turn[key] = (i + 1) % 2
-    q8, sw, last = self.slots[key][i]
+    _, _, q8, sw, last = self.slots[key][i]
     return q8, sw, (last if last is not None else dep)
-  def used(self, dev:str, N:int, K:int, y:Tensor):
+  def used(self, dev:str, N:int, K:int, y:Tensor, q8:Tensor, sw:Tensor):
     key = (dev, N * K); i = (self.turn[key] + 1) % 2  # the slot handed out last
-    q8, sw, _ = self.slots[key][i]; self.slots[key][i] = (q8, sw, y)
+    q8b, swb, _, _, _ = self.slots[key][i]; self.slots[key][i] = (q8b, swb, q8, sw, y)
   def new_forward(self):
-    for key, lst in self.slots.items(): self.slots[key] = [(q8, sw, None) for q8, sw, _ in lst]
+    for key, lst in self.slots.items(): self.slots[key] = [(q8b, swb, q8b, swb, None) for q8b, swb, _, _, _ in lst]
 _pool = _Pool()
 def new_forward(): _pool.new_forward()
 
@@ -304,7 +312,7 @@ def gemm(w:Tensor, ggml_type:int, N:int, K:int, xq:Tensor, xs:Tensor, T:int, res
   q8, sw, dep = _pool.get(w.device, N, K, xq)
   q8, sw = deq8(w, ggml_type, N, K, dep, q8, sw)
   y = gemm_q8(q8, sw, N, K, xq, xs, T, residual)
-  _pool.used(w.device, N, K, y)
+  _pool.used(w.device, N, K, y, q8, sw)
   return y
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
